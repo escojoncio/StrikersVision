@@ -27,7 +27,8 @@ void run(const wgpu::CommandEncoder& cmd, const ConvRequest& req);
 void blit(const wgpu::CommandEncoder& cmd, const ConvRequest& req);
 
 bool snapshot_depth_supported() noexcept;
+/// strikers-vision: packed = dst is RGBA8Unorm and receives the depth float's four bytes (little-endian).
 void snapshot_depth(const wgpu::CommandEncoder& cmd, const wgpu::TextureView& srcDepth, uint32_t msaaSamples,
-                    const wgpu::TextureView& dst);
+                    const wgpu::TextureView& dst, bool packed = false);
 
 } // namespace aurora::gfx::tex_copy_conv

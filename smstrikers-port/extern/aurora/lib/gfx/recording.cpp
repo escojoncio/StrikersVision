@@ -53,6 +53,7 @@ struct FrameRecorder {
   webgpu::TextureWithSampler offscreenColor;
   webgpu::TextureWithSampler offscreenDepth;
   wgpu::TextureView offscreenDepthSnapshot; // strikers-vision: ExternalPassTarget::depthSnapshot of the open pass
+  bool offscreenDepthSnapshotPacked = false;
   Viewport cachedViewport;
   ClipRect cachedScissor;
   bool suppressRenderWorker = false;
@@ -515,6 +516,7 @@ void start_offscreen(uint32_t width, uint32_t height, const ExternalPassTarget* 
   }
   g_recorder.offscreenDepth = std::move(offscreenEntry.depth);
   g_recorder.offscreenDepthSnapshot = external != nullptr ? external->depthSnapshot : wgpu::TextureView{};
+  g_recorder.offscreenDepthSnapshotPacked = external != nullptr && external->depthSnapshotPacked;
 
   RenderPass newPass{
       .label = pass_label(external != nullptr ? "Offscreen external" : "Offscreen"),
@@ -1088,6 +1090,7 @@ bool resolve_pass(const ResolveDesc& desc, ResolvedTargets& out) {
   const bool externalDepth = wantDepth && g_recorder.inOffscreen && static_cast<bool>(g_recorder.offscreenDepthSnapshot);
   if (externalDepth) {
     prevPass.snapshotDepthDst = g_recorder.offscreenDepthSnapshot;
+    prevPass.snapshotDepthPacked = g_recorder.offscreenDepthSnapshotPacked;
     out.depth = g_recorder.offscreenDepthSnapshot;
   }
   const bool pooledDepth = wantDepth && !externalDepth;

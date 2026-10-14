@@ -316,7 +316,8 @@ void render(wgpu::CommandEncoder& cmd, FramePacket& frame, RenderPass& passInfo,
     cmd.CopyTextureToTexture(&src, &dst, &size);
   }
   if (passInfo.snapshotDepthDst) {
-    tex_copy_conv::snapshot_depth(cmd, passInfo.copySourceDepthView, passInfo.msaaSamples, passInfo.snapshotDepthDst);
+    tex_copy_conv::snapshot_depth(cmd, passInfo.copySourceDepthView, passInfo.msaaSamples, passInfo.snapshotDepthDst,
+                                  passInfo.snapshotDepthPacked);
   }
 }
 

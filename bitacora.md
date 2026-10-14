@@ -54,10 +54,25 @@
   sv_xr.mm: `g.eyeDepths[slot][eye]` (IOSurface `OneComponent32Float` → Dawn R32Float, misma vida de accesos/fences que los
   de color; `g.depthExport`, `stop_depth_export` si Dawn lo rechaza → vuelve a la estimación), composite: textura 1 +
   `EyeUniforms.proj` (P22, P23, near 0.05, far 1500) y en `eye_fragment` z_view = -nf/(d(f-n)+n) → depth del drawable.
-  Línea de log: `3D modes ready: ... depth exported|estimated`. **Pendiente de probar en el visor.**
+  Línea de log: `3D modes ready: ... depth exported|estimated`. Primera prueba: Dawn (prebuilt) rechaza el IOSurface
+  R32Float (`Unsupported IOSurface format (4c303066)`, cayó bien a la estimación). Ahora la profundidad va en RGBA8
+  (`32RGBA`, único formato que importa) como los 4 bytes del float: Aurora `tex_copy_conv` pipelines "Depth Snapshot
+  Packed"(MS) (`ExternalPassTarget::depthSnapshotPacked` → `RenderPass::snapshotDepthPacked`), MSL desempaqueta con
+  `as_type<float>`. **Pendiente de probar.**
+- Bajones de framerate (pantalla 80-86 fps de 90, juego 55-60, peor con confeti): el bucle de Compositor Services iba en el
+  hilo del juego (`display_frame` desde `PortXrEndFrame`): cada frame de pantalla bloqueaba ~6 ms en `waitUntilInputTime`
+  (1,4 por frame de juego → 8-9 ms de los 16,7 perdidos) y la pantalla perdía frames mientras corría el juego. Ahora:
+  hilo `sv-display` (`display_thread_main`, QoS user-interactive) hace `sv_xrhost_frame_begin` sin candado y
+  `display_encode` con él; `std::recursive_mutex g_lock` protege `g` en todos los `Port*` (el `synchronize()` de
+  `PortXrEndFrame` y el `usleep` de `PortXrBeginFrame` quedan fuera); los getters por draw (`PortXrStereoWorld`,
+  `PortXrEyeViewAllowed`, `PortXrCharacterScale`, `PortXrHudOnlyNormalView`…) sin candado (solo leen campos del hilo del
+  juego). El hilo de pantalla retiene el renderer durante la espera; si cambia, presenta el frame limpio. `PortXrShutdown`
+  une el hilo antes de bloquear. **Pendiente de probar**: esperar display ~90 fps y juego 60 estable.
 - Limitación: las Personas no se ven mientras se dibuja con Compositor Services (Apple, foros 791591/801420).
 - Pendiente (por orden):
-  1. Texturas/modelos cortados (ver arriba): pedir captura, probar con `STRIKERS_XR_DECODE=0` y `STRIKERS_XR_CULL=0`.
+  1. Cuadros verdes / texturas corruptas intermitentes, sobre todo con confeti (pools de Aurora suben 0→38 % entonces):
+     pedir captura, probar con `STRIKERS_XR_DECODE=0`; sospecha principal: reutilización de los pools de vértices
+     (decode-once) o del anillo de instancias de sv_fx mientras la GPU aún los lee.
      Verificado en el visor: IOSurface en Dawn, fences, poses, apertura del espacio, Sense. Hápticos fallan
      (gamecontrollerd.haptics XPC 4097): pendiente.
   2. Modo SharePlay con Personas: segundo ImmersiveSpace con RealityView + jumbotron en `LowLevelTexture`

@@ -254,6 +254,46 @@ static constexpr std::string_view FragZ16 = R"(
 }
 )"sv;
 
+// strikers-vision: depth -> RGBA8Unorm as the float's four bytes (little-endian): the one IOSurface
+// format every Dawn imports. Unorm8 stores round(v * 255) exactly, so the bytes survive.
+static constexpr std::string_view DepthSnapshotPackedShader = R"(
+@group(0) @binding(0) var src: texture_depth_2d;
+
+var<private> positions: array<vec2f, 3> = array(
+    vec2f(-1.0, 1.0),
+    vec2f(-1.0, -3.0),
+    vec2f(3.0, 1.0),
+);
+
+@vertex fn vs_main(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
+    return vec4f(positions[vi], 0.0, 1.0);
+}
+
+@fragment fn fs_main(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+    let bits = bitcast<u32>(textureLoad(src, vec2i(pos.xy), 0));
+    return vec4f(f32(bits & 0xFFu), f32((bits >> 8u) & 0xFFu), f32((bits >> 16u) & 0xFFu), f32(bits >> 24u)) / 255.0;
+}
+)"sv;
+
+static constexpr std::string_view DepthSnapshotPackedShaderMS = R"(
+@group(0) @binding(0) var src: texture_depth_multisampled_2d;
+
+var<private> positions: array<vec2f, 3> = array(
+    vec2f(-1.0, 1.0),
+    vec2f(-1.0, -3.0),
+    vec2f(3.0, 1.0),
+);
+
+@vertex fn vs_main(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
+    return vec4f(positions[vi], 0.0, 1.0);
+}
+
+@fragment fn fs_main(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+    let bits = bitcast<u32>(textureLoad(src, vec2i(pos.xy), 0));
+    return vec4f(f32(bits & 0xFFu), f32((bits >> 8u) & 0xFFu), f32((bits >> 16u) & 0xFFu), f32(bits >> 24u)) / 255.0;
+}
+)"sv;
+
 // Depth -> R32Float (no scaling)
 static constexpr std::string_view DepthSnapshotShader = R"(
 @group(0) @binding(0) var src: texture_depth_2d;
@@ -332,6 +372,8 @@ static wgpu::BindGroupLayout g_depthSnapshotBindGroupLayout;
 static wgpu::BindGroupLayout g_depthSnapshotBindGroupLayoutMS;
 static wgpu::RenderPipeline g_depthSnapshotPipeline;
 static wgpu::RenderPipeline g_depthSnapshotPipelineMS;
+static wgpu::RenderPipeline g_depthSnapshotPackedPipeline;   // strikers-vision: RGBA8Unorm target
+static wgpu::RenderPipeline g_depthSnapshotPackedPipelineMS;
 
 static wgpu::BindGroupLayout create_depth_snapshot_layout(bool multisampled, const char* label) {
   const std::array entries{
@@ -356,7 +398,8 @@ static wgpu::BindGroupLayout create_depth_snapshot_layout(bool multisampled, con
 
 static wgpu::RenderPipeline create_depth_snapshot_pipeline(const std::string_view shaderSource,
                                                            const wgpu::BindGroupLayout& bindGroupLayout,
-                                                           const char* label) {
+                                                           const char* label,
+                                                           wgpu::TextureFormat targetFormat = wgpu::TextureFormat::R32Float) {
   const std::string source{shaderSource};
   const wgpu::ShaderSourceWGSL wgslSource{wgpu::ShaderSourceWGSL::Init{
       .code = source.c_str(),
@@ -368,7 +411,7 @@ static wgpu::RenderPipeline create_depth_snapshot_pipeline(const std::string_vie
   const auto module = g_device.CreateShaderModule(&moduleDescriptor);
 
   const std::array colorTargets{wgpu::ColorTargetState{
-      .format = wgpu::TextureFormat::R32Float,
+      .format = targetFormat,
   }};
   const wgpu::FragmentState fragmentState{
       .module = module,
@@ -533,6 +576,11 @@ void initialize() {
         create_depth_snapshot_pipeline(DepthSnapshotShader, g_depthSnapshotBindGroupLayout, "Depth Snapshot");
     g_depthSnapshotPipelineMS =
         create_depth_snapshot_pipeline(DepthSnapshotShaderMS, g_depthSnapshotBindGroupLayoutMS, "Depth Snapshot MS");
+    g_depthSnapshotPackedPipeline = create_depth_snapshot_pipeline(
+        DepthSnapshotPackedShader, g_depthSnapshotBindGroupLayout, "Depth Snapshot Packed", wgpu::TextureFormat::RGBA8Unorm);
+    g_depthSnapshotPackedPipelineMS =
+        create_depth_snapshot_pipeline(DepthSnapshotPackedShaderMS, g_depthSnapshotBindGroupLayoutMS,
+                                       "Depth Snapshot Packed MS", wgpu::TextureFormat::RGBA8Unorm);
   }
 
   static constexpr wgpu::SamplerDescriptor nearestSamplerDescriptor{
@@ -561,6 +609,8 @@ void shutdown() {
   g_depthSnapshotBindGroupLayoutMS = {};
   g_depthSnapshotPipeline = {};
   g_depthSnapshotPipelineMS = {};
+  g_depthSnapshotPackedPipeline = {};
+  g_depthSnapshotPackedPipelineMS = {};
 }
 
 static void execute(const wgpu::CommandEncoder& cmd, const ConvRequest& req, const wgpu::RenderPipeline& pipeline) {
@@ -651,9 +701,10 @@ void blit(const wgpu::CommandEncoder& cmd, const ConvRequest& req) { execute(cmd
 bool snapshot_depth_supported() noexcept { return static_cast<bool>(g_depthSnapshotPipeline); }
 
 void snapshot_depth(const wgpu::CommandEncoder& cmd, const wgpu::TextureView& srcDepth, uint32_t msaaSamples,
-                    const wgpu::TextureView& dst) {
+                    const wgpu::TextureView& dst, bool packed) {
   const bool multisampled = msaaSamples > 1;
-  const auto& pipeline = multisampled ? g_depthSnapshotPipelineMS : g_depthSnapshotPipeline;
+  const auto& pipeline = packed ? (multisampled ? g_depthSnapshotPackedPipelineMS : g_depthSnapshotPackedPipeline)
+                                : (multisampled ? g_depthSnapshotPipelineMS : g_depthSnapshotPipeline);
   if (!pipeline) {
     return;
   }
