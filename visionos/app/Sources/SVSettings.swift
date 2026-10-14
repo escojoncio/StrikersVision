@@ -307,10 +307,17 @@ struct SVSettingsView: View {
     }
 }
 
-private struct SVSettingRow: View {
+struct SVSettingRow: View {
     let def: SVSettingDef
     let region: SVRegion?
     @ObservedObject private var settings = SVSettings.shared
+
+    // Explicit: the private property would make the memberwise initializer private, and the match
+    // controls window (SVImmersiveControls.swift) builds rows too.
+    init(def: SVSettingDef, region: SVRegion?) {
+        self.def = def
+        self.region = region
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {

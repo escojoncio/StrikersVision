@@ -97,8 +97,9 @@
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>To use game controllers that connect over Bluetooth.</string>
 
-	<!-- SharePlay: lets the app start an activity outside a FaceTime call (the share sheet), and
-	     marks it as supporting group activities. The entitlement is in StrikersVision.entitlements. -->
+	<!-- SharePlay: the com.apple.developer.group-session entitlement (StrikersVision.entitlements)
+	     is what enables it, including starting it outside a call (TN3128). This key is not in Apple's
+	     Info.plist reference; it is kept only because an unknown key is ignored. -->
 	<key>NSSupportsGroupActivities</key>
 	<true/>
 </dict>

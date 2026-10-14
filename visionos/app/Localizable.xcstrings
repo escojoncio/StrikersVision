@@ -11,6 +11,16 @@
         }
       }
     },
+    "0 is flat; 1 curves the screen around you.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "0 es plana; 1 curva la pantalla a tu alrededor."
+          }
+        }
+      }
+    },
     "1 = life size. Smaller makes the stadium a model around you.": {
       "localizations": {
         "es": {
@@ -37,6 +47,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Un código tiene al menos 3 letras o números."
+          }
+        }
+      }
+    },
+    "All live settings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todos los ajustes en directo"
           }
         }
       }
@@ -117,6 +137,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pantalla gigante"
+          }
+        }
+      }
+    },
+    "Big screen curve": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Curvatura de la pantalla gigante"
+          }
+        }
+      }
+    },
+    "Big screen size": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamaño de la pantalla gigante"
           }
         }
       }
@@ -231,6 +271,26 @@
         }
       }
     },
+    "Decodes the game's geometry once per frame instead of once per eye. Faster; turn it off only to compare.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Decodifica la geometría del juego una vez por fotograma en lugar de una por ojo. Más rápido; desactívalo solo para comparar."
+          }
+        }
+      }
+    },
+    "Depth for the system": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profundidad para el sistema"
+          }
+        }
+      }
+    },
     "Detailed": {
       "localizations": {
         "es": {
@@ -257,6 +317,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Suavizado de bordes (MSAA)"
+          }
+        }
+      }
+    },
+    "Edge smoothing, stadium": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suavizado de bordes, estadio"
+          }
+        }
+      }
+    },
+    "Edge smoothing, table only": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suavizado de bordes, solo mesa"
           }
         }
       }
@@ -301,6 +381,16 @@
         }
       }
     },
+    "Foveated rendering": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renderizado foveado"
+          }
+        }
+      }
+    },
     "Game language": {
       "localizations": {
         "es": {
@@ -341,6 +431,16 @@
         }
       }
     },
+    "Gives visionOS the scene's depth so the picture stays steady when you move your head. Off only to diagnose.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Da a visionOS la profundidad de la escena para que la imagen se mantenga estable al mover la cabeza. Desactívalo solo para diagnosticar."
+          }
+        }
+      }
+    },
     "Hands": {
       "localizations": {
         "es": {
@@ -371,12 +471,42 @@
         }
       }
     },
+    "How far a stick moves before the game notices. Raise it if a player drifts on his own.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuánto se mueve un stick antes de que el juego lo note. Súbela si un jugador se desplaza solo."
+          }
+        }
+      }
+    },
     "How much the game writes to its log. More detail helps when reporting a problem.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Cuánto escribe el juego en su registro. Más detalle ayuda al informar de un problema."
+          }
+        }
+      }
+    },
+    "How often the headset layer writes its frame rate line to the log.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada cuánto escribe la capa del visor su línea de fotogramas por segundo en el registro."
+          }
+        }
+      }
+    },
+    "How strongly the game's rumble reaches the PlayStation VR2 Sense controllers and gamepads. 0 turns it off.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Con qué fuerza llega la vibración del juego a los mandos PlayStation VR2 Sense y a los mandos de juego. 0 la apaga."
           }
         }
       }
@@ -481,6 +611,16 @@
         }
       }
     },
+    "Large": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grande"
+          }
+        }
+      }
+    },
     "Leave the game view": {
       "localizations": {
         "es": {
@@ -547,6 +687,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Buscar de nuevo"
+          }
+        }
+      }
+    },
+    "Match": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partido"
+          }
+        }
+      }
+    },
+    "Medium": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mediana"
           }
         }
       }
@@ -671,6 +831,16 @@
         }
       }
     },
+    "Only the scoreboard over the table": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo el marcador sobre la mesa"
+          }
+        }
+      }
+    },
     "Open Log (top right) and share it. The game's log is also in the Strikers folder as strikers-log.txt.": {
       "localizations": {
         "es": {
@@ -681,12 +851,82 @@
         }
       }
     },
+    "Overrides edge smoothing when only the table is drawn.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sustituye al suavizado de bordes cuando solo se dibuja la mesa."
+          }
+        }
+      }
+    },
+    "Overrides edge smoothing when the life-size stadium is drawn.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sustituye al suavizado de bordes cuando se dibuja el estadio a tamaño real."
+          }
+        }
+      }
+    },
+    "PS button pauses": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El botón PS pausa"
+          }
+        }
+      }
+    },
     "PUT YOUR GAME DISC HERE.txt": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "PON AQUÍ TU DISCO DEL JUEGO.txt"
+          }
+        }
+      }
+    },
+    "Pause": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausa"
+          }
+        }
+      }
+    },
+    "Per-eye culling of stadium objects. Off only to diagnose missing objects.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descarte por ojo de los objetos del estadio. Desactívalo solo para diagnosticar objetos que faltan."
+          }
+        }
+      }
+    },
+    "Performance": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rendimiento"
+          }
+        }
+      }
+    },
+    "Performance lines in the log": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Líneas de rendimiento en el registro"
           }
         }
       }
@@ -771,6 +1011,16 @@
         }
       }
     },
+    "Players only": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo jugadores"
+          }
+        }
+      }
+    },
     "Playing offline": {
       "localizations": {
         "es": {
@@ -811,6 +1061,16 @@
         }
       }
     },
+    "Quit the game?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Salir del juego?"
+          }
+        }
+      }
+    },
     "Reset": {
       "localizations": {
         "es": {
@@ -841,12 +1101,32 @@
         }
       }
     },
+    "Resume": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reanudar"
+          }
+        }
+      }
+    },
     "Return to the game": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Volver al juego"
+          }
+        }
+      }
+    },
+    "Same as above": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Igual que arriba"
           }
         }
       }
@@ -921,12 +1201,52 @@
         }
       }
     },
+    "Sharper where you look and coarser at the edges. Experimental: keep it off unless asked.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Más nítido donde miras y más basto en los bordes. Experimental: déjalo desactivado salvo que se pida."
+          }
+        }
+      }
+    },
     "Show my hands and arms": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Mostrar mis manos y brazos"
+          }
+        }
+      }
+    },
+    "Skip what each eye cannot see": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Omitir lo que cada ojo no ve"
+          }
+        }
+      }
+    },
+    "Small": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pequeña"
+          }
+        }
+      }
+    },
+    "Small: 2.4 m wide at 2.5 m. Medium: 3.6 m at 3 m. Large: 6 m at 4 m. A single click of the right stick cycles it too.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pequeña: 2,4 m de ancho a 2,5 m. Mediana: 3,6 m a 3 m. Grande: 6 m a 4 m. Un clic del stick derecho también la cambia."
           }
         }
       }
@@ -961,6 +1281,26 @@
         }
       }
     },
+    "Stadium detail cut-off": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Límite de detalle del estadio"
+          }
+        }
+      }
+    },
+    "Stadium objects smaller than this many pixels are skipped. 0 draws everything.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los objetos del estadio más pequeños que estos píxeles no se dibujan. 0 lo dibuja todo."
+          }
+        }
+      }
+    },
     "Stadium size": {
       "localizations": {
         "es": {
@@ -987,6 +1327,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Empezar en"
+          }
+        }
+      }
+    },
+    "Stick dead zone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zona muerta de los sticks"
           }
         }
       }
@@ -1034,12 +1384,32 @@
         }
       }
     },
+    "Table only in the stadium": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo la mesa en el estadio"
+          }
+        }
+      }
+    },
     "Table · stadium": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Mesa · estadio"
+          }
+        }
+      }
+    },
+    "Tabletop during play: the flat picture shows only the score bar and the Super Strike meter. Off keeps the whole TV picture.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En la mesa durante el juego: la imagen plana muestra solo el marcador y el medidor de Supertiro. Desactivado, se ve toda la imagen de la tele."
           }
         }
       }
@@ -1064,6 +1434,16 @@
         }
       }
     },
+    "Tabletop · stadium: leave out the life-size goals, benches and fence; the table carries the game.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mesa · estadio: quita las porterías, los banquillos y la valla a tamaño real; el juego va en la mesa."
+          }
+        }
+      }
+    },
     "Tabletop · your room": {
       "localizations": {
         "es": {
@@ -1080,6 +1460,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dile este código a tu amigo. Los dos: Grudge Match, elegid equipo y empezad."
+          }
+        }
+      }
+    },
+    "Test the goal celebration": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Probar la celebración de gol"
           }
         }
       }
@@ -1264,6 +1654,16 @@
         }
       }
     },
+    "Vertex decode once": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Decodificar vértices una vez"
+          }
+        }
+      }
+    },
     "View": {
       "localizations": {
         "es": {
@@ -1280,6 +1680,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vistas"
+          }
+        }
+      }
+    },
+    "When visionOS passes the PS button to the game, it acts as Start. It never leaves the game.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuando visionOS pasa el botón PS al juego, actúa como Start. Nunca sale del juego."
           }
         }
       }

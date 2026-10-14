@@ -33,6 +33,8 @@ struct StrikersVisionApp: App {
     var body: some Scene {
         WindowGroup(id: SVScene.launcher) {
             SVLauncherView()
+                .onAppear { SVLauncherWindows.open += 1 }
+                .onDisappear { SVLauncherWindows.open -= 1 }
         }
         .defaultSize(width: 900, height: 700)
         // On the app's phase, not one window's: closing the launcher while the space is open is not
@@ -43,6 +45,19 @@ struct StrikersVisionApp: App {
         }
         .onChange(of: settings.allowFullImmersion) { _, allow in
             if allow { immersionStyle = FullImmersionStyle.full } else { immersionStyle = MixedImmersionStyle.mixed }
+        }
+
+        // The match controls (SVImmersiveControls.swift): the app's own windows stay visible while
+        // the immersive space is open, so this small one is how settings stay in reach mid-game.
+        WindowGroup(id: SVScene.controls) {
+            SVImmersiveControlsView()
+        }
+        .defaultSize(width: 520, height: 560)
+        .defaultWindowPlacement { _, context in
+            if let launcher = context.windows.first(where: { $0.id == SVScene.launcher }) {
+                return WindowPlacement(.trailing(launcher))
+            }
+            return WindowPlacement()
         }
 
         ImmersiveSpace(id: SVScene.immersive) {
