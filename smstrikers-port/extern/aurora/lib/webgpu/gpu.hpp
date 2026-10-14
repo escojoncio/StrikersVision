@@ -65,6 +65,10 @@ extern bool g_xrHeadless;
 // (SyncFD, or VkSemaphoreOpaqueFD), so an XR-side opaque-fd VkImage can be imported and handed
 // back with a GPU fence. Android only; false everywhere else.
 extern bool g_vulkanSharedImageExportSupported;
+// StrikersVision: Dawn (Metal backend) was created with SharedTextureMemoryIOSurface and
+// SharedFenceMTLSharedEvent, so the visionOS headset layer can render the eye passes into IOSurfaces
+// it composites with its own Metal pipeline, ordered by MTLSharedEvent fences. Apple only.
+extern bool g_metalSharedImageSupported;
 
 bool initialize(AuroraBackend backend, bool allowCpu);
 void shutdown();

@@ -1,0 +1,334 @@
+// StrikersVision: the "App -> game" half of visionos/include/sv_bridge.h, the game thread, the shared
+// log, and the hand-over queues between the app's threads and the game thread (sv_xr.h).
+//
+// Threads: every sv_* function here may be called from the app's main thread (or any thread); the
+// game thread only reads through the sv_game_* accessors in sv_xr.h, which take the same lock. Nothing
+// here ever blocks the main thread on the game.
+
+#include "../include/sv_bridge.h"
+#include "sv_xr.h"
+
+#include <CoreFoundation/CoreFoundation.h>
+
+#include <pthread.h>
+#include <unistd.h>
+
+#include <atomic>
+#include <cerrno>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <deque>
+#include <mutex>
+#include <string>
+#include <utility>
+
+// SDL3 (SDL_main.h). Declared here rather than included: on Apple platforms SDL_main.h also provides
+// a main() of its own unless told otherwise, and the app's main belongs to SwiftUI.
+extern "C" void SDL_SetMainReady(void);
+
+namespace {
+
+std::mutex g_lock;
+SVAppCallbacks g_callbacks{};
+bool g_haveCallbacks = false;
+
+std::atomic<int> g_started{0};
+std::atomic<int> g_running{0};
+std::atomic<int> g_paused{0};
+std::atomic<int> g_quit{0};
+
+// The renderer: retained here (CFBridgingRetain) while it is the current one, so it cannot go away
+// under the game thread between the app's hand-over and the game's next frame.
+void* g_renderer = nullptr;
+uint32_t g_rendererGeneration = 0;
+
+std::deque<std::pair<std::string, std::string>> g_settings;
+int g_pendingViewMode = -1;
+
+int g_participants = 0;
+int g_spatial = 0;
+SVTablePoseCallback g_tablePoseCallback = nullptr;
+bool g_remotePosePending = false;
+float g_remotePose[16] = {};
+float g_remoteScale = 1.0f;
+
+std::string g_home;
+
+void release_renderer_locked() {
+  if (g_renderer != nullptr) {
+    CFRelease(g_renderer);
+    g_renderer = nullptr;
+  }
+}
+
+void* game_thread(void*) {
+  pthread_setname_np("strikers-game");
+  // The game's own argv: no arguments, everything comes from the environment.
+  static char arg0[] = "strikers";
+  static char* argv[] = {arg0, nullptr};
+  SVLOG("game thread: starting strikers_main (home %s)", g_home.c_str());
+  // SwiftUI owns the app's main(); SDL refuses SDL_Init until told the entry point was handled.
+  SDL_SetMainReady();
+  const int rc = strikers_main(1, argv);
+  char reason[96];
+  if (g_quit.load()) {
+    std::snprintf(reason, sizeof(reason), "quit (exit code %d)", rc);
+  } else {
+    std::snprintf(reason, sizeof(reason), "the game loop ended (exit code %d)", rc);
+  }
+  SVLOG("game thread: %s", reason);
+  g_running.store(0);
+  SVAppCallbacks cb{};
+  {
+    std::lock_guard<std::mutex> lock(g_lock);
+    cb = g_callbacks;
+  }
+  if (cb.game_ended != nullptr) cb.game_ended(reason);
+  return nullptr;
+}
+
+}  // namespace
+
+// ---------------------------------------------------------------------------------------------
+// Log
+// ---------------------------------------------------------------------------------------------
+
+extern "C" void sv_log_line(const char* line) {
+  if (line == nullptr) return;
+  // stderr is the game log once PortConfigLoad has redirected it (STRIKERS_LOG); before that it is
+  // the process's own stderr (the device console).
+  std::fprintf(stderr, "%s\n", line);
+  void (*logLine)(const char*) = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(g_lock);
+    if (g_haveCallbacks) logLine = g_callbacks.log_line;
+  }
+  if (logLine != nullptr) logLine(line);
+}
+
+extern "C" void sv_log(const char* level, const char* fmt, ...) {
+  char body[900];
+  va_list args;
+  va_start(args, fmt);
+  std::vsnprintf(body, sizeof(body), fmt, args);
+  va_end(args);
+  char line[960];
+  std::snprintf(line, sizeof(line), "[xr%s] %s", level != nullptr ? level : "", body);
+  sv_log_line(line);
+}
+
+extern "C" float sv_env_float(const char* name, float fallback, float lo, float hi) {
+  const char* e = std::getenv(name);
+  float v = fallback;
+  if (e != nullptr && *e != '\0') {
+    char* end = nullptr;
+    const float parsed = std::strtof(e, &end);
+    if (end != e) v = parsed;
+  }
+  if (!(v >= lo)) v = lo;  // also catches NaN
+  if (v > hi) v = hi;
+  return v;
+}
+
+extern "C" int sv_env_int(const char* name, int fallback, int lo, int hi) {
+  const char* e = std::getenv(name);
+  long v = fallback;
+  if (e != nullptr && *e != '\0') {
+    char* end = nullptr;
+    const long parsed = std::strtol(e, &end, 10);
+    if (end != e) v = parsed;
+  }
+  if (v < lo) v = lo;
+  if (v > hi) v = hi;
+  return static_cast<int>(v);
+}
+
+// ---------------------------------------------------------------------------------------------
+// App -> game (sv_bridge.h)
+// ---------------------------------------------------------------------------------------------
+
+extern "C" int sv_game_start(const char* home, const char* discFolder) {
+  int expected = 0;
+  if (!g_started.compare_exchange_strong(expected, 1)) return 1;  // once per process
+  if (home == nullptr || *home == '\0') {
+    SVERR("sv_game_start: no home folder");
+    g_started.store(0);
+    return 0;
+  }
+  g_home = home;
+  setenv("STRIKERS_HOME", home, 1);
+  if (chdir(home) != 0) SVWARN("sv_game_start: chdir(%s) failed: errno %d", home, errno);
+  // The picked folder is where the disc is looked for when the app did not name the image itself.
+  const char* data = std::getenv("STRIKERS_DATA");
+  if ((data == nullptr || *data == '\0') && discFolder != nullptr && *discFolder != '\0') {
+    setenv("STRIKERS_DATA", discFolder, 1);
+  }
+  // The headset owns the picture: Aurora headless (PortXrWanted), and SDL with no UIKit window of its
+  // own (its UIKit video driver would create UI objects on the game thread). The controllers are read
+  // here through GameController (sv_xr.mm) and handed to PAD, so SDL leaves them alone: otherwise
+  // each Sense controller would also appear to SDL as a generic gamepad and press the wrong buttons.
+  setenv("SDL_VIDEO_DRIVER", "dummy", 0);
+  setenv("SDL_JOYSTICK_MFI", "0", 0);
+  setenv("SDL_JOYSTICK_HIDAPI", "0", 0);
+  // Quest's defaults, unless the app set them (main.cpp and audio_out.cpp read them).
+  setenv("STRIKERS_AUDIO_BUFFERS", "10", 0);
+
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  // The decomp keeps large structures on the stack (the console had a big main thread stack too).
+  const size_t kStack = 256u * 1024u * 1024u;
+  pthread_attr_setstacksize(&attr, kStack);
+  pthread_t thread;
+  g_running.store(1);
+  const int rc = pthread_create(&thread, &attr, game_thread, nullptr);
+  pthread_attr_destroy(&attr);
+  if (rc != 0) {
+    SVERR("sv_game_start: pthread_create failed (%d)", rc);
+    g_running.store(0);
+    g_started.store(0);
+    return 0;
+  }
+  pthread_detach(thread);
+  SVLOG("sv_game_start: game thread started (stack %zu MB)", kStack >> 20);
+  return 1;
+}
+
+extern "C" int sv_game_running(void) { return g_running.load(); }
+
+extern "C" void sv_set_layer_renderer(void* cpLayerRenderer) {
+  std::lock_guard<std::mutex> lock(g_lock);
+  if (cpLayerRenderer == g_renderer) return;
+  release_renderer_locked();
+  if (cpLayerRenderer != nullptr) {
+    CFRetain(cpLayerRenderer);
+    g_renderer = cpLayerRenderer;
+  }
+  ++g_rendererGeneration;
+}
+
+extern "C" void sv_layer_renderer_invalidated(void) {
+  std::lock_guard<std::mutex> lock(g_lock);
+  release_renderer_locked();
+  ++g_rendererGeneration;
+}
+
+extern "C" void sv_set_paused(int paused) { g_paused.store(paused != 0 ? 1 : 0); }
+
+extern "C" void sv_game_request_quit(void) { g_quit.store(1); }
+
+extern "C" void sv_setting_changed(const char* key, const char* value) {
+  if (key == nullptr || *key == '\0') return;
+  std::lock_guard<std::mutex> lock(g_lock);
+  g_settings.emplace_back(key, value != nullptr ? value : "");
+}
+
+extern "C" void sv_register_app_callbacks(const SVAppCallbacks* callbacks) {
+  std::lock_guard<std::mutex> lock(g_lock);
+  if (callbacks != nullptr) {
+    g_callbacks = *callbacks;
+    g_haveCallbacks = true;
+  } else {
+    g_callbacks = SVAppCallbacks{};
+    g_haveCallbacks = false;
+  }
+}
+
+extern "C" void sv_set_view_mode(int viewMode) {
+  if (viewMode < SV_VIEW_JUMBOTRON_ROOM || viewMode > SV_VIEW_TABLETOP_STADIUM) return;
+  std::lock_guard<std::mutex> lock(g_lock);
+  g_pendingViewMode = viewMode;
+}
+
+extern "C" void sv_shareplay_state(int participants, int spatial) {
+  std::lock_guard<std::mutex> lock(g_lock);
+  g_participants = participants;
+  g_spatial = spatial;
+}
+
+extern "C" void sv_register_table_pose_callback(SVTablePoseCallback callback) {
+  std::lock_guard<std::mutex> lock(g_lock);
+  g_tablePoseCallback = callback;
+}
+
+extern "C" void sv_apply_remote_table_pose(const float m[16], float scale) {
+  if (m == nullptr) return;
+  std::lock_guard<std::mutex> lock(g_lock);
+  std::memcpy(g_remotePose, m, sizeof(g_remotePose));
+  g_remoteScale = scale;
+  g_remotePosePending = true;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Game-thread side (sv_xr.h)
+// ---------------------------------------------------------------------------------------------
+
+extern "C" void* sv_game_current_renderer(uint32_t* generation) {
+  std::lock_guard<std::mutex> lock(g_lock);
+  if (generation != nullptr) *generation = g_rendererGeneration;
+  return g_renderer;
+}
+
+extern "C" int sv_game_paused(void) { return g_paused.load(); }
+
+extern "C" int sv_game_quit_requested(void) { return g_quit.load(); }
+
+extern "C" int sv_game_take_setting(char* key, int keySize, char* value, int valueSize) {
+  std::lock_guard<std::mutex> lock(g_lock);
+  if (g_settings.empty()) return 0;
+  const auto kv = std::move(g_settings.front());
+  g_settings.pop_front();
+  std::snprintf(key, static_cast<size_t>(keySize), "%s", kv.first.c_str());
+  std::snprintf(value, static_cast<size_t>(valueSize), "%s", kv.second.c_str());
+  return 1;
+}
+
+extern "C" int sv_game_take_view_mode(void) {
+  std::lock_guard<std::mutex> lock(g_lock);
+  const int m = g_pendingViewMode;
+  g_pendingViewMode = -1;
+  return m;
+}
+
+extern "C" void sv_game_shareplay(int* participants, int* spatial) {
+  std::lock_guard<std::mutex> lock(g_lock);
+  if (participants != nullptr) *participants = g_participants;
+  if (spatial != nullptr) *spatial = g_spatial;
+}
+
+extern "C" void sv_game_send_table_pose(const float m[16], float scale) {
+  SVTablePoseCallback cb = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(g_lock);
+    cb = g_tablePoseCallback;
+  }
+  if (cb != nullptr) cb(m, scale);
+}
+
+extern "C" int sv_game_take_remote_table_pose(float m[16], float* scale) {
+  std::lock_guard<std::mutex> lock(g_lock);
+  if (!g_remotePosePending) return 0;
+  g_remotePosePending = false;
+  std::memcpy(m, g_remotePose, sizeof(g_remotePose));
+  *scale = g_remoteScale;
+  return 1;
+}
+
+extern "C" void sv_game_set_upper_limbs_visible(int visible) {
+  void (*fn)(int) = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(g_lock);
+    fn = g_callbacks.set_upper_limbs_visible;
+  }
+  if (fn != nullptr) fn(visible);
+}
+
+extern "C" void sv_game_view_mode_changed(int viewMode) {
+  void (*fn)(int) = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(g_lock);
+    fn = g_callbacks.view_mode_changed;
+  }
+  if (fn != nullptr) fn(viewMode);
+}

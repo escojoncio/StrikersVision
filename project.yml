@@ -9,7 +9,8 @@
 #   StrikersVision           the app: visionos/app (SwiftUI), visionos/xr (Compositor Services,
 #                            Metal), visionos/net (relay + SharePlay).
 #   StrikersVisionBootstrap  a placeholder app with inert stubs for every app-side symbol
-#                            (visionos/bootstrap), which proves the game side links on its own.
+#                            (visionos/bootstrap), which proves the game side links on its own;
+#                            built only on demand.
 name: StrikersVision
 options:
   deploymentTarget:
@@ -94,36 +95,55 @@ settingGroups:
     INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace: YES
 
 targets:
+  # The sources are listed one by one: a file in visionos/xr that is still being written is not
+  # compiled until it is added here.
   StrikersVision:
     type: application
     platform: visionOS
     scheme: {}
     sources:
       - path: visionos/app/Sources
-        optional: true
-      - path: visionos/xr
-        optional: true
       - path: visionos/net
-        optional: true
+      - path: visionos/xr/sv_game.mm
+      - path: visionos/xr/sv_fx.mm
+      - path: visionos/xr/SVXRHost.swift
+      - path: visionos/xr/sv_xr.h
+        buildPhase: none
+      - path: visionos/xr/sv_shaders.h
+        buildPhase: none
+      - path: visionos/include/sv_bridge.h
+        buildPhase: none
+      # Temporary: what visionos/xr does not provide yet.
+      - path: visionos/bootstrap/sv_xr_pending_stubs.c
+      - path: visionos/bootstrap/SVPendingLayerConfiguration.swift
+      - path: visionos/app/Localizable.xcstrings
+        buildPhase: resources
+      - path: visionos/app/InfoPlist.xcstrings
+        buildPhase: resources
     settings:
       groups: [strikers]
       base:
         PRODUCT_NAME: StrikersVision
         INFOPLIST_FILE: visionos/app/Info.plist
-        GENERATE_INFOPLIST_FILE: YES
+        GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_ENTITLEMENTS: visionos/app/StrikersVision.entitlements
         SWIFT_OBJC_BRIDGING_HEADER: visionos/app/StrikersVision-Bridging-Header.h
+        SWIFT_EMIT_LOC_STRINGS: YES
+        LOCALIZATION_PREFERS_STRING_CATALOGS: YES
 
+  # Built only when asked for (workflow input "scheme"): the game side linked into a placeholder app.
   StrikersVisionBootstrap:
     type: application
     platform: visionOS
     scheme: {}
     sources:
-      - path: visionos/bootstrap
+      - path: visionos/bootstrap/SVBootstrapApp.swift
+      - path: visionos/bootstrap/sv_bootstrap_stubs.c
     settings:
       groups: [strikers]
       base:
-        PRODUCT_NAME: StrikersVision
+        PRODUCT_NAME: StrikersVisionBootstrap
+        INFOPLIST_KEY_CFBundleDisplayName: StrikersVision Bootstrap
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         SWIFT_OBJC_BRIDGING_HEADER: visionos/bootstrap/SVBootstrap-Bridging-Header.h
