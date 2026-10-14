@@ -1,0 +1,12 @@
+{
+  "name": "strikers-rooms",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Room relay for Super Mario Strikers on Quest (Cloudflare Worker + Durable Objects)",
+  "scripts": {
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

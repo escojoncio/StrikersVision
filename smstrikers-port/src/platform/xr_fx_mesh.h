@@ -1,0 +1,420 @@
+// strikers-quest: the celebration pieces as small 3D meshes for xr_fx.cpp (Lance, 2026-10-10: "more
+// depth"), built once when the effects renderer starts. Each piece is about one unit tall, centred
+// on the origin; xr_fx.cpp scales it by the particle's size. Paper and streamers keep their width
+// apart (wid) so the particle's aspect can make them narrow.
+//
+// Surfaces are parametric patches over u, v in [0, 1]. The outward normal is cross(dP/dv, dP/du):
+// for a solid of revolution u runs around the axis and v along the profile, which goes out along
+// the bottom, up the side and in across the top. The shader draws both faces (no culling), so only
+// the normals have to point the right way.
+#pragma once
+
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <initializer_list>
+#include <utility>
+#include <vector>
+
+namespace xrfx::mesh {
+
+struct Vertex {
+  float pos[3];
+  float wid[3];  // added times the particle's aspect (paper width); zero for solid pieces
+  float nrm[3];
+  float mat;     // base colour: 0 main, 1 detail, 2 cream, 3 dark
+  float aux;     // a surface parameter the shader draws detail with (per shape)
+};
+static_assert(sizeof(Vertex) == 44, "mesh vertex layout");
+
+enum Id : uint8_t {
+  kPaperBent, kPaperCurl, kPaperTwist, kStreamer,
+  kCoin, kHeart, kStar, kPetal, kMushroom, kEgg, kBanana, kShell, kHammer, kRose, kGarlic, kBow,
+  kCount
+};
+
+struct Range {
+  uint32_t firstIndex = 0, indexCount = 0;
+};
+
+struct Set {
+  std::vector<Vertex> verts;
+  std::vector<uint16_t> indices;
+  Range ranges[kCount];
+};
+
+namespace detail {
+
+constexpr float kPi = 3.14159265f;
+
+struct V3 {
+  float x, y, z;
+};
+inline V3 operator+(V3 a, V3 b) { return {a.x + b.x, a.y + b.y, a.z + b.z}; }
+inline V3 operator-(V3 a, V3 b) { return {a.x - b.x, a.y - b.y, a.z - b.z}; }
+inline V3 operator*(V3 a, float s) { return {a.x * s, a.y * s, a.z * s}; }
+inline V3 cross(V3 a, V3 b) { return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x}; }
+inline V3 normalize(V3 a) {
+  const float l = std::sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+  return l > 1e-12f ? a * (1.0f / l) : V3{0.0f, 1.0f, 0.0f};
+}
+inline float smooth(float a, float b, float x) {
+  const float t = std::min(std::max((x - a) / (b - a), 0.0f), 1.0f);
+  return t * t * (3.0f - 2.0f * t);
+}
+
+// Row-major 3x3 rotations.
+struct M3 {
+  float m[9];
+};
+inline M3 rot_x(float a) { const float c = std::cos(a), s = std::sin(a); return {{1, 0, 0, 0, c, -s, 0, s, c}}; }
+inline M3 rot_y(float a) { const float c = std::cos(a), s = std::sin(a); return {{c, 0, s, 0, 1, 0, -s, 0, c}}; }
+inline M3 rot_z(float a) { const float c = std::cos(a), s = std::sin(a); return {{c, -s, 0, s, c, 0, 0, 0, 1}}; }
+inline V3 apply(const M3& r, V3 v) {
+  return {r.m[0] * v.x + r.m[1] * v.y + r.m[2] * v.z, r.m[3] * v.x + r.m[4] * v.y + r.m[5] * v.z,
+          r.m[6] * v.x + r.m[7] * v.y + r.m[8] * v.z};
+}
+
+// (r, h) about an axis: 0 = x, 1 = y, 2 = z. Cyclic forms of (r cos t, h, r sin t), so each keeps the
+// outward-normal rule above.
+inline V3 revolve(int axis, float r, float h, float t) {
+  const float c = std::cos(t), s = std::sin(t);
+  if (axis == 0) return {h, r * s, r * c};
+  if (axis == 2) return {r * s, r * c, h};
+  return {r * c, h, r * s};
+}
+
+struct Builder {
+  Set& out;
+
+  static V3 no_wid(float, float) { return {0.0f, 0.0f, 0.0f}; }
+  static float no_aux(float, float) { return 0.0f; }
+
+  // (nu + 1) x (nv + 1) vertices; normals from the surface at aspect 1.
+  template <class Pos, class Wid, class Aux>
+  void patch(int nu, int nv, float mat, Pos pos, Wid wid, Aux aux) {
+    const uint32_t base = static_cast<uint32_t>(out.verts.size());
+    auto full = [&](float u, float v) { return pos(u, v) + wid(u, v); };
+    for (int j = 0; j <= nv; ++j) {
+      for (int k = 0; k <= nu; ++k) {
+        const float u = static_cast<float>(k) / nu, v = static_cast<float>(j) / nv;
+        // At a pole (radius 0) the u derivative vanishes: take the normal just off it.
+        const float vc = std::min(std::max(v, 4e-3f), 1.0f - 4e-3f);
+        const float e = 1e-3f;
+        const V3 du = full(u + e, vc) - full(u - e, vc);
+        const V3 dv = full(u, vc + e) - full(u, vc - e);
+        const V3 n = normalize(cross(dv, du));
+        const V3 p = pos(u, v), w = wid(u, v);
+        out.verts.push_back(Vertex{{p.x, p.y, p.z}, {w.x, w.y, w.z}, {n.x, n.y, n.z}, mat, aux(u, v)});
+      }
+    }
+    for (int j = 0; j < nv; ++j) {
+      for (int k = 0; k < nu; ++k) {
+        const uint32_t a = base + j * (nu + 1) + k, b = a + 1, c = a + (nu + 1), d = c + 1;
+        for (uint32_t i : {a, b, c, b, d, c}) out.indices.push_back(static_cast<uint16_t>(i));
+      }
+    }
+  }
+  template <class Pos, class Aux>
+  void patch(int nu, int nv, float mat, Pos pos, Aux aux) {
+    patch(nu, nv, mat, pos, no_wid, aux);
+  }
+
+  // A solid of revolution; prof(u, v) gives (r, h) and may vary around the axis (lobes, waves).
+  template <class Prof, class Aux>
+  void lathe(int axis, int segs, int nv, float mat, Prof prof, Aux aux) {
+    patch(segs, nv, mat,
+          [=](float u, float v) {
+            const auto rh = prof(u, v);
+            return revolve(axis, rh.first, rh.second, 2.0f * kPi * u);
+          },
+          aux);
+  }
+  // A polyline profile with a hard edge at every point (coin rims, hammer head).
+  void lathe_poly(int axis, int segs, float mat, std::initializer_list<std::pair<float, float>> pts) {
+    const std::vector<std::pair<float, float>> p(pts);
+    for (size_t i = 0; i + 1 < p.size(); ++i) {
+      const auto a = p[i], b = p[i + 1];
+      lathe(axis, segs, 1, mat,
+            [=](float, float v) {
+              return std::pair<float, float>{a.first + (b.first - a.first) * v, a.second + (b.second - a.second) * v};
+            },
+            no_aux);
+    }
+  }
+  // A pillowy shape: an outline in x-y (clockwise from the top, as u grows) inflated along z.
+  template <class Outline, class Bend>
+  void puffy(int nu, int nv, float mat, float cx, float cy, float depth, float fullness, Outline outline, Bend bend) {
+    patch(nu, nv, mat,
+          [=](float u, float v) {
+            const float phi = -0.5f * kPi + kPi * v;
+            const float s = std::pow(std::max(std::cos(phi), 0.0f), fullness);
+            const auto o = outline(2.0f * kPi * u);
+            const float x = cx + (o.first - cx) * s, y = cy + (o.second - cy) * s;
+            return V3{x, y, depth * std::sin(phi) + bend(x, y)};
+          },
+          no_aux);
+  }
+  // An ellipsoid, radii (a, b, c) on x, y, z.
+  void ellipsoid(int nu, int nv, float mat, float a, float b, float c) {
+    patch(nu, nv, mat,
+          [=](float u, float v) {
+            const float phi = -0.5f * kPi + kPi * v, t = 2.0f * kPi * u;
+            return V3{a * std::cos(phi) * std::sin(t), b * std::cos(phi) * std::cos(t), c * std::sin(phi)};
+          },
+          no_aux);
+  }
+  void box(V3 c, V3 h, float mat) {
+    const V3 axes[3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+    const float hs[3] = {h.x, h.y, h.z};
+    for (int a = 0; a < 3; ++a) {
+      const V3 n = axes[a], s = axes[(a + 1) % 3], t = axes[(a + 2) % 3];
+      const float hn = hs[a], hss = hs[(a + 1) % 3], ht = hs[(a + 2) % 3];
+      for (float side : {1.0f, -1.0f}) {
+        const uint32_t base = static_cast<uint32_t>(out.verts.size());
+        const V3 nn = n * side;
+        for (int k = 0; k < 4; ++k) {
+          const float su = (k & 1) ? 1.0f : -1.0f, tv = (k & 2) ? 1.0f : -1.0f;
+          const V3 p = c + nn * hn + s * (su * hss) + t * (tv * ht);
+          out.verts.push_back(Vertex{{p.x, p.y, p.z}, {0, 0, 0}, {nn.x, nn.y, nn.z}, mat, 0.0f});
+        }
+        for (uint32_t i : {0u, 1u, 2u, 1u, 3u, 2u}) out.indices.push_back(static_cast<uint16_t>(base + i));
+      }
+    }
+  }
+  // Turns and moves the vertices added since `from`.
+  void xform(size_t from, const M3& r, V3 t) {
+    for (size_t i = from; i < out.verts.size(); ++i) {
+      Vertex& vx = out.verts[i];
+      const V3 p = apply(r, V3{vx.pos[0], vx.pos[1], vx.pos[2]}) + t;
+      const V3 n = apply(r, V3{vx.nrm[0], vx.nrm[1], vx.nrm[2]});
+      vx.pos[0] = p.x; vx.pos[1] = p.y; vx.pos[2] = p.z;
+      vx.nrm[0] = n.x; vx.nrm[1] = n.y; vx.nrm[2] = n.z;
+    }
+  }
+};
+
+// Catmull-Rom through (r, h) points, t in [0, 1] over the whole list.
+inline std::pair<float, float> spline(const std::vector<std::pair<float, float>>& p, float t) {
+  const int n = static_cast<int>(p.size()) - 1;
+  const float f = std::min(std::max(t, 0.0f), 1.0f) * n;
+  const int i = std::min(static_cast<int>(f), n - 1);
+  const float s = f - i;
+  auto at = [&](int k) { return p[std::min(std::max(k, 0), n)]; };
+  const auto p0 = at(i - 1), p1 = at(i), p2 = at(i + 1), p3 = at(i + 2);
+  auto cr = [&](float a, float b, float c, float d) {
+    return 0.5f * (2.0f * b + (-a + c) * s + (2.0f * a - 5.0f * b + 4.0f * c - d) * s * s +
+                   (-a + 3.0f * b - 3.0f * c + d) * s * s * s);
+  };
+  return {cr(p0.first, p1.first, p2.first, p3.first), cr(p0.second, p1.second, p2.second, p3.second)};
+}
+
+using RH = std::pair<float, float>;
+
+}  // namespace detail
+
+inline Set build(float detail) {
+  using namespace detail;
+  Set set;
+  Builder b{set};
+  // Segment counts scale with the detail (1 = close up, less for far and landed pieces).
+  auto n = [detail](int x, int lo) { return std::max(lo, static_cast<int>(x * detail + 0.5f)); };
+  auto start = [&](Id id) { set.ranges[id].firstIndex = static_cast<uint32_t>(set.indices.size()); };
+  auto finish = [&](Id id) {
+    set.ranges[id].indexCount = static_cast<uint32_t>(set.indices.size()) - set.ranges[id].firstIndex;
+  };
+  auto none = [](float, float) { return 0.0f; };
+  auto flat = [](float, float) { return 0.0f; };
+
+  // Paper: a card bent along its length, one curled across its width, one twisted like a propeller.
+  start(kPaperBent);
+  b.patch(1, 6, 0.0f, [](float, float v) { const float y = v - 0.5f; return V3{0.0f, y, 0.28f * (y * y - 1.0f / 12.0f)}; },
+          [](float u, float) { return V3{u - 0.5f, 0.0f, 0.0f}; }, none);
+  finish(kPaperBent);
+  start(kPaperCurl);
+  b.patch(4, 1, 0.0f, [](float, float v) { return V3{0.0f, v - 0.5f, 0.0f}; },
+          [](float u, float) { const float x = u - 0.5f; return V3{x, 0.0f, 0.5f * (x * x - 1.0f / 12.0f)}; }, none);
+  finish(kPaperCurl);
+  start(kPaperTwist);
+  b.patch(1, 5, 0.0f, [](float, float v) { return V3{0.0f, v - 0.5f, 0.0f}; },
+          [](float u, float v) {
+            const float x = u - 0.5f, t = 1.4f * (v - 0.5f);
+            return V3{x * std::cos(t), 0.0f, x * std::sin(t)};
+          },
+          none);
+  finish(kPaperTwist);
+  // Streamers: a curly ribbon, its centre line a loose helix, the ribbon turning as it goes.
+  start(kStreamer);
+  b.patch(1, n(30, 10), 0.0f,
+          [](float, float v) { return V3{0.05f * std::cos(3.0f * kPi * v), v - 0.5f, 0.05f * std::sin(3.0f * kPi * v)}; },
+          [](float u, float v) {
+            const float x = u - 0.5f, t = 5.0f * kPi * v;
+            return V3{x * std::cos(t), 0.0f, x * std::sin(t)};
+          },
+          none);
+  finish(kStreamer);
+
+  // Mario: a gold coin with a raised rim and the slot bar on both faces (faces along z).
+  start(kCoin);
+  b.lathe_poly(2, n(28, 10), 0.0f,
+               {{0.0f, -0.035f}, {0.38f, -0.035f}, {0.40f, -0.065f}, {0.47f, -0.065f}, {0.5f, -0.035f}, {0.5f, 0.035f},
+                {0.47f, 0.065f}, {0.40f, 0.065f}, {0.38f, 0.035f}, {0.0f, 0.035f}});
+  b.box({0.0f, 0.0f, 0.05f}, {0.065f, 0.22f, 0.017f}, 1.0f);
+  b.box({0.0f, 0.0f, -0.05f}, {0.065f, 0.22f, 0.017f}, 1.0f);
+  finish(kCoin);
+
+  // Peach: a plump heart.
+  start(kHeart);
+  b.puffy(n(40, 16), n(10, 4), 0.0f, 0.0f, 0.02f, 0.17f, 0.6f,
+          [](float t) {
+            const float s = std::sin(t);
+            return RH{16.0f * s * s * s / 34.0f,
+                      (13.0f * std::cos(t) - 5.0f * std::cos(2.0f * t) - 2.0f * std::cos(3.0f * t) - std::cos(4.0f * t)) /
+                              34.0f + 0.07f};
+          },
+          flat);
+  finish(kHeart);
+
+  // Super Strikes: a puffy Super Star (the shader gives it eyes).
+  start(kStar);
+  b.puffy(n(40, 20), n(8, 4), 0.0f, 0.0f, 0.0f, 0.16f, 0.55f,
+          [](float t) {
+            const float k = std::pow(0.5f + 0.5f * std::cos(5.0f * t), 1.6f);
+            const float r = 0.25f + 0.25f * k;
+            return RH{r * std::sin(t), r * std::cos(t)};
+          },
+          flat);
+  finish(kStar);
+
+  // Daisy: a long petal, cupped and bent back.
+  start(kPetal);
+  b.puffy(n(24, 10), n(6, 3), 0.0f, 0.0f, 0.0f, 0.035f, 0.5f,
+          [](float t) { return RH{0.21f * std::sin(t), 0.48f * std::cos(t)}; },
+          [](float x, float y) { return 0.32f * x * x + 0.14f * y * y; });
+  finish(kPetal);
+
+  // Toad and Luigi: a Super / 1-Up Mushroom. Stem (cream, the shader adds its eyes), gills, cap.
+  start(kMushroom);
+  b.lathe_poly(1, n(24, 10), 2.0f, {{0.0f, -0.5f}, {0.19f, -0.5f}});
+  b.lathe(1, n(24, 10), n(6, 2), 2.0f,
+          [](float, float v) { return RH{0.19f + 0.045f * std::sin(kPi * v) - 0.03f * v, -0.5f + 0.49f * v}; }, none);
+  b.lathe(1, n(24, 10), 1, 2.0f, [](float, float v) { return RH{0.5f * v, -0.06f * v}; }, [](float, float) { return 1.0f; });
+  b.lathe(1, n(24, 10), n(8, 3), 0.0f,
+          [](float, float v) {
+            const float phi = 0.5f * kPi * v;
+            return RH{0.5f * std::cos(phi), -0.06f + 0.48f * std::sin(phi)};
+          },
+          none);
+  finish(kMushroom);
+
+  // Yoshi: a spotted egg (the shader paints the spots).
+  start(kEgg);
+  b.lathe(1, n(24, 10), n(12, 5), 0.0f,
+          [](float, float v) {
+            const float phi = -0.5f * kPi + kPi * v, y = std::sin(phi);
+            return RH{0.36f * std::cos(phi) * (1.0f - 0.12f * y), 0.5f * y};
+          },
+          none);
+  finish(kEgg);
+
+  // Donkey Kong: a banana, a tapering tube along an arc, brown tips (aux = along).
+  start(kBanana);
+  b.patch(n(12, 6), n(20, 8), 0.0f,
+          [](float u, float v) {
+            const float a = -0.95f + 1.9f * v, t = 2.0f * kPi * u;
+            const V3 c{0.6f * std::sin(a), 0.47f - 0.6f * std::cos(a), 0.0f};
+            const V3 n{std::sin(a), -std::cos(a), 0.0f}, bn{0.0f, 0.0f, 1.0f};
+            const float r = 0.12f * std::pow(std::max(std::sin(kPi * v), 0.0f), 0.5f) * (1.0f + 0.07f * std::cos(5.0f * t));
+            return c + n * (r * std::cos(t)) + bn * (r * std::sin(t));
+          },
+          [](float, float v) { return v; });
+  finish(kBanana);
+
+  // Koopa: a shell, cream underside and rim, the dome (the shader draws the plates).
+  start(kShell);
+  b.lathe_poly(1, n(24, 10), 1.0f, {{0.0f, -0.14f}, {0.44f, -0.14f}});
+  b.lathe(1, n(24, 10), n(4, 2), 1.0f,
+          [](float, float v) {
+            const float a = -0.5f * kPi + kPi * v;
+            return RH{0.44f + 0.07f * std::cos(a), -0.07f + 0.07f * std::sin(a)};
+          },
+          none);
+  b.lathe(1, n(24, 10), n(7, 3), 0.0f,
+          [](float, float v) {
+            const float phi = 0.5f * kPi * v;
+            return RH{0.44f * std::cos(phi), 0.34f * std::sin(phi)};
+          },
+          none);
+  finish(kShell);
+
+  // Hammer Bro: a wooden handle under a steel head.
+  start(kHammer);
+  b.lathe(1, n(12, 6), n(3, 1), 0.0f,
+          [](float, float v) {
+            const float phi = -0.5f * kPi + 0.5f * kPi * v;
+            return RH{0.055f * std::cos(phi), -0.445f + 0.055f * std::sin(phi)};
+          },
+          none);
+  b.lathe(1, n(12, 6), 1, 0.0f, [](float, float v) { return RH{0.055f, -0.445f + 0.6f * v}; }, none);
+  {
+    const size_t from = set.verts.size();
+    b.lathe_poly(0, n(16, 8), 1.0f,
+                 {{0.0f, -0.31f}, {0.13f, -0.31f}, {0.16f, -0.28f}, {0.16f, 0.28f}, {0.13f, 0.31f}, {0.0f, 0.31f}});
+    b.xform(from, rot_y(0.0f), V3{0.0f, 0.3f, 0.0f});
+  }
+  finish(kHammer);
+
+  // Waluigi: a rose, a ruffled bloom (aux = up the profile, for the swirl) on a stem with a leaf.
+  start(kRose);
+  {
+    const std::vector<RH> prof = {{0.0f, 0.0f},   {0.1f, 0.01f},  {0.2f, 0.07f},  {0.26f, 0.17f}, {0.26f, 0.27f},
+                                  {0.21f, 0.35f}, {0.12f, 0.33f}, {0.05f, 0.37f}, {0.0f, 0.38f}};
+    b.lathe(1, n(30, 15), n(16, 7), 0.0f,
+            [prof](float u, float v) {
+              const auto rh = spline(prof, v);
+              const float t = 2.0f * kPi * u;
+              const float ruffle = smooth(0.3f, 0.7f, v);
+              return RH{rh.first * (1.0f + 0.08f * std::sin(5.0f * t + 3.0f * v) * ruffle),
+                        rh.second + 0.025f * std::sin(5.0f * t) * smooth(0.5f, 0.8f, v)};
+            },
+            [](float, float v) { return v; });
+  }
+  b.lathe_poly(1, n(8, 5), 1.0f, {{0.0f, -0.5f}, {0.028f, -0.5f}});
+  b.lathe(1, n(8, 5), 1, 1.0f, [](float, float v) { return RH{0.028f, -0.5f + 0.52f * v}; }, none);
+  {
+    const size_t from = set.verts.size();
+    b.puffy(n(14, 6), n(4, 2), 1.0f, 0.0f, 0.0f, 0.015f, 0.5f, [](float t) { return RH{0.07f * std::sin(t), 0.16f * std::cos(t)}; },
+            [](float x, float) { return 0.6f * x * x; });
+    b.xform(from, rot_z(-0.9f), V3{0.1f, -0.22f, 0.0f});
+  }
+  finish(kRose);
+
+  // Wario: a garlic bulb, cloves bulging between creases (aux = how far from a crease), a pointed top.
+  start(kGarlic);
+  b.lathe(1, std::max(18, n(36, 18) / 6 * 6), n(14, 6), 0.0f,
+          [](float u, float v) {
+            const float phi = -0.5f * kPi + kPi * v, s = std::sin(phi), t = 2.0f * kPi * u;
+            const float neck = smooth(0.35f, 1.0f, s);
+            const float lobe = 1.0f + 0.1f * std::fabs(std::cos(3.0f * t)) * (1.0f - neck);
+            return RH{0.42f * std::cos(phi) * (1.0f - 0.6f * neck) * lobe, -0.12f + 0.36f * s + 0.26f * neck * neck};
+          },
+          [](float u, float) { return std::fabs(std::cos(6.0f * kPi * u)); });
+  finish(kGarlic);
+
+  // Birdo: a bow, two loops and two tails around a knot.
+  start(kBow);
+  for (float side : {-1.0f, 1.0f}) {
+    size_t from = set.verts.size();
+    b.ellipsoid(n(16, 8), n(8, 4), 0.0f, 0.25f, 0.17f, 0.1f);
+    b.xform(from, rot_z(side * 0.35f), V3{side * 0.23f, 0.03f, 0.0f});
+    from = set.verts.size();
+    b.ellipsoid(n(10, 6), n(6, 3), 0.0f, 0.06f, 0.15f, 0.05f);
+    b.xform(from, rot_z(side * 0.4f), V3{side * 0.09f, -0.2f, -0.02f});
+  }
+  b.ellipsoid(n(12, 6), n(8, 4), 1.0f, 0.1f, 0.1f, 0.1f);
+  finish(kBow);
+
+  return set;
+}
+
+}  // namespace xrfx::mesh

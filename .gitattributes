@@ -1,0 +1,15 @@
+# Fim de linha, fixado onde ele muda o comportamento e não só o diff.
+#
+# O core.autocrlf de quem clona decide o que aparece no disco, e há arquivos
+# aqui que são LIDOS POR PROGRAMAS, não por pessoas: um sha256sum -c com \r no
+# fim da linha procura um arquivo cujo nome termina em \r e não acha nenhum, e
+# um script com \r no shebang não executa. Nesses o LF não é preferência.
+*.sha256   text eol=lf
+*.sh       text eol=lf
+gradlew    text eol=lf
+
+# Binários, para o git não tentar normalizar nem mostrar diff de texto.
+*.apk      binary
+*.webp     binary
+*.jpg      binary
+*.png      binary
