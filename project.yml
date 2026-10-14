@@ -109,14 +109,13 @@ targets:
       - path: visionos/xr/sv_xr.mm
       - path: visionos/xr/sv_xr_pad.cpp
       - path: visionos/xr/SVXRHost.swift
+      - path: visionos/xr/SVLayerConfiguration.swift
       - path: visionos/xr/sv_xr.h
         buildPhase: none
       - path: visionos/xr/sv_shaders.h
         buildPhase: none
       - path: visionos/include/sv_bridge.h
         buildPhase: none
-      # Temporary: what visionos/xr does not provide yet.
-      - path: visionos/bootstrap/SVPendingLayerConfiguration.swift
       - path: visionos/app/Localizable.xcstrings
         buildPhase: resources
       - path: visionos/app/InfoPlist.xcstrings
