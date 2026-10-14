@@ -37,11 +37,20 @@
   `wcslen` (wchar 16 bits por `-fshort-wchar`, wcslen del sistema cuenta 32 bits) → alloca gigante.
   Arreglo: `-fno-builtin-wcslen` en `port_flags` (`smstrikers-port/CMakeLists.txt`) + la CI falla si la app
   importa `_wcslen`. (`wmemchr` lo importa solo Aurora, con wchar de 32 bits: correcto.)
+- Segunda prueba (12:16, log `Strikers_2.zip`): partido completo jugable, celebraciones, 82-84 fps display / 60 juego. Tres fallos
+  gráficos reportados: (a) el slider "Stadium size" no hacía nada → el usuario estaba en Tabletop · Living Room, donde no hay
+  estadio (ese ajuste solo escala las vistas Stadium). Añadido `STRIKERS_XR_TABLE_SCALE` (en vivo, 0.25..4.0 × 0.032 m/unidad,
+  `apply_table_scale_setting` en `take_settings`/`PortXrInit`; slider "Table size" en SVSettings.swift) y aviso en el log cuando
+  se cambia el del estadio en una vista de sala. (b) Manos y mandos se veían por encima del 3D → `upperLimbVisibility(.automatic)`
+  por "Show my hands" activo por defecto; ahora apagado por defecto (clave nueva `sv.showHands2`, `.hidden`). (c) Texturas y
+  modelos cortados: sin pista en el log (culled 0/frame, sin errores de Dawn); pendiente de captura del visor. Sospechas por
+  orden: viewport/scissor de Aurora en el pase de ojo (`set_offscreen_uses_native_logical_size`), decode-once (`STRIKERS_XR_DECODE`),
+  recorte `uvRect` del HUD sobre la mesa.
 - Limitación: las Personas no se ven mientras se dibuja con Compositor Services (Apple, foros 791591/801420).
 - Pendiente (por orden):
-  1. Primera prueba en el visor; leer `Documents/Strikers/strikers-log.txt`. Puntos sin verificar: import de
-     IOSurface `32RGBA` como RGBA8Unorm en Dawn, orden fence Dawn↔composite, alineación de ojos/pose,
-     profundidad reverse-Z, apertura del espacio tras `game_ready`, poses de Sense (`.grip`).
+  1. Texturas/modelos cortados (ver arriba): pedir captura, probar con `STRIKERS_XR_DECODE=0` y `STRIKERS_XR_CULL=0`.
+     Verificado en el visor: IOSurface en Dawn, fences, poses, apertura del espacio, Sense. Hápticos fallan
+     (gamecontrollerd.haptics XPC 4097): pendiente.
   2. Modo SharePlay con Personas: segundo ImmersiveSpace con RealityView + jumbotron en `LowLevelTexture`
      (sin modos 3D) mientras la sesión sea espacial.
   3. Vídeos THP (sin decodificador en visionOS), autotests de fichero de Quest (wipe/item/sts/dump),

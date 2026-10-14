@@ -309,14 +309,17 @@ struct RenderPose {
 constexpr int kEyeSlots = 3;
 constexpr int kScreenSlots = 3;
 
+constexpr float kTableScaleBase = 0.032f;  // room metres per game unit: the 41 m pitch is ~1.3 m
+constexpr float kTableScaleMin = 0.008f, kTableScaleMax = 0.25f;
+
 struct Table {
   V3 position{0.0f, 1.05f, -0.95f};  // about waist height in front of where you stood (set at start)
   float yaw = 0.0f;
-  float scale = 0.032f;  // room metres per game unit: the 41 m pitch is ~1.3 m
+  float scale = kTableScaleBase;
   int grabHands = 0;     // bit 0 left, bit 1 right
   bool rightGrab = false;
   V3 grabOffset;
-  float twoDist = 1.0f, twoScale = 0.032f, twoYaw = 0.0f, prevAngle = 0.0f, turn = 0.0f;
+  float twoDist = 1.0f, twoScale = kTableScaleBase, twoYaw = 0.0f, prevAngle = 0.0f, turn = 0.0f;
   V3 twoPos, twoMid;
 };
 
@@ -335,6 +338,7 @@ struct Settings {
   bool hudOnly = true;
   float charScale = 1.5f;
   float stadiumScale = 1.0f;
+  float tableScale = 1.0f;  // times kTableScaleBase, applied to g.table.scale when it changes
   float lodMinPx = 0.0f;
   bool skipTallField = false;
   int haptics = 100;
@@ -586,6 +590,7 @@ void read_settings() {
   s.hudOnly = sv_env_int("STRIKERS_XR_HUD_ONLY", 1, 0, 1) != 0;
   s.charScale = sv_env_float("STRIKERS_XR_CHARSCALE", 1.5f, 1.0f, 3.0f);
   s.stadiumScale = sv_env_float("STRIKERS_XR_STADIUM_SCALE", 1.0f, 0.1f, 2.0f);
+  s.tableScale = sv_env_float("STRIKERS_XR_TABLE_SCALE", 1.0f, 0.25f, 4.0f);
   s.lodMinPx = sv_env_float("STRIKERS_XR_LOD", 0.0f, 0.0f, 32.0f);
   s.skipTallField = sv_env_int("STRIKERS_XR_SKIP_TALL_FIELD", 0, 0, 1) != 0;
   s.haptics = sv_env_int("STRIKERS_XR_HAPTICS", 100, 0, 100);
@@ -593,6 +598,12 @@ void read_settings() {
   s.psButtonStart = sv_env_int("STRIKERS_XR_PS_BUTTON", 0, 0, 1) != 0;
   s.depth = sv_env_int("STRIKERS_XR_DEPTH", 1, 0, 1) != 0;
   s.statsSeconds = sv_env_int("STRIKERS_XR_STATS_SECONDS", 5, 1, 60);
+}
+
+// The Tabletop field's size from its setting (the hands and the left stick also change it in play).
+void apply_table_scale_setting() {
+  g.table.scale = std::max(kTableScaleMin, std::min(kTableScaleMax, kTableScaleBase * g.set.tableScale));
+  if (g.tableSet) g.tablePoseDirty = true;  // placed already: tell the other participants
 }
 
 void apply_aurora_settings() {
@@ -603,18 +614,27 @@ void apply_aurora_settings() {
 // Live settings from the app (sv_setting_changed), on the game thread between frames.
 void take_settings() {
   char key[96], value[256];
-  bool any = false, aurora = false;
+  bool any = false, aurora = false, stadiumScale = false;
   while (sv_game_take_setting(key, sizeof(key), value, sizeof(value))) {
     // Kept in sv_game.mm's table, not the environment: setenv while other threads may getenv is
     // not safe. sv_env_* read the table first.
     sv_setting_override(key, value);
     any = true;
     if (std::strcmp(key, "STRIKERS_XR_ANISO") == 0 || std::strcmp(key, "STRIKERS_XR_DECODE") == 0) aurora = true;
+    if (std::strcmp(key, "STRIKERS_XR_STADIUM_SCALE") == 0) stadiumScale = true;
     SVLOG("setting %s=%s", key, value[0] != '\0' ? value : "(default)");
   }
   if (!any) return;
   const int oldPreset = g.set.screenPreset;
+  const float oldTableScale = g.set.tableScale;
   read_settings();
+  if (g.set.tableScale != oldTableScale) {
+    apply_table_scale_setting();
+    SVLOG("table scale %.2fx (%.4f m per game unit)", g.set.tableScale, g.table.scale);
+  }
+  if (stadiumScale && g.mrMode) {
+    SVLOG("stadium scale %.2fx: no stadium in %s (it applies to the Stadium views)", g.set.stadiumScale, mode_name());
+  }
   if (g.set.screenPreset != oldPreset) {
     SVLOG("screen preset %d (%.1f m wide at %.1f m)", g.set.screenPreset, kScreenPresets[g.set.screenPreset].width,
           kScreenPresets[g.set.screenPreset].distance);
@@ -696,7 +716,7 @@ void take_remote_table_pose() {
   if (g.table.grabHands != 0) return;  // the local hands win while holding it
   g.table.position = V3{m[12], m[13], m[14]};
   g.table.yaw = std::atan2(m[8], m[10]);
-  if (scale > 0.0f) g.table.scale = std::max(0.008f, std::min(0.25f, scale));
+  if (scale > 0.0f) g.table.scale = std::max(kTableScaleMin, std::min(kTableScaleMax, scale));
   g.tableSet = true;
 }
 
@@ -867,7 +887,7 @@ void sync_input(double time) {
     if (step < -3.14159265f) step += 6.2831853f;
     g.table.prevAngle += step;
     g.table.turn += step;
-    g.table.scale = std::max(0.008f, std::min(0.25f, g.table.twoScale * dist / g.table.twoDist));
+    g.table.scale = std::max(kTableScaleMin, std::min(kTableScaleMax, g.table.twoScale * dist / g.table.twoDist));
     const float k = g.table.scale / g.table.twoScale;
     g.table.yaw = g.table.twoYaw - g.table.turn;
     const V3 mid{0.5f * (handL.x + handR.x), 0.5f * (handL.y + handR.y), 0.5f * (handL.z + handR.z)};
@@ -883,7 +903,7 @@ void sync_input(double time) {
   }
   if (holdL) {
     if (hands == 1 && std::fabs(stickLY) > 0.2f) {
-      g.table.scale = std::max(0.008f, std::min(0.25f, g.table.scale * std::exp(stickLY * 0.025f)));
+      g.table.scale = std::max(kTableScaleMin, std::min(kTableScaleMax, g.table.scale * std::exp(stickLY * 0.025f)));
       g.tablePoseDirty = true;
     }
     if (hands == 1 && std::fabs(stickLX) > 0.2f) {
@@ -2149,6 +2169,7 @@ extern "C" int PortXrInit(void) {
   SVLOG("%s starting", kBuildTag);
   sv_xrhost_start(&sv_log_line);
   read_settings();
+  if (g.set.tableScale != 1.0f) apply_table_scale_setting();
   apply_aurora_settings();
   apply_view_mode(sv_env_int("STRIKERS_XR_START_VIEW", SV_VIEW_JUMBOTRON_ROOM, 0, 3));
   report_mode();
