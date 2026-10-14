@@ -52,6 +52,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -288,6 +289,7 @@ struct SharedImage {
   id<MTLSharedEvent> doneEvent = nil;
   uint64_t doneValue = 0;
   bool valid = false;  // holds a finished picture
+  bool refused = false;  // Dawn refused an access (a validation error): the image is not usable
   // The last composite that read it signals compositeEvent with this value (Dawn's next write waits).
   uint64_t readValue = 0;
   // Metal side (the composite's device), made on first use.
@@ -373,6 +375,7 @@ struct State {
   bool rendererRunning = false;
   int lastRendererState = -1;
   bool waitingLogged = false;
+  uint64_t pausedSinceNs = 0, pausedWarnedNs = 0;
 
   // Modes.
   bool tabletop = false;
@@ -602,11 +605,9 @@ void take_settings() {
   char key[96], value[256];
   bool any = false, aurora = false;
   while (sv_game_take_setting(key, sizeof(key), value, sizeof(value))) {
-    if (value[0] == '\0') {
-      unsetenv(key);
-    } else {
-      setenv(key, value, 1);
-    }
+    // Kept in sv_game.mm's table, not the environment: setenv while other threads may getenv is
+    // not safe. sv_env_* read the table first.
+    sv_setting_override(key, value);
     any = true;
     if (std::strcmp(key, "STRIKERS_XR_ANISO") == 0 || std::strcmp(key, "STRIKERS_XR_DECODE") == 0) aurora = true;
     SVLOG("setting %s=%s", key, value[0] != '\0' ? value : "(default)");
@@ -931,10 +932,10 @@ void sync_input(double time) {
   if (g.pendingTapR != 0 && t - g.pendingTapR >= kDoubleTapNs) {
     g.pendingTapR = 0;
     g.set.screenPreset = (g.set.screenPreset + 1) % kScreenPresetCount;
-    // Also into the environment, so the app's settings and a later re-read agree.
+    // Also into the settings table, so a later re-read agrees.
     char v[8];
     std::snprintf(v, sizeof(v), "%d", g.set.screenPreset);
-    setenv("STRIKERS_XR_SCREEN_SIZE", v, 1);
+    sv_setting_override("STRIKERS_XR_SCREEN_SIZE", v);
     SVLOG("screen preset %d (%.1f m wide at %.1f m)", g.set.screenPreset, kScreenPresets[g.set.screenPreset].width,
           kScreenPresets[g.set.screenPreset].distance);
   }
@@ -962,6 +963,27 @@ void drop_renderer(const char* why) {
   g.shownSlot = -1;
 }
 
+bool build_pipelines(id<MTLDevice> device, MTLPixelFormat color, MTLPixelFormat depth);
+
+// Everything a frame needs from the new renderer's device, before its first frame: the shader
+// library, the composite's pipelines and the effects, so the first frames are not spent compiling.
+void prepare_renderer() {
+  id<MTLDevice> device = (__bridge id<MTLDevice>)sv_xrhost_renderer_device(g.renderer);
+  uint32_t color = 0, depth = 0;
+  sv_xrhost_renderer_formats(g.renderer, &color, &depth);
+  if (device == nil || color == 0) {
+    SVWARN("cp: renderer without device or colour format (%u); pipelines wait for the first frame", color);
+    return;
+  }
+  if (depth == 0) depth = static_cast<uint32_t>(MTLPixelFormatDepth32Float);
+  const uint64_t t0 = now_ns();
+  if (build_pipelines(device, static_cast<MTLPixelFormat>(color), static_cast<MTLPixelFormat>(depth))) {
+    g.fxReady = svfx::init((__bridge void*)device, color);
+  }
+  SVLOG("cp: renderer prepared in %.1f ms (colour %u, depth %u, effects %d)",
+        static_cast<double>(now_ns() - t0) / 1e6, color, depth, g.fxReady ? 1 : 0);
+}
+
 // True when there is a running renderer to draw into. Otherwise the caller waits.
 bool ensure_renderer() {
   uint32_t generation = 0;
@@ -974,6 +996,9 @@ bool ensure_renderer() {
       current = nullptr;
       SVLOG("cp: renderer %u taken", generation);
       g.waitingLogged = false;
+      g.pausedSinceNs = 0;
+      sv_xrhost_session_retry();
+      prepare_renderer();
     }
   }
   if (current != nullptr) CFRelease(current);
@@ -996,6 +1021,19 @@ bool ensure_renderer() {
     return false;
   }
   g.rendererRunning = state == 1;
+  if (state == 0) {
+    const uint64_t t = now_ns();
+    if (g.pausedSinceNs == 0) {
+      g.pausedSinceNs = t;
+      g.pausedWarnedNs = 0;
+    } else if (t - g.pausedSinceNs > 5000000000ull && t - g.pausedWarnedNs > 30000000000ull) {
+      g.pausedWarnedNs = t;
+      SVWARN("cp: the renderer has been paused for %.0f s (space hidden or not yet shown); the game waits",
+             static_cast<double>(t - g.pausedSinceNs) / 1e9);
+    }
+  } else {
+    g.pausedSinceNs = 0;
+  }
   return g.rendererRunning;
 }
 
@@ -1010,19 +1048,26 @@ bool dawn_scoped(const char* what, Fn&& fn) {
   auto& device = aurora::webgpu::g_device;
   device.PushErrorScope(wgpu::ErrorFilter::Validation);
   fn();
-  bool done = false, failed = false;
-  std::string message;
+  // Owned jointly with the callback: should the wait time out, a late callback still writes into
+  // live memory, not into this returned frame.
+  struct Verdict {
+    std::atomic<bool> done{false};
+    bool failed = false;
+    std::string message;
+  };
+  auto verdict = std::make_shared<Verdict>();
   const auto future = device.PopErrorScope(
-      wgpu::CallbackMode::WaitAnyOnly, [&](wgpu::PopErrorScopeStatus status, wgpu::ErrorType type, wgpu::StringView msg) {
-        done = true;
+      wgpu::CallbackMode::WaitAnyOnly,
+      [verdict](wgpu::PopErrorScopeStatus status, wgpu::ErrorType type, wgpu::StringView msg) {
         if (status != wgpu::PopErrorScopeStatus::Success || type != wgpu::ErrorType::NoError) {
-          failed = true;
-          message = std::string{std::string_view{msg}};
+          verdict->failed = true;
+          verdict->message = std::string{std::string_view{msg}};
         }
+        verdict->done.store(true);
       });
   aurora::webgpu::g_instance.WaitAny(future, 5000000000ull);
-  if (!done || failed) {
-    SVERR("dawn: %s failed: %s", what, done ? message.c_str() : "error scope timed out");
+  if (!verdict->done.load() || verdict->failed) {
+    SVERR("dawn: %s failed: %s", what, verdict->done.load() ? verdict->message.c_str() : "error scope timed out");
     return false;
   }
   return true;
@@ -1088,6 +1133,8 @@ bool create_shared(SharedImage& img, uint32_t width, uint32_t height, const char
   return true;
 }
 
+bool end_access(SharedImage& img);
+
 // Opens Dawn's access. Dawn's GPU work waits for the last composite that read the image.
 bool begin_access(SharedImage& img) {
   if (img.accessOpen) return true;
@@ -1106,9 +1153,20 @@ bool begin_access(SharedImage& img) {
     desc.signaledValueCount = 0;
     desc.signaledValues = nullptr;
   }
-  img.accessOpen = static_cast<bool>(img.memory.BeginAccess(img.texture, &desc));
-  if (!img.accessOpen) SVERR("dawn: BeginAccess refused (%ux%u)", img.width, img.height);
-  return img.accessOpen;
+  // Scoped: a validation error here would otherwise reach Aurora's uncaptured-error handler (fatal).
+  bool opened = false;
+  const bool clean = dawn_scoped("BeginAccess", [&] {
+    opened = static_cast<bool>(img.memory.BeginAccess(img.texture, &desc));
+  });
+  img.accessOpen = opened;
+  if (!clean || !opened) {
+    SVERR("dawn: BeginAccess refused (%ux%u)", img.width, img.height);
+    if (opened) end_access(img);
+    img.accessOpen = false;
+    img.refused = true;
+    return false;
+  }
+  return true;
 }
 
 // Ends Dawn's access and keeps its fence for the composite. False: no picture (never written, or no
@@ -1117,10 +1175,12 @@ bool end_access(SharedImage& img) {
   if (!img.accessOpen) return false;
   img.accessOpen = false;
   wgpu::SharedTextureMemoryEndAccessState state{};
-  const bool ok = static_cast<bool>(img.memory.EndAccess(img.texture, &state));
-  if (!ok) {
+  bool ok = false;
+  const bool clean = dawn_scoped("EndAccess", [&] { ok = static_cast<bool>(img.memory.EndAccess(img.texture, &state)); });
+  if (!ok || !clean) {
     SVERR("dawn: EndAccess failed (%ux%u)", img.width, img.height);
     img.valid = false;
+    img.refused = true;
     return false;
   }
   id<MTLSharedEvent> event = nil;
@@ -1231,6 +1291,8 @@ void copy_screen_gpu() {
   if (end_access(img)) {
     g.screenShown = g.screenNext;
     g.screenNext = (g.screenNext + 1) % kScreenSlots;
+  } else if (img.refused) {
+    use_cpu_screen("EndAccess");
   }
 }
 
@@ -1299,6 +1361,13 @@ void close_pool_measurement() {
 void finish_stereo_frame() {
   bool ok = true;
   for (int e = 0; e < 2; ++e) ok = end_access(g.eyes[g.eyeSlot][e]) && ok;
+  if (g.eyes[g.eyeSlot][0].refused || g.eyes[g.eyeSlot][1].refused) {
+    g.stereoFailed = true;
+    g.hasProjection = false;
+    SVERR("3D modes off: Dawn refused to hand the eye images back");
+    report_mode();
+    return;
+  }
   if (ok) {
     g.shownSlot = g.eyeSlot;
     g.shownPose = g.predicted;
@@ -1345,6 +1414,32 @@ struct ScreenUniforms {
   float uvRect[4];
 };
 
+}  // namespace
+
+// sv_xr.h: the MSL of sv_shaders.h compiled once per device, shared by the composite and the effects.
+extern "C" void* sv_shader_library(void* mtlDevice) {
+  static id<MTLDevice> s_device = nil;
+  static id<MTLLibrary> s_library = nil;
+  id<MTLDevice> device = (__bridge id<MTLDevice>)mtlDevice;
+  if (device == nil) return nullptr;
+  if (device == s_device) return (__bridge void*)s_library;
+  s_device = device;
+  s_library = nil;
+  NSError* err = nil;
+  const uint64_t t0 = now_ns();
+  s_library = [device newLibraryWithSource:[NSString stringWithUTF8String:kSvShadersMsl]
+                                   options:[MTLCompileOptions new]
+                                     error:&err];
+  if (s_library == nil) {
+    SVERR("metal: shader library failed to compile: %s", err.localizedDescription.UTF8String);
+    return nullptr;
+  }
+  SVLOG("metal: shader library compiled in %.1f ms", static_cast<double>(now_ns() - t0) / 1e6);
+  return (__bridge void*)s_library;
+}
+
+namespace {
+
 bool build_pipelines(id<MTLDevice> device, MTLPixelFormat color, MTLPixelFormat depth) {
   Metal& m = g.mtl;
   if (m.device == device && m.colorFormat == color && m.depthFormat == depth && m.eyePipeline != nil) return true;
@@ -1360,14 +1455,8 @@ bool build_pipelines(id<MTLDevice> device, MTLPixelFormat color, MTLPixelFormat 
     SVERR("metal: newCommandQueue failed");
     return false;
   }
-  NSError* err = nil;
-  id<MTLLibrary> lib = [device newLibraryWithSource:[NSString stringWithUTF8String:kSvShadersMsl]
-                                            options:[MTLCompileOptions new]
-                                              error:&err];
-  if (lib == nil) {
-    SVERR("metal: shader library failed to compile: %s", err.localizedDescription.UTF8String);
-    return false;
-  }
+  id<MTLLibrary> lib = (__bridge id<MTLLibrary>)sv_shader_library((__bridge void*)device);
+  if (lib == nil) return false;
   auto make = [&](NSString* vs, NSString* fs, const char* what) -> id<MTLRenderPipelineState> {
     MTLRenderPipelineDescriptor* d = [MTLRenderPipelineDescriptor new];
     d.vertexFunction = [lib newFunctionWithName:vs];
@@ -1563,6 +1652,56 @@ ScreenPlacement place_screen(uint32_t picW, uint32_t picH, const V3& head) {
   return p;
 }
 
+// Nothing can be drawn (no pipelines): each drawable is still presented, every view cleared (black
+// or see-through, depth far) rather than showing whatever its texture held. Without even a command
+// buffer the frame is abandoned (sv_xrhost_frame_finish skips endSubmission when nothing went out).
+void present_cleared(id<MTLDevice> device, int32_t count) {
+  static id<MTLCommandQueue> s_fallback = nil;
+  if (device != nil && (s_fallback == nil || s_fallback.device != device)) s_fallback = [device newCommandQueue];
+  id<MTLCommandBuffer> cmd = [s_fallback commandBuffer];
+  if (cmd == nil) {
+    SVERR("cp: no command buffer to present with; the frame is abandoned");
+    sv_xrhost_frame_finish();
+    return;
+  }
+  cmd.label = @"SV clear";
+  for (int32_t d = 0; d < count; ++d) {
+    int32_t views = 0;
+    double ptime = 0.0;
+    float range[2] = {};
+    sv_xrhost_drawable_info(d, &ptime, range, &views);
+    for (int32_t v = 0; v < views; ++v) {
+      Mat vdfv, vproj;
+      void* cptr = nullptr;
+      void* dptr = nullptr;
+      int32_t slice = 0;
+      float vp[4] = {};
+      if (!sv_xrhost_frame_view(d, v, vdfv.m, vproj.m, &cptr, &dptr, &slice, vp) || cptr == nullptr) continue;
+      id<MTLTexture> color = (__bridge id<MTLTexture>)cptr;
+      id<MTLTexture> depth = (__bridge id<MTLTexture>)dptr;
+      MTLRenderPassDescriptor* pass = [MTLRenderPassDescriptor renderPassDescriptor];
+      pass.colorAttachments[0].texture = color;
+      pass.colorAttachments[0].slice = static_cast<NSUInteger>(slice);
+      pass.colorAttachments[0].loadAction = MTLLoadActionClear;
+      pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+      pass.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, g.mrMode ? 0.0 : 1.0);
+      if (depth != nil) {
+        pass.depthAttachment.texture = depth;
+        pass.depthAttachment.slice =
+            static_cast<NSUInteger>(depth.textureType == MTLTextureType2DArray ? slice : 0);
+        pass.depthAttachment.loadAction = MTLLoadActionClear;
+        pass.depthAttachment.storeAction = MTLStoreActionStore;
+        pass.depthAttachment.clearDepth = 0.0;
+      }
+      id<MTLRenderCommandEncoder> enc = [cmd renderCommandEncoderWithDescriptor:pass];
+      [enc endEncoding];
+    }
+    sv_xrhost_frame_present(d, (__bridge void*)cmd, g.lastHeadAnchor);
+  }
+  [cmd commit];
+  sv_xrhost_frame_finish();
+}
+
 // One display frame's pose for drawing: the eye images' pose when they are shown (the drawable then
 // reprojects everything consistently), else the head predicted for this drawable.
 struct DrawPose {
@@ -1641,20 +1780,7 @@ void display_frame() {
 
   id<MTLCommandBuffer> cmd = pipelines ? [g.mtl.queue commandBuffer] : nil;
   if (cmd == nil) {
-    // Nothing can be drawn (no device or no pipelines): the drawables still must be presented, on a
-    // command buffer of the renderer's own queue would be best, but without a queue there is none;
-    // a fresh queue is the last resort so the frame is not left open.
-    static id<MTLCommandQueue> s_fallback = nil;
-    if (s_fallback == nil && device != nil) s_fallback = [device newCommandQueue];
-    cmd = [s_fallback commandBuffer];
-    if (cmd == nil) {
-      SVERR("cp: no command buffer to present with; ending the frame unpresented");
-      sv_xrhost_frame_finish();
-      return;
-    }
-    for (int32_t d = 0; d < count; ++d) sv_xrhost_frame_present(d, (__bridge void*)cmd, -1);
-    [cmd commit];
-    sv_xrhost_frame_finish();
+    present_cleared(device, count);
     return;
   }
   cmd.label = @"SV composite";
@@ -1905,8 +2031,10 @@ void display_frame() {
   }
 
   // Dawn may write these images again once this command buffer is done with them.
+  uint64_t signalValue = 0;
   if (g.compositeEvent != nil) {
     const uint64_t value = ++g.compositeValue;
+    signalValue = value;
     [cmd encodeSignalEvent:g.compositeEvent value:value];
     if (drawEyes) {
       g.eyes[g.shownSlot][0].readValue = value;
@@ -1918,8 +2046,14 @@ void display_frame() {
   for (int32_t d = 0; d < count; ++d) sv_xrhost_frame_present(d, (__bridge void*)cmd, pose.anchorId);
   if (fxDraw) svfx::frame_committed((__bridge void*)cmd);
   g.cmdCommitted.fetch_add(1);
+  id<MTLSharedEvent> signalEvent = g.compositeEvent;
   [cmd addCompletedHandler:^(id<MTLCommandBuffer> done) {
     g.cmdCompleted.fetch_add(1);
+    // A failed command buffer never signals: Dawn's next BeginAccess (and the CPU upload check)
+    // would then wait for this value forever. Signalled from the CPU instead (never lowered).
+    if (signalEvent != nil && signalValue != 0 && signalEvent.signaledValue < signalValue) {
+      signalEvent.signaledValue = signalValue;
+    }
     if (done.status == MTLCommandBufferStatusError) {
       static std::atomic<int> s_errors{0};
       if (s_errors.fetch_add(1) < 5) {
@@ -2089,6 +2223,11 @@ extern "C" int PortXrStereoFrameBegin(void) {
   }
   if (!g.eyes[g.eyeSlot][0].accessOpen || !g.eyes[g.eyeSlot][1].accessOpen) {
     for (int e = 0; e < 2; ++e) end_access(g.eyes[g.eyeSlot][e]);
+    // Dawn refused the shared images: the 3D modes go, the Jumbotron stays.
+    g.stereoFailed = true;
+    g.hasProjection = false;
+    SVERR("3D modes off: Dawn refused access to the eye images");
+    report_mode();
     return 0;
   }
   g.stereoLayers = count;
@@ -2276,6 +2415,8 @@ extern "C" void PortXrRumbleStop(int pad) {
 extern "C" int PortXrBeginFrame(void) {
   if (!g.active) return 0;
   g.frameBegun = false;
+  // The game's boot (disc, memory card, first scene setup) is behind it: the app may open the space.
+  sv_game_ready();
   take_settings();
   const int vm = sv_game_take_view_mode();
   if (vm >= 0) apply_view_mode(vm);

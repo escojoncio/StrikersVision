@@ -48,6 +48,11 @@ int sv_game_take_remote_table_pose(float m[16], float* scale);
 void sv_game_set_upper_limbs_visible(int visible);
 void sv_game_view_mode_changed(int viewMode);
 
+/* ---- sv_xr.mm: the MSL of sv_shaders.h compiled once for `mtlDevice` (id<MTLDevice>), shared by
+ * the composite and the effects; returns an unretained id<MTLLibrary>, NULL when it did not compile
+ * (the error is logged). Game thread. */
+void* sv_shader_library(void* mtlDevice);
+
 /* ---- sv_xr_pad.cpp: one GameCube pad state for Aurora's virtual pad on `port` (PADSetVirtualStatus),
  * or the port given back to real controllers (PADClearVirtualStatus). Game thread. */
 typedef struct SVPad {
@@ -77,7 +82,17 @@ void sv_pad_clear_virtual(int port);
  * on disk before anything else happens; a thread follows the file and hands each new line to
  * SVAppCallbacks.log_line. Started by sv_game_start when STRIKERS_LOG is an absolute path. */
 
-/* ---- Helpers on environment variables (STRIKERS_*). */
+/* ---- Settings: the environment as the app set it before sv_game_start, overridden by the live
+ * changes the game thread has taken (sv_setting_override; nothing calls setenv after the start).
+ * sv_setting_get: 1 and the value when set, 0 when unset or "" (= default). Any thread. */
+int sv_setting_get(const char* name, char* out, int outSize);
+void sv_setting_override(const char* name, const char* value);
+
+/* ---- sv_game.mm: the headset loop is running (PortXrInit done); reported once to the app
+ * (SVAppCallbacks.game_ready). */
+void sv_game_ready(void);
+
+/* ---- Helpers on the settings above (STRIKERS_*), clamped. */
 float sv_env_float(const char* name, float fallback, float lo, float hi);
 int sv_env_int(const char* name, int fallback, int lo, int hi);
 
@@ -87,6 +102,12 @@ int sv_env_int(const char* name, int fallback, int lo, int hi);
 void sv_xrhost_start(void (*logLine)(const char* line));
 /* State of a cp_layer_renderer_t: 0 paused, 1 running, 2 invalidated. */
 int32_t sv_xrhost_renderer_state(void* renderer);
+/* The renderer's MTLDevice (unretained), so pipelines can be built before the first frame; and its
+ * configured colour and depth formats (MTLPixelFormat values). */
+void* sv_xrhost_renderer_device(void* renderer);
+void sv_xrhost_renderer_formats(void* renderer, uint32_t* colorFormat, uint32_t* depthFormat);
+/* A new renderer arrived: if the ARKit session is not running (refused or failed), run it again. */
+void sv_xrhost_session_retry(void);
 /* One Compositor Services frame, up to startSubmission: query the next frame, update phase, wait for
  * the optimal input time, take the drawables (visionOS 26 can hand out more than one while the
  * render quality changes; every one must be presented). Returns the drawable count: > 0 = the
@@ -108,7 +129,8 @@ int32_t sv_xrhost_head(double time, float* originFromDevice);
 /* Drawable d: sets its device anchor (the pose its pixels were drawn for; -1 = none) and encodes its
  * present into the command buffer (id<MTLCommandBuffer>). The caller then commits. */
 void sv_xrhost_frame_present(int32_t d, void* commandBuffer, int32_t anchorId);
-/* frame.endSubmission(), after the commit. */
+/* frame.endSubmission(), after the commit; a frame with nothing presented is abandoned instead
+ * (endSubmission without a present aborts the process). */
 void sv_xrhost_frame_finish(void);
 /* Controllers, predicted to `time`. Per hand (0 left, 1 right): connected, buttons (SV_XRB_*),
  * analog[4] = trigger, grip, stick x, stick y; poseValid and originFromGrip (column-major). The

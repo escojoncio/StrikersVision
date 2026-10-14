@@ -23,6 +23,9 @@ final class SVGame: ObservableObject {
     /// The XR layer's wish (set_upper_limbs_visible); the scene combines it with the player's setting.
     @Published private(set) var limbsWanted = true
     @Published var immersiveOpen = false
+    /// The game booted far enough to draw (game_ready): the immersive space opens only then, so it
+    /// never shows an empty view while the disc and the first scene load.
+    @Published private(set) var ready = false
     /// The online room the game is in ("" = offline), and whether through SharePlay.
     @Published private(set) var room = ""
     @Published private(set) var roomViaSharePlay = false
@@ -104,6 +107,11 @@ final class SVGame: ObservableObject {
         }
     }
 
+    fileprivate nonisolated static func gameReady() {
+        SVLog.log("the game is ready to draw")
+        DispatchQueue.main.async { MainActor.assumeIsolated { SVGame.shared.ready = true } }
+    }
+
     fileprivate nonisolated static func viewModeChanged(_ mode: Int32) {
         DispatchQueue.main.async { MainActor.assumeIsolated { SVGame.shared.viewMode = mode } }
     }
@@ -115,7 +123,8 @@ final class SVGame: ObservableObject {
             set_upper_limbs_visible: svCallbackLimbs,
             game_ended: svCallbackEnded,
             log_line: svCallbackLogLine,
-            view_mode_changed: svCallbackViewMode))
+            view_mode_changed: svCallbackViewMode,
+            game_ready: svCallbackReady))
         sv_register_app_callbacks(callbacks)
     }
 }
@@ -130,6 +139,7 @@ private func svCallbackLogLine(_ line: UnsafePointer<CChar>?) {
     SVLog.gameLine(String(cString: line))
 }
 private func svCallbackViewMode(_ mode: Int32) { SVGame.viewModeChanged(mode) }
+private func svCallbackReady() { SVGame.gameReady() }
 
 /// The CompositorLayer's renderer: handed to the game, kept alive here, and watched until it is
 /// invalidated (the space closed), which the game hears through sv_layer_renderer_invalidated.

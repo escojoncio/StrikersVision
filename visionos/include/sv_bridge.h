@@ -74,6 +74,10 @@ typedef struct SVAppCallbacks {
     void (*log_line)(const char* line);
     /* The current view mode changed (SV_VIEW_*), for the app's HUD/settings sheet. Any thread. */
     void (*view_mode_changed)(int viewMode);
+    /* The game booted far enough to draw into the immersive space (the headset loop is running):
+     * the app opens the space only then, so it never shows an empty view during the boot. Any
+     * thread, once. */
+    void (*game_ready)(void);
 } SVAppCallbacks;
 
 void sv_register_app_callbacks(const SVAppCallbacks* callbacks);

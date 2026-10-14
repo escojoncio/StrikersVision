@@ -90,6 +90,9 @@ jobs:
           rm build/xcodegen.zip
           build/xcodegen/bin/xcodegen --version
 
+      - name: Shaders (the run-time MSL, compiled with the visionOS Metal compiler)
+        run: bash scripts/check-msl.sh msl.log
+
       - name: The app
         run: |
           set -o pipefail
@@ -126,7 +129,7 @@ jobs:
 
       - name: Publish the logs (branch ci-logs, visionos.txt)
         if: always()
-        run: bash scripts/ci-publish-log.sh visionos dawn.log game.log undefined-*.log app-*.log
+        run: bash scripts/ci-publish-log.sh visionos dawn.log game.log msl.log undefined-*.log app-*.log
 
       - name: Publish the app as a release
         if: success() && github.ref == 'refs/heads/main' && hashFiles('build/StrikersVision.ipa') != ''
