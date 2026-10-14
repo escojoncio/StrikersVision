@@ -661,6 +661,16 @@
         }
       }
     },
+    "Loading the game…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cargando el juego…"
+          }
+        }
+      }
+    },
     "Log": {
       "localizations": {
         "es": {

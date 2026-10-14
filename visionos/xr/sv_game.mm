@@ -8,10 +8,15 @@
 #include "../include/sv_bridge.h"
 #include "sv_xr.h"
 
+#import <Foundation/Foundation.h>
+
 #include <CoreFoundation/CoreFoundation.h>
 
 #include <fcntl.h>
 #include <pthread.h>
+#if defined(__APPLE__)
+#include <pthread/qos.h>
+#endif
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -22,6 +27,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <deque>
+#include <map>
 #include <mutex>
 #include <string>
 #include <utility>
@@ -47,6 +53,10 @@ void* g_renderer = nullptr;
 uint32_t g_rendererGeneration = 0;
 
 std::deque<std::pair<std::string, std::string>> g_settings;
+// Live settings already taken by the game thread: they override the environment (which is never
+// written after the game starts, so getenv on any thread stays safe). "" = back to the default.
+std::map<std::string, std::string> g_overrides;
+std::atomic<bool> g_readyReported{false};
 int g_pendingViewMode = -1;
 
 int g_participants = 0;
@@ -137,10 +147,55 @@ void* log_tail_thread(void*) {
   return nullptr;
 }
 
-void start_log_tail() {
+// The game log, opened here (before the game thread exists) and put behind fd 2, so the first
+// lines and an early death are in strikers-log.txt too. A fresh file each session ("w", as the
+// port's own open). STRIKERS_LOG is then set to "0" so config.c does not open it a second time
+// with "w", which would truncate what is already there; fd 2 stays this file.
+void open_log_early() {
   const char* path = std::getenv("STRIKERS_LOG");
-  if (path == nullptr || path[0] != '/') return;  // only a file path can be followed
+  if (path == nullptr || path[0] != '/') return;
+  const int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC | O_APPEND | O_CLOEXEC, 0644);
+  if (fd < 0) {
+    SVWARN("log: could not open %s (errno %d); the game opens it later", path, errno);
+    return;
+  }
+  std::fflush(stderr);
+  if (dup2(fd, STDERR_FILENO) < 0) {
+    SVWARN("log: dup2 onto stderr failed (errno %d); the game opens it later", errno);
+    close(fd);
+    return;
+  }
+  close(fd);
+  // Unbuffered, as config.c does: the lines before a crash are the ones that matter.
+  setvbuf(stderr, nullptr, _IONBF, 0);
   std::snprintf(g_logPath, sizeof(g_logPath), "%s", path);
+  setenv("STRIKERS_LOG", "0", 1);
+  std::fprintf(stderr, "[xr] log: %s (opened by the app before the game thread)\n", path);
+}
+
+// An Objective-C exception nobody caught (from a system framework, usually): its reason and stack
+// go to fd 2 (the log) before the process aborts.
+void on_uncaught_exception(NSException* exception) {
+  NSString* text = [NSString stringWithFormat:@"\n*** strikers: uncaught exception %@: %@\n%@\n", exception.name,
+                                              exception.reason, [exception.callStackSymbols componentsJoinedByString:@"\n"]];
+  const char* c = text.UTF8String;
+  if (c != nullptr) {
+    ssize_t left = static_cast<ssize_t>(std::strlen(c));
+    while (left > 0) {
+      const ssize_t n = write(STDERR_FILENO, c, static_cast<size_t>(left));
+      if (n <= 0) break;
+      c += n;
+      left -= n;
+    }
+  }
+}
+
+void start_log_tail() {
+  if (g_logPath[0] == '\0') {
+    const char* path = std::getenv("STRIKERS_LOG");
+    if (path == nullptr || path[0] != '/') return;  // only a file path can be followed
+    std::snprintf(g_logPath, sizeof(g_logPath), "%s", path);
+  }
   pthread_t thread;
   if (pthread_create(&thread, nullptr, log_tail_thread, nullptr) == 0) {
     pthread_detach(thread);
@@ -165,6 +220,7 @@ void* game_thread(void*) {
   // SwiftUI owns the app's main(); SDL refuses SDL_Init until told the entry point was handled.
   SDL_SetMainReady();
   const int rc = strikers_main(1, argv);
+  std::fflush(stderr);
   char reason[96];
   if (g_quit.load()) {
     std::snprintf(reason, sizeof(reason), "quit (exit code %d)", rc);
@@ -209,8 +265,34 @@ extern "C" void sv_log(const char* level, const char* fmt, ...) {
   sv_log_line(line);
 }
 
-extern "C" float sv_env_float(const char* name, float fallback, float lo, float hi) {
+extern "C" int sv_setting_get(const char* name, char* out, int outSize) {
+  if (name == nullptr || out == nullptr || outSize <= 0) return 0;
+  {
+    std::lock_guard<std::mutex> lock(g_lock);
+    const auto it = g_overrides.find(name);
+    if (it != g_overrides.end()) {
+      std::snprintf(out, static_cast<size_t>(outSize), "%s", it->second.c_str());
+      return it->second.empty() ? 0 : 1;
+    }
+  }
   const char* e = std::getenv(name);
+  if (e == nullptr || *e == '\0') {
+    out[0] = '\0';
+    return 0;
+  }
+  std::snprintf(out, static_cast<size_t>(outSize), "%s", e);
+  return 1;
+}
+
+extern "C" void sv_setting_override(const char* name, const char* value) {
+  if (name == nullptr || *name == '\0') return;
+  std::lock_guard<std::mutex> lock(g_lock);
+  g_overrides[name] = value != nullptr ? value : "";
+}
+
+extern "C" float sv_env_float(const char* name, float fallback, float lo, float hi) {
+  char buf[256];
+  const char* e = sv_setting_get(name, buf, sizeof(buf)) ? buf : nullptr;
   float v = fallback;
   if (e != nullptr && *e != '\0') {
     char* end = nullptr;
@@ -223,7 +305,8 @@ extern "C" float sv_env_float(const char* name, float fallback, float lo, float 
 }
 
 extern "C" int sv_env_int(const char* name, int fallback, int lo, int hi) {
-  const char* e = std::getenv(name);
+  char buf[256];
+  const char* e = sv_setting_get(name, buf, sizeof(buf)) ? buf : nullptr;
   long v = fallback;
   if (e != nullptr && *e != '\0') {
     char* end = nullptr;
@@ -265,10 +348,16 @@ extern "C" int sv_game_start(const char* home, const char* discFolder) {
   // Quest's defaults, unless the app set them (main.cpp and audio_out.cpp read them).
   setenv("STRIKERS_AUDIO_BUFFERS", "10", 0);
 
+  open_log_early();
   start_log_tail();
+  NSSetUncaughtExceptionHandler(&on_uncaught_exception);
 
   pthread_attr_t attr;
   pthread_attr_init(&attr);
+#if defined(__APPLE__)
+  // The game thread paces the display: it must not be scheduled like background work.
+  pthread_attr_set_qos_class_np(&attr, QOS_CLASS_USER_INTERACTIVE, 0);
+#endif
   // The decomp keeps large structures on the stack (the console had a big main thread stack too).
   const size_t kStack = 256u * 1024u * 1024u;
   pthread_attr_setstacksize(&attr, kStack);
@@ -417,6 +506,17 @@ extern "C" void sv_game_set_upper_limbs_visible(int visible) {
     fn = g_callbacks.set_upper_limbs_visible;
   }
   if (fn != nullptr) fn(visible);
+}
+
+extern "C" void sv_game_ready(void) {
+  if (g_readyReported.exchange(true)) return;
+  void (*fn)(void) = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(g_lock);
+    fn = g_callbacks.game_ready;
+  }
+  SVLOG("game ready: the headset loop is running");
+  if (fn != nullptr) fn();
 }
 
 extern "C" void sv_game_view_mode_changed(int viewMode) {

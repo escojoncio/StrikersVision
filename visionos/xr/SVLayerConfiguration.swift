@@ -19,9 +19,10 @@ import Metal
 import SwiftUI
 
 struct SVLayerConfiguration: CompositorLayerConfiguration {
-    private static func env(_ name: String) -> String? {
-        guard let v = ProcessInfo.processInfo.environment[name] ?? getenv(name).map({ String(cString: $0) }),
-              !v.isEmpty else { return nil }
+    /// The saved setting (SVSettings keeps every STRIKERS_* key in UserDefaults under this prefix).
+    /// Not the environment: the game thread may be changing it while this runs.
+    private static func setting(_ name: String) -> String? {
+        guard let v = UserDefaults.standard.string(forKey: "sv.setting." + name), !v.isEmpty else { return nil }
         return v
     }
 
@@ -30,7 +31,7 @@ struct SVLayerConfiguration: CompositorLayerConfiguration {
         configuration.colorFormat = .bgra8Unorm_srgb
         configuration.depthFormat = .depth32Float
 
-        let wantFoveation = Self.env("STRIKERS_XR_FOVEATION") == "1"
+        let wantFoveation = Self.setting("STRIKERS_XR_FOVEATION") == "1"
         let foveate = wantFoveation && capabilities.supportsFoveation
         configuration.isFoveationEnabled = foveate
 

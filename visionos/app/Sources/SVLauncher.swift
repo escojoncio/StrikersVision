@@ -25,6 +25,8 @@ struct SVLauncherView: View {
     @State private var hostedCode = UserDefaults.standard.string(forKey: "sv.lastHosted") ?? SVLauncherView.newCode()
     @State private var joinCode = UserDefaults.standard.string(forKey: "sv.lastCode") ?? ""
     @State private var opening = false
+    /// Play was pressed: the space opens as soon as the game reports it can draw (game_ready).
+    @State private var openWhenReady = false
     /// What to do once the permissions sheet closes (the first Play).
     @State private var pendingPlay: (() -> Void)?
 
@@ -85,6 +87,20 @@ struct SVLauncherView: View {
                 sheet = .help
             }
         }
+        .onChange(of: game.ready) { _, ready in
+            if ready && openWhenReady {
+                openWhenReady = false
+                Task { await openSpace() }
+            }
+        }
+        .onChange(of: game.phase) { _, phase in
+            // The game is gone: the space would only show its last frame. The reason is on this page.
+            if case .ended = phase {
+                openWhenReady = false
+                page = .home
+                if game.immersiveOpen { Task { await dismissImmersiveSpace() } }
+            }
+        }
         .onChange(of: sharePlay.joined) { _, joined in
             // Someone in the call started the match: offer it on the home page (handled there); when
             // the group goes away while this headset plays through it, fall back to offline.
@@ -102,7 +118,16 @@ struct SVLauncherView: View {
         }
         if let problem { note(problem, warn: true) }
 
-        if game.phase == .running {
+        if game.phase == .running && !game.ready {
+            HStack(spacing: 12) {
+                ProgressView()
+                Text("Loading the game…").font(.headline)
+            }
+            .padding()
+            .frame(maxWidth: .infinity)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20))
+        }
+        if game.phase == .running && game.ready {
             playingCard
         }
 
@@ -350,7 +375,11 @@ struct SVLauncherView: View {
             game.setRoom(room, viaSharePlay: viaSharePlay)
         }
         page = .home
-        Task { await openSpace() }
+        if game.ready {
+            Task { await openSpace() }
+        } else {
+            openWhenReady = true
+        }
     }
 
     private func sheetClosed() {

@@ -78,9 +78,17 @@ final class SVXRHost: @unchecked Sendable {
     private let world = WorldTrackingProvider()
     private var accessoryProvider: Any?          // AccessoryTrackingProvider (visionOS 26)
     private var accessoryAnchors: [Int: Any] = [:] // AccessoryAnchor by hand (0 left, 1 right)
-    private var trackedSpatial: [GCController] = []
+    private var trackedSpatial = Set<ObjectIdentifier>()
+    // Which hand each Sense controller is, from Accessory(device:).inherentChirality: the one map
+    // both the buttons and the poses use (vendor-name suffixes are only the fallback).
+    private var handOf: [ObjectIdentifier: Int] = [:]
     private var started = false
     private var running = false
+    private var runInFlight = false
+    private var eventsObserved = false
+    private var poseLogged = [false, false]
+    private var nilFrames = 0
+    private var emptyDrawables = 0
     private var lastControllerCheck: Double = 0
     private var headLogged = false
     private var headMisses = 0
@@ -115,9 +123,37 @@ final class SVXRHost: @unchecked Sendable {
         lock.lock()
         if started { lock.unlock(); return }
         started = true
+        let observe = !eventsObserved
+        eventsObserved = true
         lock.unlock()
-        xrLog("[xr] arkit: world tracking supported \(WorldTrackingProvider.isSupported)")
+        xrLog("[xr] arkit: world tracking supported \(WorldTrackingProvider.isSupported), accessory tracking "
+              + "supported \(Self.accessorySupported)")
+        if observe { Task { await self.observeEvents() } }
         Task { await self.runSession() }
+    }
+
+    /// A new renderer (the space opened again): if the session is not running (a refused or failed
+    /// run), try again.
+    func retryIfNeeded() {
+        lock.lock()
+        let again = started && !running && !runInFlight
+        lock.unlock()
+        if again {
+            xrLog("[xr] arkit: session not running; trying again for the new renderer")
+            Task { await self.runSession() }
+        }
+    }
+
+    private static var accessorySupported: Bool {
+        if #available(visionOS 26.0, *) { return AccessoryTrackingProvider.isSupported }
+        return false
+    }
+
+    /// Authorization changes, provider state changes and errors, as they happen.
+    private func observeEvents() async {
+        for await event in session.events {
+            xrLog("[xr] arkit: event \(event)")
+        }
     }
 
     private static func spatialControllers() -> [GCController] {
@@ -129,28 +165,78 @@ final class SVXRHost: @unchecked Sendable {
     /// controllers are paired now. The provider list is fixed at run(), so a change of controllers
     /// means running again (not stopping: world tracking carries on).
     private func runSession() async {
+        guard claimRun() else { return }
+        defer { releaseRun() }
+
         var providers: [any DataProvider] = [world]
         var names: [String] = []
+        var accessoryProvider: Any?
         if #available(visionOS 26.0, *), AccessoryTrackingProvider.isSupported {
             let spatial = Self.spatialControllers()
             var accessories: [Accessory] = []
+            var hands: [ObjectIdentifier: Int] = [:]
             for c in spatial {
-                do { accessories.append(try await Accessory(device: c)) } catch {
+                do {
+                    let a = try await Accessory(device: c)
+                    accessories.append(a)
+                    let hand = Self.hand(of: a, fallback: c)
+                    hands[ObjectIdentifier(c)] = hand
+                    xrLog("[xr] input: Sense \"\(c.vendorName ?? "?")\" chirality \(a.inherentChirality) -> "
+                          + (hand == 0 ? "left" : "right") + " hand")
+                } catch {
                     xrLog("[xr] arkit: accessory for \(c.vendorName ?? "?") failed: \(error)")
                 }
             }
-            names = accessories.map { $0.name }
-            let provider = AccessoryTrackingProvider(accessories: accessories)
-            install(provider, spatial)
-            providers.append(provider)
-            Task { await self.consume(provider) }
+            installHands(hands, spatial)
+            // A provider with no accessories is not run: it can fail the whole session.
+            if !accessories.isEmpty {
+                names = accessories.map { $0.name }
+                let provider = AccessoryTrackingProvider(accessories: accessories)
+                providers.append(provider)
+                accessoryProvider = provider
+            }
         }
         do {
             try await session.run(providers)
-            setRunning()
-            xrLog("[xr] arkit: session running (accessories: \(names))")
+            setRunning(accessoryProvider)
+            xrLog("[xr] arkit: session running (world + accessories: \(names))")
+            if #available(visionOS 26.0, *), let p = accessoryProvider as? AccessoryTrackingProvider {
+                Task { await self.consume(p) }
+            }
         } catch {
-            xrLog("[xr] arkit error: session.run failed: \(error)")
+            xrLog("[xr] arkit error: session.run with \(providers.count) provider(s) failed: \(error)")
+            if providers.count > 1 {
+                do {
+                    try await session.run([world])
+                    setRunning(nil)
+                    xrLog("[xr] arkit: session running with world tracking only (no controller poses)")
+                    return
+                } catch {
+                    xrLog("[xr] arkit error: session.run (world only) failed: \(error)")
+                }
+            }
+            // Not running: the next renderer tries again (retryIfNeeded).
+            setStopped()
+        }
+    }
+
+    // Synchronous helpers: a lock is never taken inside an async function.
+    private func claimRun() -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        if runInFlight { return false }
+        runInFlight = true
+        return true
+    }
+    private func releaseRun() { lock.lock(); runInFlight = false; lock.unlock() }
+    private func setStopped() { lock.lock(); running = false; lock.unlock() }
+
+    /// 0 left, 1 right. An unspecified chirality falls back to the controller's name, then right.
+    @available(visionOS 26.0, *)
+    private static func hand(of accessory: Accessory, fallback c: GCController?) -> Int {
+        switch accessory.inherentChirality {
+        case .left: return 0
+        case .right: return 1
+        default: return c.map { isLeft($0) ? 0 : 1 } ?? 1
         }
     }
 
@@ -158,31 +244,47 @@ final class SVXRHost: @unchecked Sendable {
     private func consume(_ provider: AccessoryTrackingProvider) async {
         for await update in provider.anchorUpdates {
             let anchor = update.anchor
-            let hand: Int
-            switch anchor.accessory.inherentChirality {
-            case .left: hand = 0
-            default: hand = 1
-            }
-            keep(hand: hand, anchor: update.event == .removed ? nil : anchor)
+            let hand = Self.hand(of: anchor.accessory, fallback: nil)
+            keep(hand: hand, anchor: update.event == .removed ? nil : anchor, from: provider)
         }
     }
 
     // Synchronous on purpose: a lock must never be held across a suspension point.
-    private func install(_ provider: Any, _ spatial: [GCController]) {
+    private func installHands(_ hands: [ObjectIdentifier: Int], _ spatial: [GCController]) {
         lock.lock()
-        trackedSpatial = spatial
+        trackedSpatial = Set(spatial.map { ObjectIdentifier($0) })
+        handOf = hands
+        lock.unlock()
+    }
+
+    private func setRunning(_ provider: Any?) {
+        lock.lock()
+        running = true
         accessoryProvider = provider
         accessoryAnchors.removeAll()
         lock.unlock()
     }
 
-    private func setRunning() {
-        lock.lock(); running = true; lock.unlock()
+    /// Records the paired Sense controllers (always, so a change seen while the session is not running
+    /// is not reported again) and says whether the running session needs a new accessory tracker.
+    private func spatialChanged(_ now: Set<ObjectIdentifier>) -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        let changed = now != trackedSpatial
+        trackedSpatial = now
+        return changed && running
     }
 
-    private func keep(hand: Int, anchor: Any?) {
+    private func handFor(_ c: GCController) -> Int {
+        lock.lock(); let h = handOf[ObjectIdentifier(c)]; lock.unlock()
+        return h ?? (Self.isLeft(c) ? 0 : 1)
+    }
+
+    private func keep(hand: Int, anchor: Any?, from provider: AnyObject) {
         lock.lock()
-        accessoryAnchors[hand] = anchor
+        // A provider replaced by a re-run may still deliver: its anchors are not the current one's.
+        if let current = accessoryProvider, (current as AnyObject) === provider {
+            accessoryAnchors[hand] = anchor
+        }
         lock.unlock()
     }
 
@@ -231,7 +333,15 @@ final class SVXRHost: @unchecked Sendable {
     }
 
     func frameBegin(_ r: LayerRenderer, _ device: UnsafeMutablePointer<UnsafeMutableRawPointer?>?) -> Int32 {
-        guard let f = r.queryNextFrame() else { return 0 }
+        presented = 0
+        guard let f = r.queryNextFrame() else {
+            nilFrames += 1
+            if nilFrames == 1 || nilFrames % 300 == 0 {
+                xrLog("[xr] cp warn: queryNextFrame gave no frame (\(nilFrames) in a row; renderer \(r.state))")
+            }
+            return 0
+        }
+        nilFrames = 0
         f.startUpdate()
         f.endUpdate()
         if let timing = f.predictTiming() {
@@ -242,7 +352,14 @@ final class SVXRHost: @unchecked Sendable {
         let ds = f.queryDrawables()
         // No drawable: the frame is abandoned without endSubmission (ending a submission that
         // presented nothing aborts the process).
-        guard !ds.isEmpty else { return 0 }
+        guard !ds.isEmpty else {
+            emptyDrawables += 1
+            if emptyDrawables == 1 || emptyDrawables % 300 == 0 {
+                xrLog("[xr] cp warn: frame without drawables (\(emptyDrawables) in a row; renderer \(r.state))")
+            }
+            return 0
+        }
+        emptyDrawables = 0
         f.startSubmission()
         frame = f
         drawables = ds
@@ -311,8 +428,14 @@ final class SVXRHost: @unchecked Sendable {
         return 1
     }
 
+    private var presented = 0
+
     func present(_ i: Int32, _ cmd: UnsafeMutableRawPointer?, _ anchorId: Int32) {
-        guard i >= 0, Int(i) < drawables.count, let cmd else { return }
+        guard i >= 0, Int(i) < drawables.count else { return }
+        guard let cmd else {
+            xrLog("[xr] cp error: present without a command buffer")
+            return
+        }
         guard let buffer = Unmanaged<AnyObject>.fromOpaque(cmd).takeUnretainedValue() as? any MTLCommandBuffer else {
             xrLog("[xr] cp error: present without a command buffer")
             return
@@ -320,12 +443,28 @@ final class SVXRHost: @unchecked Sendable {
         let d = drawables[Int(i)]
         d.deviceAnchor = anchor(anchorId)
         d.encodePresent(commandBuffer: buffer)
+        presented += 1
     }
 
     func finish() {
-        frame?.endSubmission()
+        // endSubmission with nothing presented aborts the process: such a frame is abandoned.
+        if presented > 0 {
+            frame?.endSubmission()
+        } else if frame != nil {
+            xrLog("[xr] cp error: frame ended with nothing presented; abandoned without endSubmission")
+        }
+        presented = 0
         frame = nil
         drawables = []
+    }
+
+    func device(_ r: LayerRenderer) -> UnsafeMutableRawPointer {
+        Unmanaged.passUnretained(r.device as AnyObject).toOpaque()
+    }
+
+    func formats(_ r: LayerRenderer, _ color: UnsafeMutablePointer<UInt32>?, _ depth: UnsafeMutablePointer<UInt32>?) {
+        color?.pointee = UInt32(r.configuration.colorFormat.rawValue)
+        depth?.pointee = UInt32(r.configuration.depthFormat.rawValue)
     }
 
     // MARK: input
@@ -437,7 +576,7 @@ final class SVXRHost: @unchecked Sendable {
             if spatial {
                 spatialNow.append(c)
                 guard #available(visionOS 26.0, *) else { continue }
-                let hand = Self.isLeft(c) ? 0 : 1
+                let hand = handFor(c)
                 let s = senseSample(c)
                 handConnected?[hand] = 1
                 handButtons?[hand] = s.buttons
@@ -476,6 +615,12 @@ final class SVXRHost: @unchecked Sendable {
             for h in 0..<2 {
                 if let m = gripPose(hand: h, time: time) {
                     poseValid?[h] = 1
+                    if !poseLogged[h] {
+                        poseLogged[h] = true
+                        let t = m.columns.3
+                        xrLog(String(format: "[xr] input: first %@ controller pose at (%.2f, %.2f, %.2f)",
+                                     h == 0 ? "left" : "right", t.x, t.y, t.z))
+                    }
                     if let originFromGrip { store(m, originFromGrip + h * 16) }
                 }
             }
@@ -483,11 +628,7 @@ final class SVXRHost: @unchecked Sendable {
         // Pairing changes rebuild the accessory tracker (polled once a second).
         if now - lastControllerCheck > 1.0 {
             lastControllerCheck = now
-            lock.lock()
-            let changed = running && spatialNow != trackedSpatial
-            if changed { trackedSpatial = spatialNow }
-            lock.unlock()
-            if changed {
+            if spatialChanged(Set(spatialNow.map { ObjectIdentifier($0) })) {
                 xrLog("[xr] input: Sense controllers changed (\(spatialNow.count) now); rebuilding the accessory tracker")
                 Task { await self.runSession() }
             }
@@ -568,6 +709,22 @@ public func sv_xrhost_renderer_state(_ r: UnsafeMutableRawPointer?) -> Int32 {
     guard let lr = renderer(r) else { return 2 }
     return SVXRHost.shared.rendererState(lr)
 }
+
+@_cdecl("sv_xrhost_renderer_device")
+public func sv_xrhost_renderer_device(_ r: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer? {
+    guard let lr = renderer(r) else { return nil }
+    return SVXRHost.shared.device(lr)
+}
+
+@_cdecl("sv_xrhost_renderer_formats")
+public func sv_xrhost_renderer_formats(_ r: UnsafeMutableRawPointer?, _ color: UnsafeMutablePointer<UInt32>?,
+                                       _ depth: UnsafeMutablePointer<UInt32>?) {
+    guard let lr = renderer(r) else { return }
+    SVXRHost.shared.formats(lr, color, depth)
+}
+
+@_cdecl("sv_xrhost_session_retry")
+public func sv_xrhost_session_retry() { SVXRHost.shared.retryIfNeeded() }
 
 @_cdecl("sv_xrhost_frame_begin")
 public func sv_xrhost_frame_begin(_ r: UnsafeMutableRawPointer?,

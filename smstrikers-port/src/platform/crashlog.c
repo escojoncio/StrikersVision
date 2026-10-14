@@ -34,6 +34,7 @@ static void crash_handler(int sig)
     case SIGABRT: name = "SIGABRT (abort/assert/uncaught exception)\n"; break;
     case SIGILL:  name = "SIGILL (illegal instruction)\n"; break;
     case SIGFPE:  name = "SIGFPE (arithmetic fault)\n"; break;
+    case SIGTRAP: name = "SIGTRAP (trap: a Swift runtime check, __builtin_trap, a debugger break)\n"; break;
     default: break;
     }
     write(2, "\n*** strikers: ", 15);
@@ -72,6 +73,8 @@ __attribute__((constructor)) static void port_install_crash_handler(void)
     sigaction(SIGABRT, &sa, NULL);
     sigaction(SIGILL, &sa, NULL);
     sigaction(SIGFPE, &sa, NULL);
+    // arm64 Swift and clang turn failed runtime checks into brk, which arrives as SIGTRAP.
+    sigaction(SIGTRAP, &sa, NULL);
 }
 
 #else // _WIN32

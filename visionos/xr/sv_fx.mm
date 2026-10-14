@@ -5,9 +5,9 @@
 // of their own; here they are encoded into the composite's render pass for each drawable view
 // (sv_xr.mm), after the game's picture.
 //
-// Shaders: the MSL source in sv_shaders.h, compiled at run time (newLibraryWithSource) when init()
-// runs; nothing goes into default.metallib, so the build needs no Metal compile step and a shader
-// error lands in the game log with its line number.
+// Shaders: the MSL source in sv_shaders.h, compiled once at run time by sv_xr.mm
+// (sv_shader_library) and shared; a shader error lands in the game log with its line number, and CI
+// compiles the same source with the Metal compiler so it fails the build first.
 //
 // Depth: the pass's depth attachment is reverse-Z (cleared to 0, nearer = greater). Unless
 // Scene::depthFromEyes says it already holds the real scene, the Tabletop field and the screen are
@@ -24,7 +24,6 @@
 #import <Metal/Metal.h>
 
 #include "sv_xr.h"
-#include "sv_shaders.h"
 
 #include <algorithm>
 #include <cmath>
@@ -843,12 +842,10 @@ bool init(void* mtlDevice, uint32_t colorPixelFormat) {
   s.initTried = true;
   g.device = device;
   g.format = colorPixelFormat;
-  NSError* err = nil;
-  id<MTLLibrary> lib = [g.device newLibraryWithSource:[NSString stringWithUTF8String:kSvShadersMsl]
-                                              options:[MTLCompileOptions new]
-                                                error:&err];
+  // The library sv_xr.mm compiled for this device (one compile, shared).
+  id<MTLLibrary> lib = (__bridge id<MTLLibrary>)sv_shader_library(mtlDevice);
   if (lib == nil) {
-    SVERR("fx: shader library failed to compile: %s", err.localizedDescription.UTF8String);
+    SVERR("fx: no shader library; goals will not show effects");
     return false;
   }
   const MTLPixelFormat color = static_cast<MTLPixelFormat>(colorPixelFormat);
@@ -993,8 +990,10 @@ static void log_state() {
 }
 
 static void run_self_test() {
-  const char* v = std::getenv("STRIKERS_XR_FX_TEST");
-  if (v == nullptr || *v == '\0' || g_testSeen == v) return;
+  char buf[512];
+  if (!sv_setting_get("STRIKERS_XR_FX_TEST", buf, sizeof(buf))) return;
+  const char* v = buf;
+  if (g_testSeen == v) return;
   g_testSeen = v;
   const char* cmds = std::strchr(v, ':');
   cmds = cmds != nullptr ? cmds + 1 : v;

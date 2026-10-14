@@ -103,7 +103,10 @@ struct SVImmersiveControlsView: View {
             if !open { close() }
         }
         .onChange(of: game.phase) { _, phase in
-            if phase != .running { close() }
+            if phase != .running {
+                if game.immersiveOpen { Task { await dismissImmersiveSpace() } }
+                close()
+            }
         }
     }
 
