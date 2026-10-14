@@ -99,7 +99,7 @@ jobs:
           for SCHEME in $APP_SCHEMES; do
             xcodebuild -project StrikersVision.xcodeproj -scheme "$SCHEME" \
               -sdk xros -configuration Release -destination 'generic/platform=visionOS' \
-              -derivedDataPath build/dd \
+              -derivedDataPath build/dd -IDEBuildingContinueBuildingAfterErrors=YES \
               CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
               build > "app-$SCHEME.log" 2>&1 || true
             echo "== $SCHEME"
