@@ -20,6 +20,9 @@
   ese permiso en el perfil). Quitado de `visionos/app/StrikersVision.entitlements`; SharePlay queda desactivado
   salvo build firmada con cuenta de pago. Seguía cerrándose sin log: la IPA llevaba firma ad hoc con
   entitlements; ahora sale sin firmar (como VisionQuestPro) y la firma la pone el instalador.
+- Diagnóstico de arranque: `visionos/app/Native/sv_boot_trace.c` escribe `Documents/arranque.txt` desde un
+  constructor de carga (pasos 1-7, stderr redirigido ahí hasta `open_log_early`). Sigue cerrándose al abrir sin
+  informe tras quitar `group-session` y la firma ad hoc; causa aún desconocida.
 - Limitación: las Personas no se ven mientras se dibuja con Compositor Services (Apple, foros 791591/801420).
 - Pendiente (por orden):
   1. Primera prueba en el visor; leer `Documents/Strikers/strikers-log.txt`. Puntos sin verificar: import de
