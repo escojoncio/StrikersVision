@@ -56,6 +56,8 @@
 #include <string>
 #include <vector>
 
+// QuartzCore: the clock ARKit and Compositor Services timestamps are in.
+extern "C" double CACurrentMediaTime(void);
 // src/platform/audio_out.cpp (include/port/audio.h), for the underrun count in the stats line.
 extern "C" void PortAudioStats(unsigned long* outBuffers, unsigned long* outUnderruns, int* outEverNonSilent);
 // Aurora (extern/aurora): pool accounting, thread waits, decode-once vertices, coverage, anisotropy.
@@ -2290,7 +2292,8 @@ extern "C" int PortXrBeginFrame(void) {
   g.frameBegun = true;
 
   xrnet::poll();
-  sync_input(g.lastPresentation > 0.0 ? g.lastPresentation + g.displayPeriod : 0.0);
+  // Controller poses for when this frame is shown (or now, before the first display frame).
+  sync_input(g.lastPresentation > 0.0 ? g.lastPresentation + g.displayPeriod : CACurrentMediaTime());
   take_remote_table_pose();
   PortXrSetStadiumEconomy(g.set.lodMinPx, 0.5f * static_cast<float>(g.eyeWidth ? g.eyeWidth : 1800),
                           g.set.skipTallField ? 1 : 0, (g.tabletop && !g.mrMode && !g.stereoFailed) ? 1 : 0);

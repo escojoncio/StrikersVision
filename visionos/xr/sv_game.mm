@@ -61,7 +61,7 @@ std::string g_home;
 // The log viewer feed (see sv_xr.h): set once the tail thread sees fd 2 is the log file it follows,
 // from then on lines reach the viewer through the file only (no duplicates).
 std::atomic<bool> g_tailOwnsStderr{false};
-std::string g_logPath;
+char g_logPath[1024] = {};  // set once, before any reader starts
 
 void deliver_line(const char* line) {
   void (*logLine)(const char*) = nullptr;
@@ -77,6 +77,19 @@ bool stderr_is(const struct stat& file) {
   return fstat(STDERR_FILENO, &err) == 0 && err.st_dev == file.st_dev && err.st_ino == file.st_ino;
 }
 
+// True once stderr is the followed log file (the port's dup2). Checked by every writer too, so a
+// line written right after the redirect reaches the viewer once (through the file), not twice.
+bool tail_owns_stderr() {
+  if (g_tailOwnsStderr.load()) return true;
+  if (g_logPath[0] == '\0') return false;
+  struct stat st {};
+  if (stat(g_logPath, &st) == 0 && stderr_is(st)) {
+    g_tailOwnsStderr.store(true);
+    return true;
+  }
+  return false;
+}
+
 // Follows the game log ten times a second and hands each complete new line to the viewer. Reading
 // the file (rather than putting a pipe behind stderr) keeps the file the first and only writer's
 // target: a crash loses nothing on disk, and the viewer shows it on the next launch's tail anyway.
@@ -89,11 +102,8 @@ void* log_tail_thread(void*) {
   for (;;) {
     usleep(100000);
     struct stat st {};
-    if (stat(g_logPath.c_str(), &st) != 0) continue;
-    if (!g_tailOwnsStderr.load() && stderr_is(st)) {
-      g_tailOwnsStderr.store(true);
-    }
-    if (!g_tailOwnsStderr.load()) continue;
+    if (stat(g_logPath, &st) != 0) continue;
+    if (!tail_owns_stderr()) continue;
     if (st.st_ino != inode || st.st_size < offset) {
       // A new or truncated file (the port opens its log with "w"): from the top.
       inode = st.st_ino;
@@ -101,7 +111,7 @@ void* log_tail_thread(void*) {
       pending.clear();
     }
     if (st.st_size <= offset) continue;
-    const int fd = open(g_logPath.c_str(), O_RDONLY);
+    const int fd = open(g_logPath, O_RDONLY);
     if (fd < 0) continue;
     while (offset < st.st_size) {
       const ssize_t n = pread(fd, buf, sizeof(buf), offset);
@@ -130,7 +140,7 @@ void* log_tail_thread(void*) {
 void start_log_tail() {
   const char* path = std::getenv("STRIKERS_LOG");
   if (path == nullptr || path[0] != '/') return;  // only a file path can be followed
-  g_logPath = path;
+  std::snprintf(g_logPath, sizeof(g_logPath), "%s", path);
   pthread_t thread;
   if (pthread_create(&thread, nullptr, log_tail_thread, nullptr) == 0) {
     pthread_detach(thread);
@@ -185,7 +195,7 @@ extern "C" void sv_log_line(const char* line) {
   // stderr is unbuffered there (config.c), so the line is on disk before this returns.
   std::fprintf(stderr, "%s\n", line);
   // Until the log file is stderr (and followed), the viewer gets the line directly.
-  if (!g_tailOwnsStderr.load()) deliver_line(line);
+  if (!tail_owns_stderr()) deliver_line(line);
 }
 
 extern "C" void sv_log(const char* level, const char* fmt, ...) {
