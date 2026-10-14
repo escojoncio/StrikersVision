@@ -28,3 +28,7 @@ __pycache__/
 
 
 *.log
+
+# StrikersVision: CI and local build output (scripts/build-game-xros.sh, xcodegen)
+/build/
+/StrikersVision.xcodeproj/

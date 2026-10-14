@@ -291,6 +291,13 @@ const AuroraEvent* poll_events() {
 }
 
 bool create_window(AuroraBackend backend) {
+#if defined(SV_VISIONOS)
+  // StrikersVision: no SDL window on visionOS. SDL is built without video there (UIKit's video wants
+  // the main thread and a window of its own, and the app owns both), Aurora renders headless and its
+  // frames go to Compositor Services. "Created" so the backend loop carries on to webgpu::initialize.
+  static_cast<void>(backend);
+  return true;
+#endif
   SDL_WindowFlags flags = SDL_WINDOW_HIGH_PIXEL_DENSITY;
 #if TARGET_OS_IOS || TARGET_OS_TV
   flags |= SDL_WINDOW_FULLSCREEN;
@@ -384,6 +391,19 @@ void show_window() {
 }
 
 bool initialize() {
+#if defined(SV_VISIONOS)
+  // StrikersVision: events only (no video, see create_window). The joystick hint still applies.
+  TRY(SDL_InitSubSystem(SDL_INIT_EVENTS), "Error initializing SDL: {}", SDL_GetError());
+  time::internal::set_pause_reason(time::internal::PauseReason::Surface,
+                                   !g_surfaceReady.load(std::memory_order_acquire));
+  TRY(SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_GAMECUBE_RUMBLE_BRAKE, "1"), "Error setting {}: {}",
+      SDL_HINT_JOYSTICK_HIDAPI_GAMECUBE_RUMBLE_BRAKE, SDL_GetError());
+  if (g_config.allowJoystickBackgroundEvents) {
+    TRY(SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1"), "Error setting {}: {}",
+        SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, SDL_GetError());
+  }
+  return true;
+#endif
   /* We don't want to initialize anything input related here, otherwise the add events will get lost to the void */
   TRY(SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight"), "Error setting {}: {}", SDL_HINT_ORIENTATIONS,
       SDL_GetError());
@@ -417,7 +437,9 @@ bool initialize_event_watch() {
 void shutdown() {
   SDL_RemoveEventWatch(lifecycle_event_watch, nullptr);
   destroy_window();
+#if !defined(SV_VISIONOS)
   TRY_WARN(SDL_EnableScreenSaver(), "Error enabling screensaver: {}", SDL_GetError());
+#endif
   SDL_Quit();
 }
 
@@ -426,9 +448,18 @@ AuroraWindowSize get_window_size() {
   int height = 0;
   int native_fb_w = 0;
   int native_fb_h = 0;
+#if defined(SV_VISIONOS)
+  // StrikersVision: no window; the "window" is the virtual screen the configuration asked for, in
+  // pixels (the headset decides how big it looks). The frame buffer scale below works as anywhere.
+  width = g_config.windowWidth > 0 ? static_cast<int>(g_config.windowWidth) : 1920;
+  height = g_config.windowHeight > 0 ? static_cast<int>(g_config.windowHeight) : 1080;
+  native_fb_w = width;
+  native_fb_h = height;
+#else
   AURORA_ASSERT(SDL_GetWindowSize(g_window, &width, &height), "Failed to get window size: {}", SDL_GetError());
   AURORA_ASSERT(SDL_GetWindowSizeInPixels(g_window, &native_fb_w, &native_fb_h), "Failed to get window size in pixels: {}",
          SDL_GetError());
+#endif
 
   int fb_w = native_fb_w;
   int fb_h = native_fb_h;
@@ -458,7 +489,11 @@ AuroraWindowSize get_window_size() {
     }
   }
 
+#if defined(SV_VISIONOS)
+  const float scale = 1.f;
+#else
   const float scale = SDL_GetWindowDisplayScale(g_window);
+#endif
   return {
       .width = static_cast<uint32_t>(width),
       .height = static_cast<uint32_t>(height),
@@ -475,6 +510,11 @@ SDL_Window* get_sdl_window() { return g_window; }
 SDL_Renderer* get_sdl_renderer() { return g_renderer; }
 
 bool is_paused() noexcept {
+#if defined(SV_VISIONOS)
+  // StrikersVision: the app pauses the game thread itself (sv_set_paused); there are no window
+  // flags to read, and a "paused" here would park poll_events in SDL_WaitEvent.
+  return !is_presentable();
+#endif
   if (!is_presentable()) {
     return true;
   }
@@ -491,6 +531,9 @@ bool is_paused() noexcept {
 }
 
 bool is_presentable() noexcept {
+#if defined(SV_VISIONOS)
+  return !g_backgrounded.load(std::memory_order_acquire) && g_surfaceReady.load(std::memory_order_acquire);
+#endif
   return g_window != nullptr && !g_backgrounded.load(std::memory_order_acquire) &&
          g_surfaceReady.load(std::memory_order_acquire);
 }
@@ -546,8 +589,15 @@ static void push_future_resize_event() {
            SDL_GetError());
 }
 
+// StrikersVision: on visionOS there is never a window, and the frame buffer still follows the scale.
+#if defined(SV_VISIONOS)
+constexpr bool kHeadless = true;
+#else
+constexpr bool kHeadless = false;
+#endif
+
 void request_frame_buffer_resize() {
-  if (g_window != nullptr) {
+  if (g_window != nullptr || kHeadless) {
     // Defer so that we don't try to reconfigure the surface in the middle of game logic.
     push_future_resize_event();
   }
@@ -555,7 +605,7 @@ void request_frame_buffer_resize() {
 
 // smstrikers-port: the same work without the deferral; a deferred rebuild would land a frame late, and that frame has black bars.
 void resize_frame_buffer_now() {
-  if (g_window != nullptr) {
+  if (g_window != nullptr || kHeadless) {
     resize_swapchain();
   }
 }

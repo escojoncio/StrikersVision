@@ -1,0 +1,126 @@
+# StrikersVision for Apple Vision Pro: the game side (smstrikers-port for xros, with Aurora, SDL3 and
+# Dawn on Metal) as static libraries, then the app with Xcode. Unsigned IPA, published as the
+# release "visionos" (StrikersVision.ipa).
+#
+# Only when asked for: by hand (Actions > visionos > Run workflow) or a push to main whose commit
+# message has [build] in it. Dawn, the game libraries and xcodegen are cached while what produces
+# them does not change.
+name: visionos
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      scheme:
+        description: "Xcode scheme (StrikersVision or StrikersVisionBootstrap)"
+        required: false
+        default: ""
+permissions:
+  contents: write
+env:
+  # The app target to package. StrikersVisionBootstrap = the game side linked into a placeholder app.
+  APP_SCHEME: ${{ inputs.scheme || 'StrikersVisionBootstrap' }}
+  XCODEGEN_VERSION: "2.46.0"
+jobs:
+  app:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[build]')
+    concurrency:
+      group: visionos
+      cancel-in-progress: true
+    runs-on: macos-26
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Xcode
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          [ -n "$XCODE" ] && sudo xcode-select -s "$XCODE/Contents/Developer"
+          xcodebuild -version && cmake --version | head -1 && xcrun --sdk xros --show-sdk-version
+          command -v ninja >/dev/null || brew install ninja
+          ninja --version
+
+      - uses: actions/cache@v4
+        id: dawn
+        with:
+          path: build/dawn-xros
+          key: dawn-xros-${{ hashFiles('smstrikers-port/extern/aurora/cmake/AuroraDependencyVersions.cmake', 'scripts/fetch-dawn-xros.sh', 'scripts/macho-retarget.py') }}
+      - name: Dawn for visionOS (Aurora's iOS package, retargeted)
+        if: steps.dawn.outputs.cache-hit != 'true'
+        run: |
+          set -o pipefail
+          bash scripts/fetch-dawn-xros.sh build/dawn-xros 2>&1 | tee dawn.log
+
+      # The finished libraries, keyed on everything that goes into them: a hit skips the game step.
+      - uses: actions/cache@v4
+        id: game
+        with:
+          path: build/xros
+          key: game-xros-${{ hashFiles('smstrikers-port/**', 'scripts/build-game-xros.sh', 'scripts/fetch-dawn-xros.sh', 'scripts/macho-retarget.py') }}
+      # The CMake build tree on a miss: the fetched dependencies (SDL3, abseil, imgui, freetype...)
+      # are not rebuilt when only the game changed.
+      - uses: actions/cache@v4
+        if: steps.game.outputs.cache-hit != 'true'
+        with:
+          path: build/game
+          key: game-tree-${{ hashFiles('smstrikers-port/**/CMakeLists.txt', 'smstrikers-port/**/*.cmake', 'scripts/build-game-xros.sh') }}-${{ github.sha }}
+          restore-keys: |
+            game-tree-${{ hashFiles('smstrikers-port/**/CMakeLists.txt', 'smstrikers-port/**/*.cmake', 'scripts/build-game-xros.sh') }}-
+      - name: The game (libstrikers.a for visionOS)
+        if: steps.game.outputs.cache-hit != 'true'
+        run: |
+          set -o pipefail
+          bash scripts/build-game-xros.sh build/dawn-xros build/game build/xros 2>&1 | tee game.log
+
+      - uses: actions/cache@v4
+        id: xcodegen
+        with:
+          path: build/xcodegen
+          key: xcodegen-${{ env.XCODEGEN_VERSION }}
+      - name: xcodegen
+        if: steps.xcodegen.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p build
+          curl -sSfL --retry 4 --retry-delay 5 -o build/xcodegen.zip \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
+          unzip -q -o build/xcodegen.zip -d build
+          rm build/xcodegen.zip
+          build/xcodegen/bin/xcodegen --version
+
+      - name: The app
+        run: |
+          set -o pipefail
+          XCODEGEN=build/xcodegen/bin/xcodegen
+          if ! "$XCODEGEN" --version; then brew install xcodegen; XCODEGEN=xcodegen; fi
+          "$XCODEGEN" generate --spec project.yml
+          xcodebuild -project StrikersVision.xcodeproj -scheme "$APP_SCHEME" \
+            -sdk xros -configuration Release -destination 'generic/platform=visionOS' \
+            -derivedDataPath build/dd \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build > app.log 2>&1 || true
+          grep -E 'error:|BUILD (SUCCEEDED|FAILED)' app.log | head -80 || true
+          # The whole list of what the link could not find, which the log summary would cut short.
+          grep -A600 'Undefined symbols' app.log > undefined.log || true
+          grep -q 'BUILD SUCCEEDED' app.log
+          APP=$(find build/dd/Build/Products -name 'StrikersVision.app' -maxdepth 3 | head -n 1)
+          ls -la "$APP" | tee -a app.log
+          mkdir -p build/ipa/Payload
+          cp -R "$APP" build/ipa/Payload/
+          (cd build/ipa && zip -qry ../StrikersVision.ipa Payload)
+          ls -la build/StrikersVision.ipa
+
+      - name: Publish the logs (branch ci-logs, visionos.txt)
+        if: always()
+        run: bash scripts/ci-publish-log.sh visionos dawn.log game.log app.log undefined.log
+
+      - name: Publish the app as a release
+        if: success() && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete visionos --yes --cleanup-tag || true
+          gh release create visionos build/StrikersVision.ipa \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "StrikersVision para Apple Vision Pro" \
+            --notes "App sin firmar, compilada de ${GITHUB_SHA::7} (objetivo ${APP_SCHEME}). Super Mario Strikers nativo para visionOS: juego compilado para xros, Aurora sobre Dawn (Metal) y SDL3."

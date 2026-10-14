@@ -26,9 +26,10 @@ void port_fatal_notice(const char* title, const char* text)
     fprintf(stderr, "\n=== %s ===\n%s\n", title, text);
     fflush(stderr);
 
-#if defined(__ANDROID__)
+#if defined(__ANDROID__) || defined(SV_VISIONOS)
     // strikers-quest r41: on the Quest nobody sees a message box under the immersive game, which
     // just closes. The launcher panel (LobbyActivity) shows this file the next time it opens.
+    // StrikersVision: the same file for the visionOS app's panel; SDL there has no video, so no box.
     {
         const char* home = getenv("STRIKERS_HOME");
         if (home != NULL && *home != '\0')

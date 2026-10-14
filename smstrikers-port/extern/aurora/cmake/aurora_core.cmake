@@ -33,7 +33,9 @@ elseif (APPLE)
     target_sources(aurora_core PRIVATE lib/system_info_mac.mm)
 endif ()
 
-if (IOS)
+# StrikersVision: visionOS too (CMake's IOS is false there, while SDL_PLATFORM_IOS is defined, which is
+# what lib/device.cpp keys its rumble stubs on).
+if (IOS OR CMAKE_SYSTEM_NAME STREQUAL "visionOS")
     find_library(COREHAPTICS_FRAMEWORK CoreHaptics REQUIRED)
     target_sources(aurora_core PRIVATE lib/device_ios.mm)
     set_source_files_properties(lib/device_ios.mm PROPERTIES COMPILE_FLAGS -fobjc-arc)

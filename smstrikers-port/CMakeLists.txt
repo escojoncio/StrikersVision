@@ -2,6 +2,20 @@ cmake_minimum_required(VERSION 3.24)
 project(smstrikers-port CXX C)
 include(cmake/StrikersVersion.cmake)
 
+# StrikersVision: Apple Vision Pro (CMAKE_SYSTEM_NAME visionOS, sysroot xros). The process belongs to
+# the visionOS app (visionos/), so the game is not an executable there but one static library the app
+# links: the game's main() becomes strikers_main(), called on a thread of the app's (see
+# visionos/include/sv_bridge.h), and Aurora runs headless, its frames going to Compositor Services.
+# SV_VISIONOS is defined for every target from here down, Aurora and its dependencies included.
+if(CMAKE_SYSTEM_NAME STREQUAL "visionOS")
+    set(STRIKERS_VISIONOS ON)
+    # PORT_XR_HEADSET: a headset build (Quest with STRIKERS_XR, or Vision Pro), for code that has to
+    # tell one apart from a flat build at compile time.
+    add_compile_definitions(SV_VISIONOS=1 PORT_XR_HEADSET=1)
+else()
+    set(STRIKERS_VISIONOS OFF)
+endif()
+
 # Super Mario Strikers, native port Targets macOS (arm64 and x86_64) first, but nothing here is
 # Darwin-specific: the platform surface is confined to src/platform/ and to Aurora, both of which
 # already cover Windows and Linux.
@@ -89,6 +103,36 @@ if(STRIKERS_AURORA)
     set(AURORA_ENABLE_DVD   OFF CACHE BOOL "" FORCE)
     set(AURORA_ENABLE_CARD  ON  CACHE BOOL "" FORCE)
     set(AURORA_ENABLE_RMLUI OFF CACHE BOOL "" FORCE)
+
+    if(STRIKERS_VISIONOS)
+        # SDL for audio, controllers and events only. Its video subsystem is UIKit, which wants the
+        # main thread and a window of its own, and the app already owns both; Aurora creates no
+        # window there (extern/aurora/lib/window.cpp).
+        set(AURORA_SDL3_PROVIDER vendor CACHE STRING "" FORCE)
+        set(AURORA_SDL3_LINKAGE static CACHE STRING "" FORCE)
+        set(SDL_VIDEO OFF CACHE BOOL "" FORCE)
+        set(SDL_SYSTEM_ICONV OFF CACHE BOOL "" FORCE)
+        set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+        # libpng defaults to a framework bundle on Apple; Aurora links the static library.
+        set(PNG_FRAMEWORK OFF CACHE BOOL "" FORCE)
+        # Dawn: Aurora's prebuilt iOS package, its objects retargeted to visionOS
+        # (scripts/fetch-dawn-xros.sh). Same arm64 code against the same Metal API; there is no
+        # prebuilt visionOS package.
+        if(NOT STRIKERS_DAWN_XROS OR NOT EXISTS "${STRIKERS_DAWN_XROS}/lib/cmake/Dawn/DawnConfig.cmake")
+            message(FATAL_ERROR "visionOS: -DSTRIKERS_DAWN_XROS=<dir> must name the Dawn tree "
+                                "scripts/fetch-dawn-xros.sh makes")
+        endif()
+        # Found here, outside the sysroot (NO_CMAKE_FIND_ROOT_PATH: a cross build otherwise looks only
+        # inside the SDK), and global, so Aurora's "system" provider takes it as found.
+        # The package's interface names Threads::Threads, which only Aurora's package path looks up.
+        find_package(Threads REQUIRED)
+        set(CMAKE_FIND_PACKAGE_TARGETS_GLOBAL ON)
+        find_package(Dawn REQUIRED CONFIG
+            PATHS "${STRIKERS_DAWN_XROS}/lib/cmake/Dawn"
+            NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)
+        set(CMAKE_FIND_PACKAGE_TARGETS_GLOBAL OFF)
+        set(AURORA_DAWN_PROVIDER system CACHE STRING "" FORCE)
+    endif()
 
     # std::jthread is probed rather than version-checked; an older libc++ has it only under
     # -fexperimental-library.
@@ -411,6 +455,11 @@ if(ANDROID)
     # members are pulled in only to satisfy a reference. Without this the link succeeds, the .so
     # loads, and the app dies at "Failed to find function SDL_main". -u is the reference.
     target_link_options(strikers PRIVATE "-Wl,-u,SDL_main")
+elseif(STRIKERS_VISIONOS)
+    # The objects as an archive; strikers_xros (cmake/VisionOSBundle.cmake, below) merges it with every
+    # static library it depends on into the one libstrikers.a the app links.
+    add_library(strikers STATIC ${_strikers_objects})
+    set_target_properties(strikers PROPERTIES OUTPUT_NAME strikers_game)
 else()
     add_executable(strikers ${_strikers_objects})
 endif()
@@ -432,7 +481,7 @@ if(WIN32)
 endif()
 
 # The name macOS shows in the menu bar, from assets/macos/Info.plist.
-if(APPLE)
+if(APPLE AND NOT STRIKERS_VISIONOS)
     configure_file(assets/macos/Info.plist "${CMAKE_CURRENT_BINARY_DIR}/Info.plist" @ONLY)
     target_link_options(strikers PRIVATE
         "-Wl,-sectcreate,__TEXT,__info_plist,${CMAKE_CURRENT_BINARY_DIR}/Info.plist")
@@ -626,8 +675,10 @@ target_link_libraries(strikers PRIVATE port_disc_codecs)
 message(STATUS "Disc images: also .rvz/.wia with LZMA, LZMA2, bzip2 or purge")
 
 # Dead-strip the debug classes (StatsGatherer, cFuzzyDebugger) whose vtables reference methods
-# defined only in files the decomp excludes, and which nothing ever constructs.
-if(APPLE)
+# defined only in files the decomp excludes, and which nothing ever constructs. On visionOS the app's
+# link does it (project.yml: DEAD_CODE_STRIPPING, and the same -unexported_symbol list).
+if(STRIKERS_VISIONOS)
+elseif(APPLE)
     target_link_options(strikers PRIVATE -dead_strip)
 elseif(MSVC)
     # clang-cl sets CMake's MSVC, and link.exe/lld-link take neither spelling. /OPT:REF is the
@@ -641,7 +692,8 @@ endif()
 
 # operator new/delete are weak, coalesced symbols, so dyld merges them process-wide and
 # SDL3/Dawn/AppKit would otherwise bind to the game's.
-if(APPLE)
+if(STRIKERS_VISIONOS)
+elseif(APPLE)
     foreach(_sym __Znwm __Znam __ZdlPv __ZdaPv)
         target_link_options(strikers PRIVATE "-Wl,-unexported_symbol,${_sym}")
     endforeach()
@@ -664,15 +716,26 @@ if(STRIKERS_AURORA)
     # Deliberately NOT aurora::os, Aurora's OS has no threads, and ours is already complete.
     target_link_libraries(strikers PRIVATE
         aurora::core aurora::gx aurora::gd aurora::vi aurora::pad aurora::si
-        aurora::card aurora::main)
+        aurora::card)
+    # aurora::main is the process entry point (SDL_main -> aurora_main); on visionOS the app has that.
+    if(NOT STRIKERS_VISIONOS)
+        target_link_libraries(strikers PRIVATE aurora::main)
+    endif()
 
     # Frame capture lives inside Aurora now (lib/aurora.cpp, namespace capture).
 
     # strikers-quest: the Quest OpenXR layer (include/port/xr_quest.h). Elsewhere the same file
     # compiles to stubs, so main.cpp links everywhere.
-    add_library(strikers_xr OBJECT "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/xr_quest.cpp"
-                                   "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/xr_fx.cpp"
-                                   "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/xr_net.cpp")
+    # StrikersVision: on visionOS the PortXr* layer is the app's (visionos/xr, Compositor Services),
+    # so neither the OpenXR layer nor its Vulkan effects are built; xr_net.cpp is, over the app's
+    # transports (sv_net_* in visionos/include/sv_bridge.h).
+    if(STRIKERS_VISIONOS)
+        add_library(strikers_xr OBJECT "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/xr_net.cpp")
+    else()
+        add_library(strikers_xr OBJECT "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/xr_quest.cpp"
+                                       "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/xr_fx.cpp"
+                                       "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/xr_net.cpp")
+    endif()
     set_target_properties(strikers_xr PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
     # Aurora's full usage requirements (includes incl. Dawn's, and TARGET_PC and the rest) and
     # nothing of the port's: include/ here is NOT on the path, because include/dolphin/pad.h is the
@@ -702,7 +765,8 @@ if(STRIKERS_AURORA)
         set_target_properties(strikers_openxr_loader PROPERTIES
             IMPORTED_LOCATION "${_xr_root}/lib/${ANDROID_ABI}/libopenxr_loader.so")
         target_include_directories(strikers_xr PRIVATE "${_xr_root}/include")
-        target_compile_definitions(strikers_xr PRIVATE STRIKERS_XR=1)
+        target_compile_definitions(strikers_xr PRIVATE STRIKERS_XR=1 PORT_XR_HEADSET=1)
+        target_compile_definitions(port_flags INTERFACE PORT_XR_HEADSET=1)
         # The system Vulkan loader, linked directly: the XR device's calls must not go through
         # vulkan_shim.c, which is why the Quest build does not ship the shim at all.
         target_link_libraries(strikers PRIVATE strikers_openxr_loader vulkan android log)
@@ -756,6 +820,14 @@ endif()
 if(NOT CMAKE_CROSSCOMPILING)
     enable_testing()
     add_subdirectory(tests)
+endif()
+
+# StrikersVision: libstrikers.a and the headers the app's native code needs, in STRIKERS_XROS_OUT
+# (cmake --build <dir> --target strikers_xros).
+if(STRIKERS_VISIONOS)
+    set(STRIKERS_XROS_OUT "${CMAKE_BINARY_DIR}/xros" CACHE PATH "Where libstrikers.a and its headers go")
+    include(cmake/VisionOSBundle.cmake)
+    strikers_visionos_bundle(strikers "${STRIKERS_XROS_OUT}")
 endif()
 
 list(LENGTH GAME_SOURCES _n_game)

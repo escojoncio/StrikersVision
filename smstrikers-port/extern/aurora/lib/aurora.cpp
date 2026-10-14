@@ -131,6 +131,11 @@ AuroraInfo initialize(int argc, char* argv[], const AuroraConfig& config) noexce
   if (g_config.maxTextureAnisotropy == 0) {
     g_config.maxTextureAnisotropy = 16;
   }
+#if defined(SV_VISIONOS)
+  // StrikersVision: always headless on visionOS (window.cpp creates no window), whatever the caller
+  // asked; the frames leave through aurora_xr_set_frame_callback or the XR layer's own copy.
+  aurora_xr_set_surface_suppressed(true);
+#endif
   AURORA_ASSERT(window::initialize(), "Error initializing window");
 
   g_sdlCustomEventsStart = SDL_RegisterEvents(2);
@@ -167,7 +172,11 @@ AuroraInfo initialize(int argc, char* argv[], const AuroraConfig& config) noexce
   AURORA_ASSERT(windowCreated, "Error creating window: {}", SDL_GetError());
 
   // Initialize SDL_Renderer for ImGui when we can't use a Dawn backend
+#if defined(SV_VISIONOS)
+  if (false) { // no window to render to
+#else
   if (webgpu::g_backendType == wgpu::BackendType::Null) {
+#endif
     AURORA_ASSERT(window::create_renderer(), "Failed to initialize SDL renderer: {}", SDL_GetError());
   }
 #else

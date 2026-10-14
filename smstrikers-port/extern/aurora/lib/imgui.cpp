@@ -90,10 +90,17 @@ void create_context() noexcept {
   io.LogFilename = g_imguiLog.c_str();
 }
 
+// StrikersVision: without a window (visionOS) there is no SDL platform backend; ImGui still draws
+// through WebGPU, its display size set from the window size each frame as everywhere.
+static bool g_sdlPlatform = false;
+
 void initialize() noexcept {
   ZoneScoped;
   SDL_Renderer* renderer = window::get_sdl_renderer();
-  ImGui_ImplSDL3_InitForSDLRenderer(window::get_sdl_window(), renderer);
+  g_sdlPlatform = window::get_sdl_window() != nullptr;
+  if (g_sdlPlatform) {
+    ImGui_ImplSDL3_InitForSDLRenderer(window::get_sdl_window(), renderer);
+  }
   g_useSdlRenderer = renderer != nullptr;
   if (g_useSdlRenderer) {
     ImGui_ImplSDLRenderer3_Init(renderer);
@@ -112,7 +119,9 @@ void shutdown() noexcept {
   } else {
     ImGui_ImplWGPU_Shutdown();
   }
-  ImGui_ImplSDL3_Shutdown();
+  if (g_sdlPlatform) {
+    ImGui_ImplSDL3_Shutdown();
+  }
   ImGui::DestroyContext();
   for (const auto& texture : g_sdlTextures) {
     SDL_DestroyTexture(texture);
@@ -128,7 +137,9 @@ void process_event(const SDL_Event& event) noexcept {
       SDL_ConvertEventToRenderCoordinates(renderer, &renderEvent);
     }
   }
-  ImGui_ImplSDL3_ProcessEvent(&renderEvent);
+  if (g_sdlPlatform) {
+    ImGui_ImplSDL3_ProcessEvent(&renderEvent);
+  }
 }
 
 bool wants_capture_event(const SDL_Event& event) noexcept {
@@ -195,7 +206,9 @@ void new_frame(const AuroraWindowSize& size) noexcept {
     }
     ImGui_ImplWGPU_NewFrame();
   }
-  ImGui_ImplSDL3_NewFrame();
+  if (g_sdlPlatform) {
+    ImGui_ImplSDL3_NewFrame();
+  }
 
   ImGuiIO& io = ImGui::GetIO();
   io.DisplayFramebufferScale = framebufferScale;
