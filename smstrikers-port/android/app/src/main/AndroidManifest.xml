@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:installLocation="auto">
+
+    <!-- Dawn has one backend on Android and it is Vulkan, so a device without it cannot run this
+         at all; better for the store or the installer to say so than for the game to. -->
+    <uses-feature
+        android:name="android.hardware.vulkan.version"
+        android:version="0x00400003"
+        android:required="true" />
+
+    <!-- strikers-quest: an immersive OpenXR app with passthrough (src/platform/xr_quest.cpp). -->
+    <uses-feature
+        android:name="android.hardware.vr.headtracking"
+        android:version="1"
+        android:required="true" />
+    <uses-feature
+        android:name="com.oculus.feature.PASSTHROUGH"
+        android:required="true" />
+    <uses-permission android:name="org.khronos.openxr.permission.OPENXR" />
+    <uses-permission android:name="org.khronos.openxr.permission.OPENXR_SYSTEM" />
+    <queries>
+        <provider android:authorities="org.khronos.openxr.runtime_broker;org.khronos.openxr.system_runtime_broker" />
+        <intent>
+            <action android:name="org.khronos.openxr.OpenXRRuntimeService" />
+        </intent>
+        <intent>
+            <action android:name="org.khronos.openxr.OpenXRApiLayerService" />
+        </intent>
+    </queries>
+
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.gamepad"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.bluetooth"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.usb.host"
+        android:required="false" />
+
+    <!-- strikers-quest r41: the launcher panel's "Update now" hands a newer release, downloaded from
+         the project's GitHub page, to the system installer (Updater.java). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <!-- Rumble, which the game asks PAD for and Aurora forwards to the device's vibrator. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Baixar um driver Vulkan da lista da tela de drivers, e nada mais: o jogo em si não fala
+         com a rede. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Reading the disc image. The app's own directory under Android/data needs no permission at
+         all, and that is the path of least resistance; these are for a player who would rather keep
+         a 1.4 GB image somewhere they can find it, like /sdcard/Strikers. -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
+
+    <application
+        android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:allowBackup="false"
+        android:theme="@style/Theme.Strikers"
+        android:hardwareAccelerated="true"
+        android:enableOnBackInvokedCallback="false"
+        android:isGame="true"
+        android:appCategory="game">
+
+        <!-- strikers-quest: keep running (and submitting frames) under the Quest menu. -->
+        <meta-data android:name="com.oculus.vr.focusaware" android:value="true" />
+        <meta-data android:name="com.oculus.supportedDevices" android:value="quest3|quest3s|quest2|questpro" />
+        <!-- r37: when the thermal governor downclocks, keep the GPU one level higher and the CPU one
+             lower. The eye passes are GPU-bound (~86% busy) while the game thread uses ~25% of a core. -->
+        <meta-data android:name="com.oculus.trade_cpu_for_gpu_amount" android:value="1" />
+
+        <!-- The launcher is not the game: it is the screen that answers "where is the disc?", and
+             it hands over to the SDL activity once there is an answer. Starting SDL first and
+             letting the port's own fatal box explain would work, but it would explain it after a
+             black screen and a process that then exits. -->
+        <!-- DEITADO FIXO AQUI, e sensorLandscape só depois de a tela existir (ver
+             SetupActivity.onCreate). O sistema desenha uma janela de pré-visualização
+             com o windowBackground do tema ANTES de criar a Activity, e a desenha na
+             rotação em que o aparelho está. Com uma orientação fixa ele consegue
+             aplicar a rotação já nessa janela; com sensorLandscape, que não é fixa, a
+             pré-visualização sai em pé e a tela gira depois, que é o lampejo de
+             retrato ao tocar no ícone. -->
+        <!-- strikers-quest: no longer the launcher. On Quest the game activity is (see below): a 2D
+             launcher activity would start as a flat panel, and an immersive activity has to be the
+             one Horizon OS launches with the VR category. The disc is found the same way either
+             way (StrikersHome.prepare in StrikersActivity.onCreate). -->
+        <activity
+            android:name=".SetupActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:screenOrientation="landscape"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode" />
+
+        <!-- strikers-quest r39: the launcher again, as a small flat panel in front of the game: play
+             offline, host an online room (a four-letter code), or join one. It starts the immersive
+             game activity (VR category) with the room code and closes. r39b: it stays in the app's
+             main process, and first opens the "all files access" switch if the game still needs it. -->
+        <activity
+            android:name=".LobbyActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".TelaDrivers"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode" />
+
+        <!-- strikers-quest r39b: a process of its own, which ends with the game (StrikersActivity
+             .onDestroy). SDL starts only once per process, so every start from the launcher panel
+             needs a fresh one; the panel and everything else stay in the app's main process. The
+             panel's later picks still reach a running game (startActivity -> onNewIntent): the
+             system delivers them to whichever process holds the activity. -->
+        <activity
+            android:name=".StrikersActivity"
+            android:process=":game"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:alwaysRetainTaskState="true"
+            android:launchMode="singleInstance"
+            android:screenOrientation="sensorLandscape"
+            android:preferMinimalPostProcessing="true"
+            android:configChanges="layoutDirection|locale|grammaticalGender|fontScale|fontWeightAdjustment|orientation|uiMode|screenLayout|screenSize|smallestScreenSize|keyboard|keyboardHidden|navigation">
+            <!-- strikers-quest: immersive. Without the VR category Horizon OS runs the activity as
+                 a flat panel and no OpenXR session can start. r39: started by LobbyActivity (the
+                 launcher) rather than from the app icon. -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="com.oculus.intent.category.VR" />
+            </intent-filter>
+            <!-- USB gamepads and GameCube adapters: SDL's HIDDeviceManager wants to hear about
+                 these, and it is the same mechanism the desktop port's adapter support uses. -->
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

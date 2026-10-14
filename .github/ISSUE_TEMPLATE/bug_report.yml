@@ -1,0 +1,68 @@
+name: Bug report
+description: Something in Quest 3 Strikers doesn't work right
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please don't attach or link game files (.iso / .rvz / .wia): we can't accept them.
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: At the bottom of the app's first screen (alpha 1.2 and later), or the release you downloaded.
+      placeholder: e.g. 0.1.2-alpha1 (r41)
+    validations:
+      required: true
+  - type: dropdown
+    id: headset
+    attributes:
+      label: Headset
+      options:
+        - Quest 3
+        - Quest 3S
+        - Quest 2
+        - Quest Pro
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: view
+    attributes:
+      label: Which view were you in?
+      options:
+        - Big screen, your room
+        - Big screen, stadium
+        - Tabletop, your room
+        - Tabletop, stadium
+        - Not in a match (menus or the first screen)
+        - Not sure
+  - type: dropdown
+    id: online
+    attributes:
+      label: Offline or online?
+      options:
+        - Offline
+        - Online (room code)
+  - type: dropdown
+    id: file
+    attributes:
+      label: Game file type
+      options:
+        - .iso
+        - .rvz
+        - .wia
+        - Other
+        - Don't know
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log (optional, helps a lot)
+      description: The file Strikers/strikers-log.txt on the headset. In SideQuest, click the folder icon, open Strikers, and drag strikers-log.txt out, then drag it here.
