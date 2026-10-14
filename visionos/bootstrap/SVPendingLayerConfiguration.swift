@@ -2,6 +2,7 @@
 // visionos/xr/SVLayerConfiguration.swift exists: Compositor Services' defaults (layered, colour
 // bgra8Unorm_srgb, depth depth32Float).
 import CompositorServices
+import SwiftUI
 
 struct SVLayerConfiguration: CompositorLayerConfiguration {
     func makeConfiguration(capabilities: LayerRenderer.Capabilities,
