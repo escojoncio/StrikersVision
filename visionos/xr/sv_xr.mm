@@ -55,7 +55,10 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
+
+#include <pthread.h>
 
 // QuartzCore: the clock ARKit and Compositor Services timestamps are in.
 extern "C" double CACurrentMediaTime(void);
@@ -293,9 +296,9 @@ struct SharedImage {
   // The last composite that read it signals compositeEvent with this value (Dawn's next write waits).
   uint64_t readValue = 0;
   // Metal side (the composite's device), made on first use.
-  id<MTLTexture> mtl = nil;     // RGBA8Unorm (or R32Float for a depth image) over the IOSurface
+  id<MTLTexture> mtl = nil;     // RGBA8Unorm over the IOSurface
   id<MTLTexture> mtlSrgb = nil; // sRGB view: the game's display-encoded bytes arrive linear
-  bool isDepth = false;         // R32Float: the eye pass's raw depth (Aurora's snapshot), not a picture
+  bool isDepth = false;         // the eye pass's depth as the float's bytes (Aurora's packed snapshot), read raw
 };
 
 // The pose an eye image was drawn for (the drawable reprojects from it).
@@ -433,9 +436,10 @@ struct State {
   bool stereoReady = false;
   uint32_t eyeWidth = 0, eyePxHeight = 0;  // the eye images, pixels
   SharedImage eyes[kEyeSlots][2];
-  // The eye passes' depth (R32Float, one per eye image), handed to the composite so the system gets
-  // the real depth of every pixel (hands and nearby objects then occlude correctly). Off when Dawn
-  // cannot import it: the composite falls back to the table-plane estimate.
+  // The eye passes' depth (one per eye image; RGBA8 holding each float's bytes, since this Dawn
+  // imports no float IOSurface), handed to the composite so the system gets the real depth of every
+  // pixel (nearby objects then occlude correctly). Off when Dawn refuses it: the composite falls
+  // back to the table-plane estimate.
   SharedImage eyeDepths[kEyeSlots][2];
   bool depthExport = false;
   int eyeSlot = 0;  // the slot this game frame renders into
@@ -502,6 +506,15 @@ struct State {
   uint64_t drawablesSinceStats = 0;
 };
 State g;
+
+// Two threads touch `g`: the game thread (every Port* entry point, on the game's own loop) and the
+// display thread (display_thread_main: one Compositor Services frame at 90 Hz, composited from the
+// newest eye images). Everything that reads or writes `g` runs under this lock; the long waits
+// (the compositor's input time, Aurora's synchronize) never do.
+std::recursive_mutex g_lock;
+using Lock = std::lock_guard<std::recursive_mutex>;
+std::thread g_displayThread;
+std::atomic<bool> g_displayQuit{false};
 
 // The newest flat frame read back by Aurora on its render worker (CPU fallback only).
 std::mutex g_frameMutex;
@@ -1118,13 +1131,12 @@ void release_shared(SharedImage& img) {
 bool create_shared(SharedImage& img, uint32_t width, uint32_t height, const char* what, bool depth = false) {
   release_shared(img);
   img.isDepth = depth;
-  const wgpu::TextureFormat format = depth ? wgpu::TextureFormat::R32Float : wgpu::TextureFormat::RGBA8Unorm;
+  const wgpu::TextureFormat format = wgpu::TextureFormat::RGBA8Unorm;
   NSDictionary* props = @{
     (__bridge NSString*)kIOSurfaceWidth : @(width),
     (__bridge NSString*)kIOSurfaceHeight : @(height),
     (__bridge NSString*)kIOSurfaceBytesPerElement : @4,
-    (__bridge NSString*)kIOSurfacePixelFormat :
-        @(depth ? kCVPixelFormatType_OneComponent32Float : kCVPixelFormatType_32RGBA),
+    (__bridge NSString*)kIOSurfacePixelFormat : @(kCVPixelFormatType_32RGBA),
     (__bridge NSString*)kIOSurfaceBytesPerRow : @(IOSurfaceAlignProperty(kIOSurfaceBytesPerRow, width * 4)),
   };
   img.surface = IOSurfaceCreate((__bridge CFDictionaryRef)props);
@@ -1568,11 +1580,10 @@ bool build_pipelines(id<MTLDevice> device, MTLPixelFormat color, MTLPixelFormat 
 id<MTLTexture> metal_view(SharedImage& img, id<MTLDevice> device) {
   if (img.surface == nullptr) return nil;
   if (img.mtl == nil || img.mtl.device != device) {
-    MTLTextureDescriptor* d =
-        [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:img.isDepth ? MTLPixelFormatR32Float : MTLPixelFormatRGBA8Unorm
-                                                            width:img.width
-                                                           height:img.height
-                                                        mipmapped:NO];
+    MTLTextureDescriptor* d = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
+                                                                                 width:img.width
+                                                                                height:img.height
+                                                                             mipmapped:NO];
     d.usage = img.isDepth ? MTLTextureUsageShaderRead : (MTLTextureUsageShaderRead | MTLTextureUsagePixelFormatView);
     d.storageMode = MTLStorageModeShared;
     img.mtl = [device newTextureWithDescriptor:d iosurface:img.surface plane:0];
@@ -1788,18 +1799,9 @@ void fill_eye_view(svfx::EyeView& ev, const Mat& originFromView, const Mat& view
 }
 
 // One Compositor Services frame: everything drawn into each drawable's views, presented.
-void display_frame() {
-  void* devicePtr = nullptr;
-  const uint64_t t0 = now_ns();
-  const int32_t count = sv_xrhost_frame_begin(g.renderer, &devicePtr);
+// One display frame after sv_xrhost_frame_begin returned its drawables (display thread, g_lock held).
+void display_encode(int32_t count, void* devicePtr) {
   const uint64_t t1 = now_ns();
-  g.beginWaitNs += t1 - t0;
-  if (count <= 0) {
-    // No frame to draw this time: a short sleep instead of spinning (the next query paces again).
-    ++g.noFrameSinceStats;
-    usleep(2000);
-    return;
-  }
   ++g.displayFramesSinceStats;
   g.drawablesSinceStats += static_cast<uint64_t>(count);
   id<MTLDevice> device = (__bridge id<MTLDevice>)devicePtr;
@@ -2157,6 +2159,59 @@ void display_frame() {
   g.compositeNs += now_ns() - t1;
 }
 
+// The display thread: a Compositor Services frame at the display's rate, whatever the game thread
+// is doing. The blocking part (queryNextFrame + the wait until the optimal input time, inside
+// sv_xrhost_frame_begin) runs without the lock; the composite is encoded under it.
+void display_thread_main() {
+  pthread_setname_np("sv-display");
+  pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
+  while (!g_displayQuit.load()) {
+    void* renderer = nullptr;
+    {
+      Lock lock(g_lock);
+      if (g.active && g.renderer != nullptr && g.rendererRunning && !sv_game_paused()) {
+        renderer = g.renderer;
+        CFRetain(renderer);
+      }
+    }
+    if (renderer == nullptr) {
+      usleep(5000);
+      continue;
+    }
+    void* devicePtr = nullptr;
+    const uint64_t t0 = now_ns();
+    const int32_t count = sv_xrhost_frame_begin(renderer, &devicePtr);
+    const uint64_t t1 = now_ns();
+    {
+      Lock lock(g_lock);
+      g.beginWaitNs += t1 - t0;
+      if (count <= 0) {
+        ++g.noFrameSinceStats;
+      } else if (g.renderer == renderer && g.active) {
+        display_encode(count, devicePtr);
+      } else {
+        // The renderer went while this frame was being waited for: it is still presented (cleared).
+        present_cleared((__bridge id<MTLDevice>)devicePtr, count);
+      }
+    }
+    CFRelease(renderer);
+    // No frame to draw this time: a short sleep instead of spinning (the next query paces again).
+    if (count <= 0) usleep(2000);
+  }
+}
+
+void start_display_thread() {
+  if (g_displayThread.joinable()) return;
+  g_displayQuit.store(false);
+  g_displayThread = std::thread(display_thread_main);
+}
+
+void stop_display_thread() {
+  if (!g_displayThread.joinable()) return;
+  g_displayQuit.store(true);
+  g_displayThread.join();
+}
+
 // ---------------------------------------------------------------------------------------------
 // Stats
 // ---------------------------------------------------------------------------------------------
@@ -2232,6 +2287,7 @@ extern "C" int PortXrWanted(void) {
 }
 
 extern "C" int PortXrInit(void) {
+  Lock lock(g_lock);
   if (g.active) return 1;
   if (!PortXrWanted()) {
     SVLOG("STRIKERS_XR=0: the headset layer is off");
@@ -2254,6 +2310,7 @@ extern "C" int PortXrInit(void) {
            aurora::webgpu::g_metalSharedImageSupported ? 1 : 0);
   }
   g.active = true;
+  start_display_thread();
   SVLOG("%s ready: %s, screen path %s, waiting for the immersive space", kBuildTag, mode_name(),
         g.gpuScreen ? "GPU" : "CPU");
   return 1;
@@ -2263,6 +2320,9 @@ extern "C" int PortXrActive(void) { return g.active ? 1 : 0; }
 
 extern "C" int PortXrShouldQuit(void) { return (g.quit || sv_game_quit_requested()) ? 1 : 0; }
 
+// Per-draw queries from the game thread: lock-free on purpose. They read only fields the game
+// thread itself writes (the view mode, the settings, stereoFailed, gameplayLive, hasProjection); the
+// display thread only reads them.
 extern "C" int PortXrStereoWorld(void) { return (g.active && stereo_mode() && !g.stereoFailed) ? 1 : 0; }
 
 extern "C" int PortXrStereoFullStands(void) { return (PortXrStereoWorld() && g.tabletop && !g.mrMode) ? 1 : 0; }
@@ -2275,6 +2335,7 @@ extern "C" int PortXrEyeViewAllowed(int view, int tableLayer) {
 }
 
 extern "C" int PortXrStereoFrameBegin(void) {
+  Lock lock(g_lock);
   if (!g.active || !g.frameBegun || !g.viewsValid || !stereo_mode() || g.stereoFailed || !g.stereoReady) return 0;
   // Online, a headset that cannot hold 60 game frames would slow the shared match: its 3D view is then
   // redrawn every other game frame (the system reprojects the last pair).
@@ -2335,6 +2396,7 @@ extern "C" int PortXrStereoFrameBegin(void) {
 }
 
 extern "C" int PortXrStereoEyeLayer(int eye, int layer, float view[16], float proj[16], int* flags) {
+  Lock lock(g_lock);
   if (!g.stereoThisFrame || eye < 0 || eye > 1) return 0;
   SharedImage& img = g.eyes[g.eyeSlot][eye];
   if (layer == 0) {
@@ -2346,7 +2408,10 @@ extern "C" int PortXrStereoEyeLayer(int eye, int layer, float view[16], float pr
     target.width = img.width;
     target.height = img.height;
     const SharedImage& dimg = g.eyeDepths[g.eyeSlot][eye];
-    if (g.depthExport && dimg.accessOpen && dimg.view) target.depthSnapshot = dimg.view;
+    if (g.depthExport && dimg.accessOpen && dimg.view) {
+      target.depthSnapshot = dimg.view;
+      target.depthSnapshotPacked = true;
+    }
     const bool stadiumLayer =
         g.frameLayerKind[0] == kLayerStadium || (g.stereoLayers > 1 && g.frameLayerKind[1] == kLayerStadium);
     target.sampleCount = static_cast<uint32_t>(stadiumLayer ? g.set.msaaStadium : g.set.msaaTable);
@@ -2388,6 +2453,7 @@ extern "C" int PortXrStereoEyeLayer(int eye, int layer, float view[16], float pr
 }
 
 extern "C" void PortXrStereoEyeEnd(int eye) {
+  Lock lock(g_lock);
   close_pool_measurement();
   if (eye < 0 || eye > 1 || !g.eyePassOpen[eye]) return;
   aurora::gfx::ResolvedTargets out;
@@ -2403,6 +2469,7 @@ extern "C" void PortXrStereoEyeEnd(int eye) {
 }
 
 extern "C" void PortXrStereoFrameEnd(void) {
+  Lock lock(g_lock);
   if (g.eyeSendStartNs != 0) {
     g.eyeSendNs += now_ns() - g.eyeSendStartNs;
     g.eyeSendStartNs = 0;
@@ -2411,6 +2478,7 @@ extern "C" void PortXrStereoFrameEnd(void) {
 
 extern "C" void PortXrNoteLoopTimes(int ranGameFrame, unsigned long long xrBegin, unsigned long long auroraBegin,
                                     unsigned long long tasks, unsigned long long auroraEnd, unsigned long long xrEnd) {
+  Lock lock(g_lock);
   if (!g.active || !ranGameFrame) return;
   g.loopNs[0] += xrBegin;
   g.loopNs[1] += auroraBegin;
@@ -2420,6 +2488,7 @@ extern "C" void PortXrNoteLoopTimes(int ranGameFrame, unsigned long long xrBegin
 }
 
 extern "C" void PortXrGoal(int team, int character, int superStrike, int hyper, int ownGoal, int humanPad) {
+  Lock lock(g_lock);
   if (!g.active) return;
   static const char* kNames[] = {"Birdo", "Daisy", "Donkey Kong", "Hammer Bro", "Koopa", "Luigi",
                                  "Mario", "Peach", "Toad",        "Waluigi",    "Wario", "Yoshi"};
@@ -2440,15 +2509,20 @@ extern "C" void PortXrGoal(int team, int character, int superStrike, int hyper, 
 }
 
 extern "C" void PortXrCelebrationPhase(int phase) {
+  Lock lock(g_lock);
   if (!g.active) return;
   static const char* kPhases[] = {"?", "replay started", "replay played out", "skipped", "play live"};
   SVLOG("celebration: %s", (phase >= 1 && phase <= 4) ? kPhases[phase] : "?");
   svfx::phase(phase);
 }
 
-extern "C" void PortXrSetGameplayLive(int live) { g.gameplayLive = live != 0; }
+extern "C" void PortXrSetGameplayLive(int live) {
+  Lock lock(g_lock);
+  g.gameplayLive = live != 0;
+}
 
 extern "C" void PortXrSetPlayerMarker(int shown, float x, float y, float z, int teamCaptain) {
+  Lock lock(g_lock);
   if (!g.active) return;
   svfx::set_marker(shown != 0 && g.tabletop && !g.stereoFailed, x, y, z, teamCaptain);
 }
@@ -2456,6 +2530,7 @@ extern "C" void PortXrSetPlayerMarker(int shown, float x, float y, float z, int 
 // The game's bright full-screen flashes light up your whole view instead of only the game picture;
 // the dark fades stay on the picture.
 extern "C" int PortXrScreenFlash(float r, float gr, float b, float a) {
+  Lock lock(g_lock);
   if (!g.active || !g.fxReady || std::max(r, std::max(gr, b)) < 0.5f) return 0;
   svfx::screen_flash(r, gr, b, a);
   return 1;
@@ -2466,6 +2541,7 @@ extern "C" int PortXrTakeTestItem(void) { return 0; }
 extern "C" int PortXrTakeTestSts(void) { return 0; }
 
 extern "C" void PortXrSetStsMeter(int shown, float x, float y, float z, float halfU, float halfV) {
+  Lock lock(g_lock);
   g.sts.shown = shown != 0;
   if (!g.sts.shown) {
     g.sts.logged = false;
@@ -2479,6 +2555,7 @@ extern "C" void PortXrSetStsMeter(int shown, float x, float y, float z, float ha
 }
 
 extern "C" void PortXrNoteItemUse(int current, int next, int blocked) {
+  Lock lock(g_lock);
   SVLOG("item: use, current %d, next %d%s", current, next, blocked ? " (blocked)" : "");
 }
 
@@ -2494,6 +2571,7 @@ extern "C" int PortXrHudOnlyNormalView(void) {
 }
 
 extern "C" void PortXrRumblePreset(int pad, int preset) {
+  Lock lock(g_lock);
   if (!g.active || pad != xrnet::local_pad()) return;
   // eRumbleActionPreset: small, medium, solid contact, shot contact, Super Strike (hyper), Super Strike.
   constexpr float kAmplitude[] = {0.35f, 0.55f, 0.8f, 0.65f, 1.0f, 0.9f};
@@ -2503,6 +2581,7 @@ extern "C" void PortXrRumblePreset(int pad, int preset) {
 }
 
 extern "C" void PortXrRumbleStart(int pad, float seconds) {
+  Lock lock(g_lock);
   if (!g.active || pad != xrnet::local_pad()) return;
   g.rumble.startPending = true;
   g.rumble.stopPending = false;
@@ -2510,11 +2589,13 @@ extern "C" void PortXrRumbleStart(int pad, float seconds) {
 }
 
 extern "C" void PortXrRumbleStop(int pad) {
+  Lock lock(g_lock);
   if (!g.active || pad != xrnet::local_pad()) return;
   if (!g.rumble.startPending) g.rumble.stopPending = true;
 }
 
 extern "C" int PortXrBeginFrame(void) {
+  std::unique_lock<std::recursive_mutex> lock(g_lock);
   if (!g.active) return 0;
   g.frameBegun = false;
   // The game's boot (disc, memory card, first scene setup) is behind it: the app may open the space.
@@ -2528,8 +2609,9 @@ extern "C" int PortXrBeginFrame(void) {
   }
   // Paused (app in the background) or no running renderer: no game frames, no display frames.
   if (sv_game_paused() || !ensure_renderer()) {
-    usleep(10000);
     g.lastTickNs = 0;  // no catch-up burst afterwards
+    lock.unlock();
+    usleep(10000);
     return 0;
   }
   g.frameBegun = true;
@@ -2634,11 +2716,14 @@ extern "C" int PortXrBeginFrame(void) {
 }
 
 extern "C" void PortXrEndFrame(int ranGameFrame) {
+  // g.active, g.frameBegun and g.stereoThisFrame are the game thread's own; the wait for Aurora's
+  // render worker (synchronize) runs without the lock so the display thread keeps compositing.
   if (!g.active || !g.frameBegun) return;
   g.frameBegun = false;
   if (ranGameFrame) {
     const uint64_t t0 = now_ns();
     aurora::gfx::synchronize();
+    Lock lock(g_lock);
     if (g.gpuScreen) copy_screen_gpu();
     if (g.stereoThisFrame) {
       g.stereoThisFrame = false;
@@ -2650,16 +2735,19 @@ extern "C" void PortXrEndFrame(int ranGameFrame) {
     // The eye sends ran but the frame was refused: give the images back to Dawn's side unchanged.
     g.stereoThisFrame = false;
     aurora::gfx::synchronize();
+    Lock lock(g_lock);
     for (int e = 0; e < 2; ++e) end_access(g.eyes[g.eyeSlot][e]);
     end_depth_access(g.eyeSlot);
   }
-  if (g.renderer != nullptr && g.rendererRunning) display_frame();
+  Lock lock(g_lock);
   log_stats();
 }
 
 extern "C" void PortXrShutdown(void) {
   if (!g.active) return;
   SVLOG("shutting down the headset layer");
+  stop_display_thread();  // joined without the lock: its last frame may be waiting for it
+  Lock lock(g_lock);
   aurora_xr_set_frame_callback(nullptr, nullptr);
   sv_xrhost_rumble(0.0f, 0.0f);
   // Every composite in flight finishes before the images go.

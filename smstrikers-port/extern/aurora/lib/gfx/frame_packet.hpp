@@ -90,6 +90,7 @@ struct RenderPass {
   Range resolveUniformRange;
   wgpu::Texture snapshotColorDst;
   wgpu::TextureView snapshotDepthDst;
+  bool snapshotDepthPacked = false; // strikers-vision: RGBA8Unorm holding the float's bytes
   float clearDepthValue = 1.f;
   wgpu::LoadOp depthLoadOp = wgpu::LoadOp::Undefined;
   wgpu::StoreOp depthStoreOp = wgpu::StoreOp::Store;

@@ -64,10 +64,13 @@ fragment EyeFOut eye_fragment(EyeVOut in [[stage_in]], texture2d<float> eye [[te
         return o;
     }
     if (u.mode.z > 0.5) {
-        // The eye pass's own depth (Aurora's reverse-Z snapshot: 1 near, 0 far / nothing drawn), read
-        // at the nearest texel: filtering depth across an edge would invent a point in between.
+        // The eye pass's own depth (Aurora's reverse-Z snapshot: 1 near, 0 far / nothing drawn), its
+        // float's four bytes in an RGBA8 texel, read at the nearest texel: filtering depth across an
+        // edge would invent a point in between.
         uint2 px = uint2(clamp(in.uv, 0.0, 0.9999) * float2(eyeDepth.get_width(), eyeDepth.get_height()));
-        float d = eyeDepth.read(px).r;
+        uint4 b = uint4(round(eyeDepth.read(px) * 255.0));
+        float d = as_type<float>(b.x | (b.y << 8) | (b.z << 16) | (b.w << 24));
+        if (!(d > 0.0) || !(d <= 1.0)) d = 0.0;  // bytes that are no depth (never written): far
         if (d > 0.0) {
             float n = u.proj.z, f = u.proj.w;
             float zv = -n * f / (d * (f - n) + n);  // view-space z of the eye pass (metres, negative)
