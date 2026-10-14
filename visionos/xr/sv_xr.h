@@ -7,8 +7,11 @@
 //   SVXRHost.swift  Compositor Services frames, ARKit (head and Sense controller poses),
 //                   GameController buttons and haptics; reached through the sv_xrhost_* C functions
 //                   below (@_cdecl), all called on the game thread.
-//   sv_shaders.metal  every shader of the composite and the effects (compiled into the app's
-//                   default.metallib).
+//   sv_xr_pad.cpp   the PADStatus hand-over to Aurora's PAD (plain C++: dolphin/types.h's BOOL
+//                   cannot meet Objective-C's).
+//   SVLayerConfiguration.swift  the CompositorLayer setup (formats, layout, foveation).
+//   sv_shaders.h    every shader of the composite and the effects, as one MSL source compiled at run
+//                   time (newLibraryWithSource), so a shader error lands in the game log.
 #pragma once
 
 #include <stdint.h>
@@ -44,6 +47,36 @@ int sv_game_take_remote_table_pose(float m[16], float* scale);
 /* The app's callbacks (any may be NULL). */
 void sv_game_set_upper_limbs_visible(int visible);
 void sv_game_view_mode_changed(int viewMode);
+
+/* ---- sv_xr_pad.cpp: one GameCube pad state for Aurora's virtual pad on `port` (PADSetVirtualStatus),
+ * or the port given back to real controllers (PADClearVirtualStatus). Game thread. */
+typedef struct SVPad {
+  uint16_t button; /* SV_PAD_* (dolphin/pad.h's PAD_BUTTON_* / PAD_TRIGGER_* values) */
+  int8_t stickX, stickY, substickX, substickY;
+  uint8_t triggerLeft, triggerRight;
+} SVPad;
+enum {
+  SV_PAD_LEFT = 0x0001,
+  SV_PAD_RIGHT = 0x0002,
+  SV_PAD_DOWN = 0x0004,
+  SV_PAD_UP = 0x0008,
+  SV_PAD_Z = 0x0010,
+  SV_PAD_R = 0x0020,
+  SV_PAD_L = 0x0040,
+  SV_PAD_A = 0x0100,
+  SV_PAD_B = 0x0200,
+  SV_PAD_X = 0x0400,
+  SV_PAD_Y = 0x0800,
+  SV_PAD_START = 0x1000,
+};
+void sv_pad_set_virtual(int port, const SVPad* pad);
+void sv_pad_clear_virtual(int port);
+
+/* ---- sv_game.mm: every byte the process writes to stderr (the game's log, OSReport, Aurora, SDL,
+ * crash handlers) also goes, line by line, to SVAppCallbacks.log_line. Installed once, before the
+ * game thread starts; the game's own STRIKERS_LOG redirection (config.c, dup2 onto fd 2) is caught
+ * too because the pipe sits behind fd 2 again afterwards (sv_game_stderr_reattach). */
+void sv_game_stderr_reattach(void);
 
 /* ---- Helpers on environment variables (STRIKERS_*). */
 float sv_env_float(const char* name, float fallback, float lo, float hi);
