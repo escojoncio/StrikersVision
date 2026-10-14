@@ -293,8 +293,9 @@ struct SharedImage {
   // The last composite that read it signals compositeEvent with this value (Dawn's next write waits).
   uint64_t readValue = 0;
   // Metal side (the composite's device), made on first use.
-  id<MTLTexture> mtl = nil;     // RGBA8Unorm over the IOSurface
+  id<MTLTexture> mtl = nil;     // RGBA8Unorm (or R32Float for a depth image) over the IOSurface
   id<MTLTexture> mtlSrgb = nil; // sRGB view: the game's display-encoded bytes arrive linear
+  bool isDepth = false;         // R32Float: the eye pass's raw depth (Aurora's snapshot), not a picture
 };
 
 // The pose an eye image was drawn for (the drawable reprojects from it).
@@ -307,6 +308,8 @@ struct RenderPose {
 };
 
 constexpr int kEyeSlots = 3;
+// The eye passes' near and far planes (gx_projection), in room metres; the composite inverts them.
+constexpr float kEyeNear = 0.05f, kEyeFar = 1500.0f;
 constexpr int kScreenSlots = 3;
 
 constexpr float kTableScaleBase = 0.032f;  // room metres per game unit: the 41 m pitch is ~1.3 m
@@ -430,6 +433,11 @@ struct State {
   bool stereoReady = false;
   uint32_t eyeWidth = 0, eyePxHeight = 0;  // the eye images, pixels
   SharedImage eyes[kEyeSlots][2];
+  // The eye passes' depth (R32Float, one per eye image), handed to the composite so the system gets
+  // the real depth of every pixel (hands and nearby objects then occlude correctly). Off when Dawn
+  // cannot import it: the composite falls back to the table-plane estimate.
+  SharedImage eyeDepths[kEyeSlots][2];
+  bool depthExport = false;
   int eyeSlot = 0;  // the slot this game frame renders into
   int shownSlot = -1;
   RenderPose shownPose;
@@ -1107,13 +1115,16 @@ void release_shared(SharedImage& img) {
   img = SharedImage{};
 }
 
-bool create_shared(SharedImage& img, uint32_t width, uint32_t height, const char* what) {
+bool create_shared(SharedImage& img, uint32_t width, uint32_t height, const char* what, bool depth = false) {
   release_shared(img);
+  img.isDepth = depth;
+  const wgpu::TextureFormat format = depth ? wgpu::TextureFormat::R32Float : wgpu::TextureFormat::RGBA8Unorm;
   NSDictionary* props = @{
     (__bridge NSString*)kIOSurfaceWidth : @(width),
     (__bridge NSString*)kIOSurfaceHeight : @(height),
     (__bridge NSString*)kIOSurfaceBytesPerElement : @4,
-    (__bridge NSString*)kIOSurfacePixelFormat : @(kCVPixelFormatType_32RGBA),
+    (__bridge NSString*)kIOSurfacePixelFormat :
+        @(depth ? kCVPixelFormatType_OneComponent32Float : kCVPixelFormatType_32RGBA),
     (__bridge NSString*)kIOSurfaceBytesPerRow : @(IOSurfaceAlignProperty(kIOSurfaceBytesPerRow, width * 4)),
   };
   img.surface = IOSurfaceCreate((__bridge CFDictionaryRef)props);
@@ -1132,14 +1143,14 @@ bool create_shared(SharedImage& img, uint32_t width, uint32_t height, const char
     img.memory = aurora::webgpu::g_device.ImportSharedTextureMemory(&desc);
     if (!img.memory) return;
     wgpu::TextureDescriptor tex{};
-    tex.format = wgpu::TextureFormat::RGBA8Unorm;
+    tex.format = format;
     tex.size = {width, height, 1};
     tex.usage = wgpu::TextureUsage::CopyDst | wgpu::TextureUsage::CopySrc | wgpu::TextureUsage::RenderAttachment |
                 wgpu::TextureUsage::TextureBinding;
     img.texture = img.memory.CreateTexture(&tex);
     if (!img.texture) return;
     wgpu::TextureViewDescriptor view{};
-    view.format = wgpu::TextureFormat::RGBA8Unorm;
+    view.format = format;
     view.dimension = wgpu::TextureViewDimension::e2D;
     view.mipLevelCount = 1;
     view.arrayLayerCount = 1;
@@ -1343,12 +1354,26 @@ bool create_stereo_resources() {
     for (int e = 0; e < 2; ++e) {
       if (!create_shared(g.eyes[s][e], w, h, "eye image")) return fail("eye image import");
     }
+  // The depth images are optional: without them the composite estimates the depth (table plane).
+  g.depthExport = true;
+  for (int s = 0; s < kEyeSlots && g.depthExport; ++s)
+    for (int e = 0; e < 2; ++e) {
+      if (!create_shared(g.eyeDepths[s][e], w, h, "eye depth", true)) {
+        g.depthExport = false;
+        break;
+      }
+    }
+  if (!g.depthExport) {
+    for (auto& slot : g.eyeDepths)
+      for (SharedImage& img : slot) release_shared(img);
+    SVWARN("3D modes: eye depth images not importable; the system gets an estimated depth (table plane)");
+  }
   g.eyeWidth = w;
   g.eyePxHeight = h;
   g.eyeSlot = 0;
   g.stereoReady = true;
-  SVLOG("3D modes ready: %ux%u per eye (drawable viewport %.0fx%.0f x %.2f), GPU hand-off", w, h, g.viewportW,
-        g.viewportH, g.set.eyeScale);
+  SVLOG("3D modes ready: %ux%u per eye (drawable viewport %.0fx%.0f x %.2f), GPU hand-off, depth %s", w, h,
+        g.viewportW, g.viewportH, g.set.eyeScale, g.depthExport ? "exported" : "estimated");
   return true;
 }
 
@@ -1378,9 +1403,30 @@ void close_pool_measurement() {
 }
 
 // After synchronize(): this game frame's eye images back from Dawn, shown from now on.
+void stop_depth_export(const char* why) {
+  if (!g.depthExport) return;
+  g.depthExport = false;
+  SVWARN("3D modes: eye depth no longer exported (%s); the system gets an estimated depth", why);
+  for (auto& slot : g.eyeDepths)
+    for (SharedImage& img : slot) {
+      if (img.accessOpen) end_access(img);
+    }
+}
+
+// Ends Dawn's access of this slot's depth images; a refusal turns the export off (the pictures stay).
+void end_depth_access(int slot) {
+  if (!g.depthExport) return;
+  for (int e = 0; e < 2; ++e) {
+    SharedImage& img = g.eyeDepths[slot][e];
+    if (img.accessOpen) end_access(img);
+    if (img.refused) stop_depth_export("Dawn refused the hand-back");
+  }
+}
+
 void finish_stereo_frame() {
   bool ok = true;
   for (int e = 0; e < 2; ++e) ok = end_access(g.eyes[g.eyeSlot][e]) && ok;
+  end_depth_access(g.eyeSlot);
   if (g.eyes[g.eyeSlot][0].refused || g.eyes[g.eyeSlot][1].refused) {
     g.stereoFailed = true;
     g.hasProjection = false;
@@ -1425,6 +1471,7 @@ struct EyeUniforms {
   float tableA[4];
   float tableB[4];
   float mode[4];
+  float proj[4];
 };
 
 struct ScreenUniforms {
@@ -1521,11 +1568,12 @@ bool build_pipelines(id<MTLDevice> device, MTLPixelFormat color, MTLPixelFormat 
 id<MTLTexture> metal_view(SharedImage& img, id<MTLDevice> device) {
   if (img.surface == nullptr) return nil;
   if (img.mtl == nil || img.mtl.device != device) {
-    MTLTextureDescriptor* d = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
-                                                                                 width:img.width
-                                                                                height:img.height
-                                                                             mipmapped:NO];
-    d.usage = MTLTextureUsageShaderRead | MTLTextureUsagePixelFormatView;
+    MTLTextureDescriptor* d =
+        [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:img.isDepth ? MTLPixelFormatR32Float : MTLPixelFormatRGBA8Unorm
+                                                            width:img.width
+                                                           height:img.height
+                                                        mipmapped:NO];
+    d.usage = img.isDepth ? MTLTextureUsageShaderRead : (MTLTextureUsageShaderRead | MTLTextureUsagePixelFormatView);
     d.storageMode = MTLStorageModeShared;
     img.mtl = [device newTextureWithDescriptor:d iosurface:img.surface plane:0];
     img.mtlSrgb = nil;
@@ -1533,6 +1581,7 @@ id<MTLTexture> metal_view(SharedImage& img, id<MTLDevice> device) {
       SVERR("metal: texture over IOSurface %ux%u failed", img.width, img.height);
       return nil;
     }
+    if (img.isDepth) return img.mtl;
     img.mtlSrgb = [img.mtl newTextureViewWithPixelFormat:MTLPixelFormatRGBA8Unorm_sRGB];
     if (img.mtlSrgb == nil) SVWARN("metal: no sRGB view of the IOSurface texture; colours will be off");
   }
@@ -1852,6 +1901,10 @@ void display_frame() {
       for (int e = 0; e < 2; ++e) {
         SharedImage& img = g.eyes[g.shownSlot][e];
         [cmd encodeWaitForEvent:img.doneEvent value:img.doneValue];
+        const SharedImage& dimg = g.eyeDepths[g.shownSlot][e];
+        if (g.depthExport && dimg.valid && dimg.doneEvent != nil) {
+          [cmd encodeWaitForEvent:dimg.doneEvent value:dimg.doneValue];  // the same event twice is fine
+        }
       }
     }
   }
@@ -1875,9 +1928,16 @@ void display_frame() {
     picH = g.mtl.cpuHeight;
   }
   id<MTLTexture> eyeTex[2] = {nil, nil};
+  id<MTLTexture> eyeDepthTex[2] = {nil, nil};  // the eye pass's own depth, when exported and written
   if (drawEyes) {
     for (int e = 0; e < 2; ++e) eyeTex[e] = metal_view(g.eyes[g.shownSlot][e], device);
     if (eyeTex[0] == nil || eyeTex[1] == nil) drawEyes = false;
+    if (drawEyes && g.depthExport) {
+      for (int e = 0; e < 2; ++e) {
+        SharedImage& dimg = g.eyeDepths[g.shownSlot][e];
+        if (dimg.valid) eyeDepthTex[e] = metal_view(dimg, device);
+      }
+    }
   }
 
   const V3 headPos = mat_translation(pose.originFromDevice);
@@ -2016,9 +2076,17 @@ void display_frame() {
         u.tableB[3] = g.tabletop ? 1.0f : 0.0f;
         u.mode[0] = g.mrMode ? 1.0f : 0.0f;
         u.mode[1] = g.set.depth ? 1.0f : 0.0f;
+        u.mode[2] = eyeDepthTex[eye] != nil ? 1.0f : 0.0f;
+        // The eye pass's projection (gx_projection: these near/far) and this view's clip z row, to
+        // turn the exported depth into the drawable's.
+        u.proj[0] = vpj.m[10];  // P22 (column 2, row 2)
+        u.proj[1] = vpj.m[14];  // P23 (column 3, row 2)
+        u.proj[2] = kEyeNear;
+        u.proj[3] = kEyeFar;
         [enc setRenderPipelineState:g.mtl.eyePipeline];
         [enc setDepthStencilState:g.mtl.depthAlways];
         [enc setFragmentTexture:eyeTex[eye] atIndex:0];
+        [enc setFragmentTexture:eyeDepthTex[eye] != nil ? eyeDepthTex[eye] : eyeTex[eye] atIndex:1];
         [enc setFragmentSamplerState:g.mtl.sampler atIndex:0];
         [enc setFragmentBytes:&u length:sizeof(u) atIndex:0];
         [enc drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
@@ -2059,6 +2127,9 @@ void display_frame() {
     if (drawEyes) {
       g.eyes[g.shownSlot][0].readValue = value;
       g.eyes[g.shownSlot][1].readValue = value;
+      for (int e = 0; e < 2; ++e) {
+        if (eyeDepthTex[e] != nil) g.eyeDepths[g.shownSlot][e].readValue = value;
+      }
     }
     if (screenImg != nullptr) screenImg->readValue = value;
     if (!g.gpuScreen && g.mtl.cpuShown >= 0) g.mtl.cpuScreenRead[g.mtl.cpuShown] = value;
@@ -2242,8 +2313,14 @@ extern "C" int PortXrStereoFrameBegin(void) {
     begin_access(img);
     g.eyePassOpen[e] = false;
   }
+  if (g.depthExport) {
+    for (int e = 0; e < 2 && g.depthExport; ++e) {
+      if (!begin_access(g.eyeDepths[g.eyeSlot][e])) stop_depth_export("Dawn refused the access");
+    }
+  }
   if (!g.eyes[g.eyeSlot][0].accessOpen || !g.eyes[g.eyeSlot][1].accessOpen) {
     for (int e = 0; e < 2; ++e) end_access(g.eyes[g.eyeSlot][e]);
+    end_depth_access(g.eyeSlot);
     // Dawn refused the shared images: the 3D modes go, the Jumbotron stays.
     g.stereoFailed = true;
     g.hasProjection = false;
@@ -2268,6 +2345,8 @@ extern "C" int PortXrStereoEyeLayer(int eye, int layer, float view[16], float pr
     target.format = aurora::gfx::color_format();
     target.width = img.width;
     target.height = img.height;
+    const SharedImage& dimg = g.eyeDepths[g.eyeSlot][eye];
+    if (g.depthExport && dimg.accessOpen && dimg.view) target.depthSnapshot = dimg.view;
     const bool stadiumLayer =
         g.frameLayerKind[0] == kLayerStadium || (g.stereoLayers > 1 && g.frameLayerKind[1] == kLayerStadium);
     target.sampleCount = static_cast<uint32_t>(stadiumLayer ? g.set.msaaStadium : g.set.msaaTable);
@@ -2303,7 +2382,7 @@ extern "C" int PortXrStereoEyeLayer(int eye, int layer, float view[16], float pr
   const M4 v = m4_mul(model, m4_from_mat(mat_inverse(originFromView)));
   std::memcpy(view, v.m, sizeof(v.m));
   // One projection for every layer of an eye, so their depths compare.
-  gx_projection(tangents_from_projection(g.predicted.projection[eye]), 0.05f, 1500.0f, proj);
+  gx_projection(tangents_from_projection(g.predicted.projection[eye]), kEyeNear, kEyeFar, proj);
   *flags = kind == kLayerTable ? (kFlagSkipSky | kFlagTable) : kFlagSkipActors;
   return 1;
 }
@@ -2314,8 +2393,10 @@ extern "C" void PortXrStereoEyeEnd(int eye) {
   aurora::gfx::ResolvedTargets out;
   aurora::gfx::ResolveDesc desc;
   desc.color = false;
-  desc.depth = false;
+  const SharedImage& dimg = g.eyeDepths[g.eyeSlot][eye];
+  desc.depth = g.depthExport && dimg.accessOpen && dimg.view;
   aurora::gfx::resolve_pass(desc, out);
+  if (desc.depth && !out.depth) stop_depth_export("Aurora has no depth snapshot on this device");
   aurora_gx_set_xr_coverage(false);
   aurora::gfx::set_offscreen_uses_native_logical_size(false);
   g.eyePassOpen[eye] = false;
@@ -2570,6 +2651,7 @@ extern "C" void PortXrEndFrame(int ranGameFrame) {
     g.stereoThisFrame = false;
     aurora::gfx::synchronize();
     for (int e = 0; e < 2; ++e) end_access(g.eyes[g.eyeSlot][e]);
+    end_depth_access(g.eyeSlot);
   }
   if (g.renderer != nullptr && g.rendererRunning) display_frame();
   log_stats();
@@ -2588,6 +2670,12 @@ extern "C" void PortXrShutdown(void) {
       if (img.accessOpen) end_access(img);
       release_shared(img);
     }
+  for (auto& slot : g.eyeDepths)
+    for (SharedImage& img : slot) {
+      if (img.accessOpen) end_access(img);
+      release_shared(img);
+    }
+  g.depthExport = false;
   for (SharedImage& img : g.screens) {
     if (img.accessOpen) end_access(img);
     release_shared(img);

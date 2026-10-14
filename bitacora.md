@@ -46,6 +46,15 @@
   modelos cortados: sin pista en el log (culled 0/frame, sin errores de Dawn); pendiente de captura del visor. Sospechas por
   orden: viewport/scissor de Aurora en el pase de ojo (`set_offscreen_uses_native_logical_size`), decode-once (`STRIKERS_XR_DECODE`),
   recorte `uvRect` del HUD sobre la mesa.
+- Objetos reales cercanos "delante" del 3D al acercarse (no pasa en Demeo): visionOS compara la profundidad que la app
+  escribe con la del entorno; el compuesto escribía una ESTIMACIÓN (plano de la mesa / suelo), así que jugadores, porterías
+  y todo lo que sobresale del plano quedaba "detrás" de la mesa real. Arreglo: profundidad real del pase de ojo exportada.
+  Aurora: `ExternalPassTarget::depthSnapshot` (recording.cpp: `offscreenDepthSnapshot`, el snapshot R32Float de
+  `resolve_pass({.depth=true})` va a esa vista; depth Store en vez de Discard; el depth MSAA lleva TextureBinding).
+  sv_xr.mm: `g.eyeDepths[slot][eye]` (IOSurface `OneComponent32Float` → Dawn R32Float, misma vida de accesos/fences que los
+  de color; `g.depthExport`, `stop_depth_export` si Dawn lo rechaza → vuelve a la estimación), composite: textura 1 +
+  `EyeUniforms.proj` (P22, P23, near 0.05, far 1500) y en `eye_fragment` z_view = -nf/(d(f-n)+n) → depth del drawable.
+  Línea de log: `3D modes ready: ... depth exported|estimated`. **Pendiente de probar en el visor.**
 - Limitación: las Personas no se ven mientras se dibuja con Compositor Services (Apple, foros 791591/801420).
 - Pendiente (por orden):
   1. Texturas/modelos cortados (ver arriba): pedir captura, probar con `STRIKERS_XR_DECODE=0` y `STRIKERS_XR_CULL=0`.

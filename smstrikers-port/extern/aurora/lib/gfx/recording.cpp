@@ -52,6 +52,7 @@ struct FrameRecorder {
   ClipRect suspendedEfbScissor;
   webgpu::TextureWithSampler offscreenColor;
   webgpu::TextureWithSampler offscreenDepth;
+  wgpu::TextureView offscreenDepthSnapshot; // strikers-vision: ExternalPassTarget::depthSnapshot of the open pass
   Viewport cachedViewport;
   ClipRect cachedScissor;
   bool suppressRenderWorker = false;
@@ -474,7 +475,8 @@ static MsaaTargets get_msaa_targets(uint32_t width, uint32_t height, uint32_t sa
   };
   const wgpu::TextureDescriptor depthDesc{
       .label = "Offscreen MSAA Depth",
-      .usage = wgpu::TextureUsage::RenderAttachment,
+      // strikers-vision: also bound by the depth snapshot pass (ExternalPassTarget::depthSnapshot).
+      .usage = wgpu::TextureUsage::RenderAttachment | wgpu::TextureUsage::TextureBinding,
       .dimension = wgpu::TextureDimension::e2D,
       .size = {width, height, 1},
       .format = webgpu::g_graphicsConfig.depthFormat,
@@ -512,6 +514,7 @@ void start_offscreen(uint32_t width, uint32_t height, const ExternalPassTarget* 
     g_recorder.offscreenColor = std::move(offscreenEntry.color);
   }
   g_recorder.offscreenDepth = std::move(offscreenEntry.depth);
+  g_recorder.offscreenDepthSnapshot = external != nullptr ? external->depthSnapshot : wgpu::TextureView{};
 
   RenderPass newPass{
       .label = pass_label(external != nullptr ? "Offscreen external" : "Offscreen"),
@@ -527,10 +530,10 @@ void start_offscreen(uint32_t width, uint32_t height, const ExternalPassTarget* 
       .hasStencil = false,
   };
   newPass.externalTarget = external != nullptr;
-  if (external != nullptr) {
+  if (external != nullptr && !external->depthSnapshot) {
     // strikers-quest: the headset's eye passes never read their depth back (PortXrStereoEyeEnd
     // resolves with depth = false), so on the tiler it can stay in GMEM instead of being written out
-    // every pass.
+    // every pass. With a depth snapshot asked for (strikers-vision), the depth is stored.
     newPass.depthStoreOp = wgpu::StoreOp::Discard;
   }
   if (msaa > 1) {
@@ -1081,15 +1084,22 @@ bool resolve_pass(const ResolveDesc& desc, ResolvedTargets& out) {
   auto& prevPass = current_render_passes()[g_recorder.currentRenderPass];
   const uint32_t width = prevPass.colorAttachments[SceneColorAttachmentIndex].size.width;
   const uint32_t height = prevPass.colorAttachments[SceneColorAttachmentIndex].size.height;
+  // strikers-vision: an external pass may bring its own depth snapshot target.
+  const bool externalDepth = wantDepth && g_recorder.inOffscreen && static_cast<bool>(g_recorder.offscreenDepthSnapshot);
+  if (externalDepth) {
+    prevPass.snapshotDepthDst = g_recorder.offscreenDepthSnapshot;
+    out.depth = g_recorder.offscreenDepthSnapshot;
+  }
+  const bool pooledDepth = wantDepth && !externalDepth;
   // Requesting no snapshots is a plain pass break (or offscreen close, discarding its output).
-  if (desc.color || wantDepth) {
-    auto& entry = acquire_pass_snapshot(width, height, desc.color, wantDepth);
+  if (desc.color || pooledDepth) {
+    auto& entry = acquire_pass_snapshot(width, height, desc.color, pooledDepth);
     if (desc.color) {
       prevPass.snapshotColorDst = entry.color.texture;
       out.color = entry.color.view;
       out.colorFormat = entry.color.format;
     }
-    if (wantDepth) {
+    if (pooledDepth) {
       prevPass.snapshotDepthDst = entry.depth.view;
       out.depth = entry.depth.view;
     }
