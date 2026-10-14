@@ -19,8 +19,9 @@ permissions:
   contents: write
 env:
   # The schemes to build, in order. StrikersVision is the app packaged and published;
-  # StrikersVisionBootstrap is the game side linked into a placeholder app (never published).
-  APP_SCHEMES: ${{ inputs.scheme || 'StrikersVisionBootstrap StrikersVision' }}
+  # StrikersVisionBootstrap (the game side linked into a placeholder app, never published) only on
+  # demand: Run workflow with scheme "StrikersVisionBootstrap".
+  APP_SCHEMES: ${{ inputs.scheme || 'StrikersVision' }}
   XCODEGEN_VERSION: "2.46.0"
 jobs:
   app:
@@ -109,6 +110,11 @@ jobs:
             if ! grep -q 'BUILD SUCCEEDED' "app-$SCHEME.log"; then FAILED=1; continue; fi
             if [ "$SCHEME" = StrikersVision ]; then
               APP=$(find build/dd/Build/Products -name 'StrikersVision.app' -maxdepth 3 | head -n 1)
+              # Ad-hoc signature carrying the entitlements, so the tool that re-signs it on install
+              # sees which ones the app asks for (increased memory limit, SharePlay).
+              codesign --force --sign - --entitlements visionos/app/StrikersVision.entitlements \
+                --timestamp=none "$APP" 2>&1 | tee -a "app-$SCHEME.log"
+              codesign -d --entitlements - "$APP" 2>&1 | tee -a "app-$SCHEME.log" || true
               ls -la "$APP" | tee -a "app-$SCHEME.log"
               mkdir -p build/ipa/Payload
               cp -R "$APP" build/ipa/Payload/
