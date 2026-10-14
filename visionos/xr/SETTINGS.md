@@ -30,6 +30,16 @@ reads the variable later sees the new value). Unknown keys are ignored; an empty
 | `STRIKERS_XR_DEPTH` | `0`, `1` | `1` | yes | Write depth into the drawable for the system's reprojection (diagnostic switch). |
 | `STRIKERS_XR_STATS_SECONDS` | `1`..`60` | `5` | yes | Interval of the `stats:` lines in the log. |
 | `STRIKERS_XR_FOVEATION` | `0`, `1` | `0` | no | Read by `SVLayerConfiguration` (CompositorLayer setup). Kept off: the compositor does not draw through a rasterization rate map. |
+| `STRIKERS_XR_FX_TEST` | `<n>:<commands>` | unset | yes | Celebration self-test (sv_fx.mm). A new `<n>` runs the `;`-separated commands once: `goal <class> [super] [hyper] [own]` (eCharacterClass 0 Birdo .. 11 Yoshi, -1 neutral), `replay`, `end`, `skip`, `live`, `state` (logs what is alive). Goes through `PortXrGoal` / `PortXrCelebrationPhase`, so the buzz and the replay jumbotron follow. The match controls window's "Test the goal celebration" sends it. |
+
+## Game-side variables the app also sets
+
+Not read by the XR layer; listed so the names stay in one place. `STRIKERS_AUDIO_VOLUME` (`0`..`2`,
+read once), `STRIKERS_LANGUAGE` (`english` … `japanese` or `0`..`5`, read at boot),
+`STRIKERS_OVERLAY` (presence flag), `STRIKERS_LOG_SCENES` / `_MATCH` / `_EVENTS` / `_AUDIO` (presence
+flags), `STRIKERS_PAD_RUMBLE=0` (with haptics at 0), and the paths `STRIKERS_HOME`, `STRIKERS_LOG`,
+`STRIKERS_USER_DIR`, `STRIKERS_CACHE_DIR`, `STRIKERS_DATA`, plus `STRIKERS_NO_MESSAGEBOX=1` and
+`STRIKERS_NO_MOVIES=1`. None of these apply mid-game.
 
 ## View modes
 

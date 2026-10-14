@@ -684,18 +684,6 @@ struct Gpu {
 };
 Gpu g;
 
-// Column-major helpers.
-void mat_mul(const float a[16], const float b[16], float out[16]) {
-  float r[16];
-  for (int c = 0; c < 4; ++c)
-    for (int rr = 0; rr < 4; ++rr) {
-      float v = 0.0f;
-      for (int k = 0; k < 4; ++k) v += a[k * 4 + rr] * b[c * 4 + k];
-      r[c * 4 + rr] = v;
-    }
-  std::memcpy(out, r, sizeof(r));
-}
-
 void rotate(const Quat& q, const float v[3], float out[3]) {
   const float t[3] = {2 * (q.y * v[2] - q.z * v[1]), 2 * (q.z * v[0] - q.x * v[2]), 2 * (q.x * v[1] - q.y * v[0])};
   out[0] = v[0] + q.w * t[0] + (q.y * t[2] - q.z * t[1]);

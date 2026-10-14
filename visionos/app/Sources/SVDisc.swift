@@ -162,7 +162,8 @@ enum SVDisc {
     /// The six-byte game ID from the disc header, for the formats where it is in the clear:
     /// a plain image (.iso/.gcm: offset 0, magic 0xC2339F3D at 0x1C) and Dolphin's .rvz/.wia
     /// (the disc's first 0x80 bytes are stored uncompressed at 0x58: header 1 is 0x48 bytes and
-    /// header 2 keeps them at its 0x10). CISO/GCZ would need their block maps: name only.
+    /// header 2 keeps them at its 0x10), and CISO (block 0, which disc.c requires to be stored, is
+    /// the first block after the 0x8000-byte header). GCZ blocks are zlib-compressed: name only.
     static func readGameID(_ url: URL) -> String? {
         guard let h = try? FileHandle(forReadingFrom: url) else { return nil }
         defer { try? h.close() }
@@ -176,8 +177,19 @@ enum SVDisc {
                   bytes[0x58 + 0x1C] == 0xC2, bytes[0x58 + 0x1D] == 0x33 {
             at = 0x58
         }
+        if at == nil, bytes[0..<4] == [0x43, 0x49, 0x53, 0x4F], bytes[8] == 1,
+           (try? h.seek(toOffset: 0x8000)) != nil,
+           let block = try? h.read(upToCount: 0x20), block.count == 0x20 {
+            let disc = [UInt8](block)
+            if disc[0x1C] == 0xC2, disc[0x1D] == 0x33, disc[0x1E] == 0x9F, disc[0x1F] == 0x3D {
+                return Self.gameID(disc[0..<6])
+            }
+        }
         guard let at else { return nil }
-        let id = bytes[at..<(at + 6)]
+        return Self.gameID(bytes[at..<(at + 6)])
+    }
+
+    private static func gameID(_ id: ArraySlice<UInt8>) -> String? {
         guard id.allSatisfy({ ($0 >= 0x30 && $0 <= 0x39) || ($0 >= 0x41 && $0 <= 0x5A) }) else { return nil }
         return String(decoding: id, as: UTF8.self)
     }

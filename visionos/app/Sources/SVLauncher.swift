@@ -14,6 +14,7 @@ struct SVLauncherView: View {
     @ObservedObject private var sharePlay = SVSharePlay.shared
     @Environment(\.openImmersiveSpace) private var openImmersiveSpace
     @Environment(\.dismissImmersiveSpace) private var dismissImmersiveSpace
+    @Environment(\.openWindow) private var openWindow
 
     @State private var page: Page = .home
     @State private var sheet: Sheet?
@@ -369,6 +370,8 @@ struct SVLauncherView: View {
         case .opened:
             game.immersiveOpen = true
             SVLog.log("immersive space opened")
+            // Once per opening of the space; the window closes itself when the space goes.
+            openWindow(id: SVScene.controls)
         case .userCancelled:
             SVLog.log("immersive space: cancelled")
         case .error:
