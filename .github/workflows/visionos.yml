@@ -113,11 +113,8 @@ jobs:
             if ! grep -q 'BUILD SUCCEEDED' "app-$SCHEME.log"; then FAILED=1; continue; fi
             if [ "$SCHEME" = StrikersVision ]; then
               APP=$(find build/dd/Build/Products -name 'StrikersVision.app' -maxdepth 3 | head -n 1)
-              # Ad-hoc signature carrying the entitlements, so the tool that re-signs it on install
-              # sees which ones the app asks for (increased memory limit, SharePlay).
-              codesign --force --sign - --entitlements visionos/app/StrikersVision.entitlements \
-                --timestamp=none "$APP" 2>&1 | tee -a "app-$SCHEME.log"
-              codesign -d --entitlements - "$APP" 2>&1 | tee -a "app-$SCHEME.log" || true
+              # Shipped unsigned: the sideloading tool signs it with the installer's own profile. A
+              # signature carrying entitlements that profile lacks makes visionOS refuse to launch it.
               ls -la "$APP" | tee -a "app-$SCHEME.log"
               mkdir -p build/ipa/Payload
               cp -R "$APP" build/ipa/Payload/

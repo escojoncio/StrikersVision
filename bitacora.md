@@ -18,7 +18,8 @@
   (mensajero fiable, plantilla espacial de mesa, pose de mesa compartida). `xr_net.cpp`: camino Apple.
 - 2026-10-14: la IPA con `com.apple.developer.group-session` se cerraba al abrir (firma de cuenta gratuita sin
   ese permiso en el perfil). Quitado de `visionos/app/StrikersVision.entitlements`; SharePlay queda desactivado
-  salvo build firmada con cuenta de pago.
+  salvo build firmada con cuenta de pago. Seguía cerrándose sin log: la IPA llevaba firma ad hoc con
+  entitlements; ahora sale sin firmar (como VisionQuestPro) y la firma la pone el instalador.
 - Limitación: las Personas no se ven mientras se dibuja con Compositor Services (Apple, foros 791591/801420).
 - Pendiente (por orden):
   1. Primera prueba en el visor; leer `Documents/Strikers/strikers-log.txt`. Puntos sin verificar: import de
