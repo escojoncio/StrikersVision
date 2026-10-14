@@ -81,9 +81,18 @@ void port_fatal_notice(const char* title, const char* text)
 #endif
 }
 
+#if defined(SV_VISIONOS)
+// visionos/xr/sv_game.mm: on the game thread, ends that thread and tells the app why (the app stays
+// open and shows the reason); returns on any other thread, where exit() below still applies.
+void sv_game_fatal(const char* title, const char* text);
+#endif
+
 void port_fatal(const char* title, const char* text)
 {
     port_fatal_notice(title, text);
+#if defined(SV_VISIONOS)
+    sv_game_fatal(title, text);
+#endif
     // exit, not abort: the crash handler must not backtrace a refusal to start.
     exit(1);
 }

@@ -230,6 +230,27 @@ static void pick_image(void* user, const char* name)
 // The paths tried, in the order tried, so the message can name them.
 #define DVD_MAX_TRIED 4
 
+#if defined(SV_VISIONOS)
+// StrikersVision: static constructors of the game (AudioLoader, GameTweaks, gcmemcard...) reach
+// nlMalloc -> nlInitMemory -> DVDInit while the executable is still loading, before the app has put
+// STRIKERS_HOME / STRIKERS_DATA in the environment (Android sets them before loading the library).
+// The disc search then found nothing and port_fatal's exit(1) closed the app at launch with no
+// crash report. So until the app has set STRIKERS_HOME the search is deferred; sv_game_start's game
+// thread runs it through PortDVDInitDeferred before strikers_main.
+static int s_dvd_deferred = 0;
+
+void DVDInit(void);
+
+void PortDVDInitDeferred(void)
+{
+    if (s_dvd_deferred)
+    {
+        s_dvd_deferred = 0;
+        DVDInit();
+    }
+}
+#endif
+
 void DVDInit(void)
 {
     char tried[DVD_MAX_TRIED][1024];
@@ -238,6 +259,17 @@ void DVDInit(void)
 
     if (s_count)
         return;
+
+#if defined(SV_VISIONOS)
+    {
+        const char* home = getenv("STRIKERS_HOME");
+        if (home == NULL || *home == '\0')
+        {
+            s_dvd_deferred = 1;
+            return;
+        }
+    }
+#endif
 
     // PORT: strikers.ini has to be in the environment before the first getenv here, and main() is
     // too late; this runs *before* main.

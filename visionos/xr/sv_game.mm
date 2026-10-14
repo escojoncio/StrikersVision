@@ -9,6 +9,8 @@
 #include "sv_xr.h"
 #include "../app/Native/sv_boot_trace.h"
 
+extern "C" void PortDVDInitDeferred(void);  // smstrikers-port/src/platform/dvd.c
+
 #import <Foundation/Foundation.h>
 
 #include <CoreFoundation/CoreFoundation.h>
@@ -213,14 +215,31 @@ void release_renderer_locked() {
   }
 }
 
+pthread_t g_gameThread{};
+std::atomic<bool> g_haveGameThread{false};
+
+void report_game_ended(const char* reason) {
+  g_running.store(0);
+  SVAppCallbacks cb{};
+  {
+    std::lock_guard<std::mutex> lock(g_lock);
+    cb = g_callbacks;
+  }
+  if (cb.game_ended != nullptr) cb.game_ended(reason);
+}
+
 void* game_thread(void*) {
   pthread_setname_np("strikers-game");
+  g_gameThread = pthread_self();
+  g_haveGameThread.store(true);
   // The game's own argv: no arguments, everything comes from the environment.
   static char arg0[] = "strikers";
   static char* argv[] = {arg0, nullptr};
   SVLOG("game thread: starting strikers_main (home %s)", g_home.c_str());
   // SwiftUI owns the app's main(); SDL refuses SDL_Init until told the entry point was handled.
   SDL_SetMainReady();
+  // The disc search the game's load-time constructors could not do yet (dvd.c, SV_VISIONOS).
+  PortDVDInitDeferred();
   const int rc = strikers_main(1, argv);
   std::fflush(stderr);
   char reason[96];
@@ -230,17 +249,25 @@ void* game_thread(void*) {
     std::snprintf(reason, sizeof(reason), "the game loop ended (exit code %d)", rc);
   }
   SVLOG("game thread: %s", reason);
-  g_running.store(0);
-  SVAppCallbacks cb{};
-  {
-    std::lock_guard<std::mutex> lock(g_lock);
-    cb = g_callbacks;
-  }
-  if (cb.game_ended != nullptr) cb.game_ended(reason);
+  report_game_ended(reason);
   return nullptr;
 }
 
 }  // namespace
+
+// smstrikers-port/src/platform/fatal.c: port_fatal on visionOS. A fatal error on the game thread (no
+// disc, a wrong disc) ends only that thread, so the app stays open and the launcher shows why; on
+// any other thread this returns and port_fatal's exit(1) applies.
+extern "C" void sv_game_fatal(const char* title, const char* text) {
+  if (!g_haveGameThread.load() || !pthread_equal(pthread_self(), g_gameThread)) return;
+  std::fflush(stderr);
+  char reason[512];
+  std::snprintf(reason, sizeof(reason), "%s: %s", title != nullptr ? title : "Super Mario Strikers",
+                text != nullptr ? text : "the game cannot start");
+  SVERR("game thread: fatal error, ending the game thread (%s)", reason);
+  report_game_ended(reason);
+  pthread_exit(nullptr);
+}
 
 // ---------------------------------------------------------------------------------------------
 // Log

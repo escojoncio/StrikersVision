@@ -123,3 +123,6 @@ int sv_net_send(int handle, const void* data, int size) { (void)handle; (void)da
 int sv_net_recv(int handle, void* buf, int capacity) { (void)handle; (void)buf; (void)capacity; return -1; }
 void sv_net_close(int handle) { (void)handle; }
 int sv_net_connected(int handle) { (void)handle; return 0; }
+
+// smstrikers-port/src/platform/fatal.c (SV_VISIONOS) calls this; the real one is in visionos/xr.
+void sv_game_fatal(const char* title, const char* text) { (void)title; (void)text; }

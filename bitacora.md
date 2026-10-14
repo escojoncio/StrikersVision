@@ -25,6 +25,12 @@
   informe tras quitar `group-session` y la firma ad hoc; causa aún desconocida (visionOS 27.2; ni
   `arranque.txt` se crea → muere antes de cualquier constructor). Sondas en cada build: `SVProbeMinimal`
   (`Prueba1-Minima.ipa`) y `SVProbeGame` (`Prueba2-Juego.ipa`), `visionos/probe/`.
+- **Causa del cierre al abrir (resuelta en código, pendiente de probar):** constructores estáticos del juego
+  (AudioLoader `Config`, `SkillTweaks`, gcmemcard) llaman a `nlMalloc` → `nlInitMemory` → `DVDInit` al cargar,
+  antes de que la app ponga `STRIKERS_HOME`; sin disco → `port_fatal` → `exit(1)` silencioso (Prueba1 abría,
+  Prueba2 no). Arreglo: `dvd.c` difiere `DVDInit` en `SV_VISIONOS` sin `STRIKERS_HOME` (`PortDVDInitDeferred`,
+  llamado en el hilo del juego antes de `strikers_main`); `fatal.c` → `sv_game_fatal` (sv_game.mm) termina solo
+  el hilo del juego y avisa a la app (`game_ended`). `PortConfigLoad` corre ahora en ese DVDInit diferido.
 - Limitación: las Personas no se ven mientras se dibuja con Compositor Services (Apple, foros 791591/801420).
 - Pendiente (por orden):
   1. Primera prueba en el visor; leer `Documents/Strikers/strikers-log.txt`. Puntos sin verificar: import de
