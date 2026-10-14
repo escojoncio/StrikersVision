@@ -7,6 +7,7 @@
 
 #include "../include/sv_bridge.h"
 #include "sv_xr.h"
+#include "../app/Native/sv_boot_trace.h"
 
 #import <Foundation/Foundation.h>
 
@@ -160,6 +161,7 @@ void open_log_early() {
     return;
   }
   std::fflush(stderr);
+  sv_boot_trace("7 stderr moves to the game log (Strikers/strikers-log.txt)");
   if (dup2(fd, STDERR_FILENO) < 0) {
     SVWARN("log: dup2 onto stderr failed (errno %d); the game opens it later", errno);
     close(fd);

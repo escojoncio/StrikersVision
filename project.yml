@@ -102,6 +102,9 @@ targets:
     platform: visionOS
     scheme: {}
     sources:
+      - path: visionos/app/Native/sv_boot_trace.c
+      - path: visionos/app/Native/sv_boot_trace.h
+        buildPhase: none
       - path: visionos/app/Sources
       - path: visionos/net
       - path: visionos/xr/sv_game.mm

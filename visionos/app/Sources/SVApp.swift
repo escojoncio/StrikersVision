@@ -18,8 +18,11 @@ struct StrikersVisionApp: App {
     @State private var immersionStyle: any ImmersionStyle = MixedImmersionStyle.mixed
 
     init() {
+        sv_boot_trace("2 Swift: app init")
         SVPaths.prepare()
+        sv_boot_trace("3 Documents/Strikers ready")
         SVLog.start()
+        sv_boot_trace("4 app log open")
         SVNetLog.sink = { SVLog.log($0) }
         SVLog.log("Documents/Strikers: \(SVPaths.home.path)")
         if SVSettings.shared.allowFullImmersion { _immersionStyle = State(initialValue: FullImmersionStyle.full) }
@@ -28,12 +31,16 @@ struct StrikersVisionApp: App {
         } else {
             SVLog.log("signed entitlements: could not be read")
         }
+        sv_boot_trace("5 app init done, building the scenes")
     }
 
     var body: some Scene {
         WindowGroup(id: SVScene.launcher) {
             SVLauncherView()
-                .onAppear { SVLauncherWindows.open += 1 }
+                .onAppear {
+                    sv_boot_trace("6 launcher window on screen")
+                    SVLauncherWindows.open += 1
+                }
                 .onDisappear { SVLauncherWindows.open -= 1 }
         }
         .defaultSize(width: 900, height: 700)
