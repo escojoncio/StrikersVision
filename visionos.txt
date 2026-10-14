@@ -1,4 +1,4 @@
-# visionos - b918c8701986951c6ac241cc2877fc3d15f457b9 - 2026-10-14T04:51:38Z
+# visionos - 700ef8c5ebd2ca32eaea5ee3ea1eb64b837cc067 - 2026-10-14T05:03:05Z
 
 ## dawn.log:        3 lines
 ### errors
@@ -7,681 +7,9 @@ Dawn v20260807.225922 (ios-arm64) -> visionOS, SDK 26.5
 build/dawn-xros/lib/libwebgpu_dawn.a: 644 objects retargeted to platform 11
  644 platform 11
 
-## game.log:    26197 lines
+## game.log:    25943 lines
 ### errors
-2941-5 warnings generated.
-2942-[614/1169] Building CXX object CMakeFiles/strikers_game.dir/src/Game/AI/AISandbox.cpp.o
-2943:FAILED: [code=1] CMakeFiles/strikers_game.dir/src/Game/AI/AISandbox.cpp.o 
-2944-/usr/bin/c++ -DMUSY_TARGET=0 -DMUSY_TARGET_DOLPHIN=1 -DMUSY_TARGET_PC=0 -DMUSY_VERSION_MAJOR=2 -DMUSY_VERSION_MINOR=0 -DMUSY_VERSION_PATCH=3 -DPORT_BUILD_TYPE=\"Release\" -DPORT_USE_AURORA=1 -DPORT_XR_HEADSET=1 -DSV_VISIONOS=1 -DTARGET_PC=1 -D_USE_MATH_DEFINES -DdSINGLE -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/aurora-overlay -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/aurora/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/msl -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/musyx/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/fmt-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-build/include-revision -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/xxhash-src/cmake_unofficial/.. -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/imgui-src -O3 -DNDEBUG -std=gnu++11 -arch arm64 -isysroot /Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk --target=arm64-apple-xros26.0 -fdeclspec -fshort-wchar -include /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/prelude.h -fno-strict-aliasing -fsigned-char -Wno-invalid-offsetof -MD -MT CMakeFiles/strikers_game.dir/src/Game/AI/AISandbox.cpp.o -MF CMakeFiles/strikers_game.dir/src/Game/AI/AISandbox.cpp.o.d -o CMakeFiles/strikers_game.dir/src/Game/AI/AISandbox.cpp.o -c /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/AISandbox.cpp
-2945-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/AISandbox.cpp:2:
-2946-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:5:
-2947-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlAVLTree.h:4:
-2948-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/NewAdapter.h:4:
-2949-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlMemory.h:50:6: warning: function previously declared with an explicit exception specification redeclared with an implicit exception specification [-Wimplicit-exception-spec-mismatch]
---
-2998-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/AISandbox.cpp:2:
-2999-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:7:
-3000:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:363:51: error: reference to 'less' is ambiguous
-3001-  363 | template <class Key, class Value, class Compare = less<Key>, class Allocator = allocator<pair<const Key, Value> > >
-3002-      |                                                   ^
-3003-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-3004-   21 | struct less : public binary_function<T, T, bool>
-3005-      |        ^
-3006-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
---
-3008-      |        ^
-3009-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/AISandbox.cpp:2:
-3010:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:14:48: error: reference to 'less' is ambiguous
-3011-   14 | typedef std::map<uintptr_t, FuzzyVariant, std::less<uintptr_t>, std::allocator<ScriptCachePair> > ScriptCacheMap;
-3012-      |                                                ^
-3013-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
-3014-   25 | struct less;
-3015-      |        ^
-3016-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-3017-   21 | struct less : public binary_function<T, T, bool>
-3018-      |        ^
-3019:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:370:17: error: implicit instantiation of undefined template 'std::__1::less<unsigned long>'
-3020-  370 |         Compare comp;
-3021-      |                 ^
-3022-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/utility.h:33:11: note: in instantiation of member class 'std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare' requested here
-3023-   33 |     First first_;
-3024-      |           ^
-3025-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:205:65: note: in instantiation of template class 'Metrowerks::details::compressed_pair_imp<std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::__tree<std::pair<const unsigned long, FuzzyVariant>, std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::allocator<std::pair<const unsigned long, FuzzyVariant>>>::node *, 0>' requested here
---
-3036-      |        ^
-3037-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/AISandbox.cpp:2:
-3038:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:15:101: error: expected unqualified-id
-3039-   15 | typedef std::__tree<ScriptCachePair, ScriptCacheMap::value_compare, std::allocator<ScriptCachePair> > ScriptCacheTree;
-3040-      |                                                                                                     ^
-3041-5 warnings and 4 errors generated.
-3042-[615/1169] Building CXX object CMakeFiles/strikers_game.dir/src/Game/AI/AiUtil.cpp.o
-3043-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/AiUtil.cpp:1:
-3044-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/AiUtil.h:4:
---
-4042-5 warnings generated.
-4043-[629/1169] Building CXX object CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/FormationScript.cpp.o
-4044:FAILED: [code=1] CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/FormationScript.cpp.o 
-4045-/usr/bin/c++ -DMUSY_TARGET=0 -DMUSY_TARGET_DOLPHIN=1 -DMUSY_TARGET_PC=0 -DMUSY_VERSION_MAJOR=2 -DMUSY_VERSION_MINOR=0 -DMUSY_VERSION_PATCH=3 -DPORT_BUILD_TYPE=\"Release\" -DPORT_USE_AURORA=1 -DPORT_XR_HEADSET=1 -DSV_VISIONOS=1 -DTARGET_PC=1 -D_USE_MATH_DEFINES -DdSINGLE -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/aurora-overlay -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/aurora/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/msl -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/musyx/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/fmt-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-build/include-revision -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/xxhash-src/cmake_unofficial/.. -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/imgui-src -O3 -DNDEBUG -std=gnu++11 -arch arm64 -isysroot /Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk --target=arm64-apple-xros26.0 -fdeclspec -fshort-wchar -include /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/prelude.h -fno-strict-aliasing -fsigned-char -Wno-invalid-offsetof -MD -MT CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/FormationScript.cpp.o -MF CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/FormationScript.cpp.o.d -o CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/FormationScript.cpp.o -c /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/FormationScript.cpp
-4046-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/FormationScript.cpp:1:
-4047-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/FormationScript.h:4:
-4048-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/FuzzyVariant.h:4:
-4049-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Variant.h:5:
-4050-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlBasicString.h:4:
---
-4102-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/FormationScript.cpp:3:
-4103-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:7:
-4104:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:363:51: error: reference to 'less' is ambiguous
-4105-  363 | template <class Key, class Value, class Compare = less<Key>, class Allocator = allocator<pair<const Key, Value> > >
-4106-      |                                                   ^
-4107-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-4108-   21 | struct less : public binary_function<T, T, bool>
-4109-      |        ^
-4110-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
---
-4112-      |        ^
-4113-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/FormationScript.cpp:3:
-4114:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:14:48: error: reference to 'less' is ambiguous
-4115-   14 | typedef std::map<uintptr_t, FuzzyVariant, std::less<uintptr_t>, std::allocator<ScriptCachePair> > ScriptCacheMap;
-4116-      |                                                ^
-4117-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
-4118-   25 | struct less;
-4119-      |        ^
-4120-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-4121-   21 | struct less : public binary_function<T, T, bool>
-4122-      |        ^
-4123:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:370:17: error: implicit instantiation of undefined template 'std::__1::less<unsigned long>'
-4124-  370 |         Compare comp;
-4125-      |                 ^
-4126-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/utility.h:33:11: note: in instantiation of member class 'std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare' requested here
-4127-   33 |     First first_;
-4128-      |           ^
-4129-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:205:65: note: in instantiation of template class 'Metrowerks::details::compressed_pair_imp<std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::__tree<std::pair<const unsigned long, FuzzyVariant>, std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::allocator<std::pair<const unsigned long, FuzzyVariant>>>::node *, 0>' requested here
---
-4140-      |        ^
-4141-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/FormationScript.cpp:3:
-4142:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:15:101: error: expected unqualified-id
-4143-   15 | typedef std::__tree<ScriptCachePair, ScriptCacheMap::value_compare, std::allocator<ScriptCachePair> > ScriptCacheTree;
-4144-      |                                                                                                     ^
-4145-5 warnings and 4 errors generated.
-4146-[630/1169] Building CXX object CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/CommonScript.cpp.o
-4147:FAILED: [code=1] CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/CommonScript.cpp.o 
-4148-/usr/bin/c++ -DMUSY_TARGET=0 -DMUSY_TARGET_DOLPHIN=1 -DMUSY_TARGET_PC=0 -DMUSY_VERSION_MAJOR=2 -DMUSY_VERSION_MINOR=0 -DMUSY_VERSION_PATCH=3 -DPORT_BUILD_TYPE=\"Release\" -DPORT_USE_AURORA=1 -DPORT_XR_HEADSET=1 -DSV_VISIONOS=1 -DTARGET_PC=1 -D_USE_MATH_DEFINES -DdSINGLE -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/aurora-overlay -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/aurora/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/msl -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/musyx/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/fmt-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-build/include-revision -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/xxhash-src/cmake_unofficial/.. -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/imgui-src -O3 -DNDEBUG -std=gnu++11 -arch arm64 -isysroot /Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk --target=arm64-apple-xros26.0 -fdeclspec -fshort-wchar -include /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/prelude.h -fno-strict-aliasing -fsigned-char -Wno-invalid-offsetof -MD -MT CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/CommonScript.cpp.o -MF CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/CommonScript.cpp.o.d -o CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/CommonScript.cpp.o -c /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/CommonScript.cpp
-4149-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/CommonScript.cpp:1:
-4150-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/CommonScript.h:5:
-4151-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/FuzzyVariant.h:4:
-4152-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Variant.h:5:
-4153-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlBasicString.h:4:
---
-4205-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/CommonScript.cpp:180:
-4206-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:7:
-4207:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:363:51: error: reference to 'less' is ambiguous
-4208-  363 | template <class Key, class Value, class Compare = less<Key>, class Allocator = allocator<pair<const Key, Value> > >
-4209-      |                                                   ^
-4210-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-4211-   21 | struct less : public binary_function<T, T, bool>
-4212-      |        ^
-4213-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
---
-4215-      |        ^
-4216-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/CommonScript.cpp:180:
-4217:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:14:48: error: reference to 'less' is ambiguous
-4218-   14 | typedef std::map<uintptr_t, FuzzyVariant, std::less<uintptr_t>, std::allocator<ScriptCachePair> > ScriptCacheMap;
-4219-      |                                                ^
-4220-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
-4221-   25 | struct less;
-4222-      |        ^
-4223-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-4224-   21 | struct less : public binary_function<T, T, bool>
-4225-      |        ^
-4226:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:370:17: error: implicit instantiation of undefined template 'std::__1::less<unsigned long>'
-4227-  370 |         Compare comp;
-4228-      |                 ^
-4229-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/utility.h:33:11: note: in instantiation of member class 'std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare' requested here
-4230-   33 |     First first_;
-4231-      |           ^
-4232-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:205:65: note: in instantiation of template class 'Metrowerks::details::compressed_pair_imp<std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::__tree<std::pair<const unsigned long, FuzzyVariant>, std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::allocator<std::pair<const unsigned long, FuzzyVariant>>>::node *, 0>' requested here
---
-4243-      |        ^
-4244-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/CommonScript.cpp:180:
-4245:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:15:101: error: expected unqualified-id
-4246-   15 | typedef std::__tree<ScriptCachePair, ScriptCacheMap::value_compare, std::allocator<ScriptCachePair> > ScriptCacheTree;
-4247-      |                                                                                                     ^
-4248-5 warnings and 4 errors generated.
-4249-[631/1169] Building CXX object CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/Plays/DefaultDefensive.cpp.o
-4250:FAILED: [code=1] CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/Plays/DefaultDefensive.cpp.o 
-4251-/usr/bin/c++ -DMUSY_TARGET=0 -DMUSY_TARGET_DOLPHIN=1 -DMUSY_TARGET_PC=0 -DMUSY_VERSION_MAJOR=2 -DMUSY_VERSION_MINOR=0 -DMUSY_VERSION_PATCH=3 -DPORT_BUILD_TYPE=\"Release\" -DPORT_USE_AURORA=1 -DPORT_XR_HEADSET=1 -DSV_VISIONOS=1 -DTARGET_PC=1 -D_USE_MATH_DEFINES -DdSINGLE -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/aurora-overlay -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/aurora/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/msl -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/musyx/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/fmt-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-build/include-revision -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/xxhash-src/cmake_unofficial/.. -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/imgui-src -O3 -DNDEBUG -std=gnu++11 -arch arm64 -isysroot /Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk --target=arm64-apple-xros26.0 -fdeclspec -fshort-wchar -include /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/prelude.h -fno-strict-aliasing -fsigned-char -Wno-invalid-offsetof -MD -MT CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/Plays/DefaultDefensive.cpp.o -MF CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/Plays/DefaultDefensive.cpp.o.d -o CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/Plays/DefaultDefensive.cpp.o -c /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/Plays/DefaultDefensive.cpp
-4252-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/Plays/DefaultDefensive.cpp:1:
-4253-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/Plays/DefaultDefensive.h:4:
-4254-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/DecisionEntity.h:4:
-4255-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlList.h:4:
-4256-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/types.h:51:9: warning: 'NULL' macro redefined [-Wmacro-redefined]
---
-4310-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/Plays/DefaultDefensive.cpp:5:
-4311-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:7:
-4312:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:363:51: error: reference to 'less' is ambiguous
-4313-  363 | template <class Key, class Value, class Compare = less<Key>, class Allocator = allocator<pair<const Key, Value> > >
-4314-      |                                                   ^
-4315-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-4316-   21 | struct less : public binary_function<T, T, bool>
-4317-      |        ^
-4318-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
---
-4320-      |        ^
-4321-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/Plays/DefaultDefensive.cpp:5:
-4322:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:14:48: error: reference to 'less' is ambiguous
-4323-   14 | typedef std::map<uintptr_t, FuzzyVariant, std::less<uintptr_t>, std::allocator<ScriptCachePair> > ScriptCacheMap;
-4324-      |                                                ^
-4325-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
-4326-   25 | struct less;
-4327-      |        ^
-4328-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-4329-   21 | struct less : public binary_function<T, T, bool>
-4330-      |        ^
-4331:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:370:17: error: implicit instantiation of undefined template 'std::__1::less<unsigned long>'
-4332-  370 |         Compare comp;
-4333-      |                 ^
-4334-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/utility.h:33:11: note: in instantiation of member class 'std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare' requested here
-4335-   33 |     First first_;
-4336-      |           ^
-4337-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:205:65: note: in instantiation of template class 'Metrowerks::details::compressed_pair_imp<std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::__tree<std::pair<const unsigned long, FuzzyVariant>, std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::allocator<std::pair<const unsigned long, FuzzyVariant>>>::node *, 0>' requested here
---
-4348-      |        ^
-4349-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/Plays/DefaultDefensive.cpp:5:
-4350:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:15:101: error: expected unqualified-id
-4351-   15 | typedef std::__tree<ScriptCachePair, ScriptCacheMap::value_compare, std::allocator<ScriptCachePair> > ScriptCacheTree;
-4352-      |                                                                                                     ^
-4353-5 warnings and 4 errors generated.
-4354-[632/1169] Building CXX object CMakeFiles/strikers_game.dir/src/Game/AI/GoalieSave.cpp.o
-4355-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/GoalieSave.cpp:6:
-4356-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlAVLTree.h:4:
---
-4396-5 warnings generated.
-4397-[633/1169] Building CXX object CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/Plays/DefaultLoose.cpp.o
-4398:FAILED: [code=1] CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/Plays/DefaultLoose.cpp.o 
-4399-/usr/bin/c++ -DMUSY_TARGET=0 -DMUSY_TARGET_DOLPHIN=1 -DMUSY_TARGET_PC=0 -DMUSY_VERSION_MAJOR=2 -DMUSY_VERSION_MINOR=0 -DMUSY_VERSION_PATCH=3 -DPORT_BUILD_TYPE=\"Release\" -DPORT_USE_AURORA=1 -DPORT_XR_HEADSET=1 -DSV_VISIONOS=1 -DTARGET_PC=1 -D_USE_MATH_DEFINES -DdSINGLE -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/aurora-overlay -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/aurora/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/msl -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/musyx/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/fmt-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-build/include-revision -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/xxhash-src/cmake_unofficial/.. -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/imgui-src -O3 -DNDEBUG -std=gnu++11 -arch arm64 -isysroot /Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk --target=arm64-apple-xros26.0 -fdeclspec -fshort-wchar -include /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/prelude.h -fno-strict-aliasing -fsigned-char -Wno-invalid-offsetof -MD -MT CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/Plays/DefaultLoose.cpp.o -MF CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/Plays/DefaultLoose.cpp.o.d -o CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/Plays/DefaultLoose.cpp.o -c /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/Plays/DefaultLoose.cpp
-4400-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/Plays/DefaultLoose.cpp:1:
-4401-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/Plays/DefaultLoose.h:4:
-4402-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/DecisionEntity.h:4:
-4403-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlList.h:4:
-4404-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/types.h:51:9: warning: 'NULL' macro redefined [-Wmacro-redefined]
---
-4458-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/Plays/DefaultLoose.cpp:4:
-4459-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:7:
-4460:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:363:51: error: reference to 'less' is ambiguous
-4461-  363 | template <class Key, class Value, class Compare = less<Key>, class Allocator = allocator<pair<const Key, Value> > >
-4462-      |                                                   ^
-4463-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-4464-   21 | struct less : public binary_function<T, T, bool>
-4465-      |        ^
-4466-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
---
-4468-      |        ^
-4469-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/Plays/DefaultLoose.cpp:4:
-4470:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:14:48: error: reference to 'less' is ambiguous
-4471-   14 | typedef std::map<uintptr_t, FuzzyVariant, std::less<uintptr_t>, std::allocator<ScriptCachePair> > ScriptCacheMap;
-4472-      |                                                ^
-4473-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
-4474-   25 | struct less;
-4475-      |        ^
-4476-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-4477-   21 | struct less : public binary_function<T, T, bool>
-4478-      |        ^
-4479:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:370:17: error: implicit instantiation of undefined template 'std::__1::less<unsigned long>'
-4480-  370 |         Compare comp;
-4481-      |                 ^
-4482-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/utility.h:33:11: note: in instantiation of member class 'std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare' requested here
-4483-   33 |     First first_;
-4484-      |           ^
-4485-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:205:65: note: in instantiation of template class 'Metrowerks::details::compressed_pair_imp<std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::__tree<std::pair<const unsigned long, FuzzyVariant>, std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::allocator<std::pair<const unsigned long, FuzzyVariant>>>::node *, 0>' requested here
---
-4496-      |        ^
-4497-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/Plays/DefaultLoose.cpp:4:
-4498:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:15:101: error: expected unqualified-id
-4499-   15 | typedef std::__tree<ScriptCachePair, ScriptCacheMap::value_compare, std::allocator<ScriptCachePair> > ScriptCacheTree;
-4500-      |                                                                                                     ^
-4501-5 warnings and 4 errors generated.
-4502-[634/1169] Building CXX object CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/Plays/DefaultOffensive.cpp.o
-4503:FAILED: [code=1] CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/Plays/DefaultOffensive.cpp.o 
-4504-/usr/bin/c++ -DMUSY_TARGET=0 -DMUSY_TARGET_DOLPHIN=1 -DMUSY_TARGET_PC=0 -DMUSY_VERSION_MAJOR=2 -DMUSY_VERSION_MINOR=0 -DMUSY_VERSION_PATCH=3 -DPORT_BUILD_TYPE=\"Release\" -DPORT_USE_AURORA=1 -DPORT_XR_HEADSET=1 -DSV_VISIONOS=1 -DTARGET_PC=1 -D_USE_MATH_DEFINES -DdSINGLE -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/aurora-overlay -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/aurora/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/msl -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/musyx/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/fmt-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-build/include-revision -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/xxhash-src/cmake_unofficial/.. -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/imgui-src -O3 -DNDEBUG -std=gnu++11 -arch arm64 -isysroot /Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk --target=arm64-apple-xros26.0 -fdeclspec -fshort-wchar -include /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/prelude.h -fno-strict-aliasing -fsigned-char -Wno-invalid-offsetof -MD -MT CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/Plays/DefaultOffensive.cpp.o -MF CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/Plays/DefaultOffensive.cpp.o.d -o CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/Plays/DefaultOffensive.cpp.o -c /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/Plays/DefaultOffensive.cpp
-4505-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/Plays/DefaultOffensive.cpp:1:
-4506-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/Plays/DefaultOffensive.h:4:
-4507-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/DecisionEntity.h:4:
-4508-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlList.h:4:
-4509-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/types.h:51:9: warning: 'NULL' macro redefined [-Wmacro-redefined]
---
-4563-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/Plays/DefaultOffensive.cpp:4:
-4564-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:7:
-4565:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:363:51: error: reference to 'less' is ambiguous
-4566-  363 | template <class Key, class Value, class Compare = less<Key>, class Allocator = allocator<pair<const Key, Value> > >
-4567-      |                                                   ^
-4568-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-4569-   21 | struct less : public binary_function<T, T, bool>
-4570-      |        ^
-4571-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
---
-4573-      |        ^
-4574-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/Plays/DefaultOffensive.cpp:4:
-4575:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:14:48: error: reference to 'less' is ambiguous
-4576-   14 | typedef std::map<uintptr_t, FuzzyVariant, std::less<uintptr_t>, std::allocator<ScriptCachePair> > ScriptCacheMap;
-4577-      |                                                ^
-4578-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
-4579-   25 | struct less;
-4580-      |        ^
-4581-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-4582-   21 | struct less : public binary_function<T, T, bool>
-4583-      |        ^
-4584:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:370:17: error: implicit instantiation of undefined template 'std::__1::less<unsigned long>'
-4585-  370 |         Compare comp;
-4586-      |                 ^
-4587-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/utility.h:33:11: note: in instantiation of member class 'std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare' requested here
-4588-   33 |     First first_;
-4589-      |           ^
-4590-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:205:65: note: in instantiation of template class 'Metrowerks::details::compressed_pair_imp<std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::__tree<std::pair<const unsigned long, FuzzyVariant>, std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::allocator<std::pair<const unsigned long, FuzzyVariant>>>::node *, 0>' requested here
---
-4601-      |        ^
-4602-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/Plays/DefaultOffensive.cpp:4:
-4603:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:15:101: error: expected unqualified-id
-4604-   15 | typedef std::__tree<ScriptCachePair, ScriptCacheMap::value_compare, std::allocator<ScriptCachePair> > ScriptCacheTree;
-4605-      |                                                                                                     ^
-4606-5 warnings and 4 errors generated.
-4607-[635/1169] Building CXX object CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/RootScript.cpp.o
-4608:FAILED: [code=1] CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/RootScript.cpp.o 
-4609-/usr/bin/c++ -DMUSY_TARGET=0 -DMUSY_TARGET_DOLPHIN=1 -DMUSY_TARGET_PC=0 -DMUSY_VERSION_MAJOR=2 -DMUSY_VERSION_MINOR=0 -DMUSY_VERSION_PATCH=3 -DPORT_BUILD_TYPE=\"Release\" -DPORT_USE_AURORA=1 -DPORT_XR_HEADSET=1 -DSV_VISIONOS=1 -DTARGET_PC=1 -D_USE_MATH_DEFINES -DdSINGLE -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/aurora-overlay -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/aurora/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/msl -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/musyx/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/fmt-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-build/include-revision -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/xxhash-src/cmake_unofficial/.. -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/imgui-src -O3 -DNDEBUG -std=gnu++11 -arch arm64 -isysroot /Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk --target=arm64-apple-xros26.0 -fdeclspec -fshort-wchar -include /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/prelude.h -fno-strict-aliasing -fsigned-char -Wno-invalid-offsetof -MD -MT CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/RootScript.cpp.o -MF CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/RootScript.cpp.o.d -o CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/RootScript.cpp.o -c /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/RootScript.cpp
-4610-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/RootScript.cpp:1:
-4611-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/RootScript.h:4:
-4612-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/DecisionEntity.h:4:
-4613-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlList.h:4:
-4614-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/types.h:51:9: warning: 'NULL' macro redefined [-Wmacro-redefined]
---
-4668-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/RootScript.cpp:3:
-4669-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:7:
-4670:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:363:51: error: reference to 'less' is ambiguous
-4671-  363 | template <class Key, class Value, class Compare = less<Key>, class Allocator = allocator<pair<const Key, Value> > >
-4672-      |                                                   ^
-4673-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-4674-   21 | struct less : public binary_function<T, T, bool>
-4675-      |        ^
-4676-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
---
-4678-      |        ^
-4679-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/RootScript.cpp:3:
-4680:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:14:48: error: reference to 'less' is ambiguous
-4681-   14 | typedef std::map<uintptr_t, FuzzyVariant, std::less<uintptr_t>, std::allocator<ScriptCachePair> > ScriptCacheMap;
-4682-      |                                                ^
-4683-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
-4684-   25 | struct less;
-4685-      |        ^
-4686-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-4687-   21 | struct less : public binary_function<T, T, bool>
-4688-      |        ^
-4689:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:370:17: error: implicit instantiation of undefined template 'std::__1::less<unsigned long>'
-4690-  370 |         Compare comp;
-4691-      |                 ^
-4692-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/utility.h:33:11: note: in instantiation of member class 'std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare' requested here
-4693-   33 |     First first_;
-4694-      |           ^
-4695-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:205:65: note: in instantiation of template class 'Metrowerks::details::compressed_pair_imp<std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::__tree<std::pair<const unsigned long, FuzzyVariant>, std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::allocator<std::pair<const unsigned long, FuzzyVariant>>>::node *, 0>' requested here
---
-4706-      |        ^
-4707-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/RootScript.cpp:3:
-4708:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:15:101: error: expected unqualified-id
-4709-   15 | typedef std::__tree<ScriptCachePair, ScriptCacheMap::value_compare, std::allocator<ScriptCachePair> > ScriptCacheTree;
-4710-      |                                                                                                     ^
-4711-5 warnings and 4 errors generated.
-4712-[636/1169] Building CXX object CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/ScriptCaching.cpp.o
-4713:FAILED: [code=1] CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/ScriptCaching.cpp.o 
-4714-/usr/bin/c++ -DMUSY_TARGET=0 -DMUSY_TARGET_DOLPHIN=1 -DMUSY_TARGET_PC=0 -DMUSY_VERSION_MAJOR=2 -DMUSY_VERSION_MINOR=0 -DMUSY_VERSION_PATCH=3 -DPORT_BUILD_TYPE=\"Release\" -DPORT_USE_AURORA=1 -DPORT_XR_HEADSET=1 -DSV_VISIONOS=1 -DTARGET_PC=1 -D_USE_MATH_DEFINES -DdSINGLE -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/aurora-overlay -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/aurora/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/msl -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/musyx/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/fmt-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-build/include-revision -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/xxhash-src/cmake_unofficial/.. -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/imgui-src -O3 -DNDEBUG -std=gnu++11 -arch arm64 -isysroot /Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk --target=arm64-apple-xros26.0 -fdeclspec -fshort-wchar -include /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/prelude.h -fno-strict-aliasing -fsigned-char -Wno-invalid-offsetof -MD -MT CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/ScriptCaching.cpp.o -MF CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/ScriptCaching.cpp.o.d -o CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/ScriptCaching.cpp.o -c /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/ScriptCaching.cpp
-4715-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/ScriptCaching.cpp:8:
-4716-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:5:
-4717-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlAVLTree.h:4:
-4718-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/NewAdapter.h:4:
-4719-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlMemory.h:50:6: warning: function previously declared with an explicit exception specification redeclared with an implicit exception specification [-Wimplicit-exception-spec-mismatch]
---
-4768-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/ScriptCaching.cpp:8:
-4769-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:7:
-4770:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:363:51: error: reference to 'less' is ambiguous
-4771-  363 | template <class Key, class Value, class Compare = less<Key>, class Allocator = allocator<pair<const Key, Value> > >
-4772-      |                                                   ^
-4773-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-4774-   21 | struct less : public binary_function<T, T, bool>
-4775-      |        ^
-4776-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
---
-4778-      |        ^
-4779-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/ScriptCaching.cpp:8:
-4780:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:14:48: error: reference to 'less' is ambiguous
-4781-   14 | typedef std::map<uintptr_t, FuzzyVariant, std::less<uintptr_t>, std::allocator<ScriptCachePair> > ScriptCacheMap;
-4782-      |                                                ^
-4783-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
-4784-   25 | struct less;
-4785-      |        ^
-4786-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-4787-   21 | struct less : public binary_function<T, T, bool>
-4788-      |        ^
-4789:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:370:17: error: implicit instantiation of undefined template 'std::__1::less<unsigned long>'
-4790-  370 |         Compare comp;
-4791-      |                 ^
-4792-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/utility.h:33:11: note: in instantiation of member class 'std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare' requested here
-4793-   33 |     First first_;
-4794-      |           ^
-4795-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:205:65: note: in instantiation of template class 'Metrowerks::details::compressed_pair_imp<std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::__tree<std::pair<const unsigned long, FuzzyVariant>, std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::allocator<std::pair<const unsigned long, FuzzyVariant>>>::node *, 0>' requested here
---
-4806-      |        ^
-4807-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/ScriptCaching.cpp:8:
-4808:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:15:101: error: expected unqualified-id
-4809-   15 | typedef std::__tree<ScriptCachePair, ScriptCacheMap::value_compare, std::allocator<ScriptCachePair> > ScriptCacheTree;
-4810-      |                                                                                                     ^
-4811-5 warnings and 4 errors generated.
-4812-[637/1169] Building CXX object CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/ScriptDefines.cpp.o
-4813:FAILED: [code=1] CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/ScriptDefines.cpp.o 
-4814-/usr/bin/c++ -DMUSY_TARGET=0 -DMUSY_TARGET_DOLPHIN=1 -DMUSY_TARGET_PC=0 -DMUSY_VERSION_MAJOR=2 -DMUSY_VERSION_MINOR=0 -DMUSY_VERSION_PATCH=3 -DPORT_BUILD_TYPE=\"Release\" -DPORT_USE_AURORA=1 -DPORT_XR_HEADSET=1 -DSV_VISIONOS=1 -DTARGET_PC=1 -D_USE_MATH_DEFINES -DdSINGLE -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/aurora-overlay -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/aurora/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/msl -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/musyx/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/fmt-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-build/include-revision -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/xxhash-src/cmake_unofficial/.. -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/imgui-src -O3 -DNDEBUG -std=gnu++11 -arch arm64 -isysroot /Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk --target=arm64-apple-xros26.0 -fdeclspec -fshort-wchar -include /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/prelude.h -fno-strict-aliasing -fsigned-char -Wno-invalid-offsetof -MD -MT CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/ScriptDefines.cpp.o -MF CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/ScriptDefines.cpp.o.d -o CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/ScriptDefines.cpp.o -c /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/ScriptDefines.cpp
-4815-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/ScriptDefines.cpp:3:
-4816-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:5:
-4817-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlAVLTree.h:4:
-4818-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/NewAdapter.h:4:
-4819-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlMemory.h:50:6: warning: function previously declared with an explicit exception specification redeclared with an implicit exception specification [-Wimplicit-exception-spec-mismatch]
---
-4868-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/ScriptDefines.cpp:3:
-4869-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:7:
-4870:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:363:51: error: reference to 'less' is ambiguous
-4871-  363 | template <class Key, class Value, class Compare = less<Key>, class Allocator = allocator<pair<const Key, Value> > >
-4872-      |                                                   ^
-4873-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-4874-   21 | struct less : public binary_function<T, T, bool>
-4875-      |        ^
-4876-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
---
-4878-      |        ^
-4879-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/ScriptDefines.cpp:3:
-4880:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:14:48: error: reference to 'less' is ambiguous
-4881-   14 | typedef std::map<uintptr_t, FuzzyVariant, std::less<uintptr_t>, std::allocator<ScriptCachePair> > ScriptCacheMap;
-4882-      |                                                ^
-4883-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
-4884-   25 | struct less;
-4885-      |        ^
-4886-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-4887-   21 | struct less : public binary_function<T, T, bool>
-4888-      |        ^
-4889:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:370:17: error: implicit instantiation of undefined template 'std::__1::less<unsigned long>'
-4890-  370 |         Compare comp;
-4891-      |                 ^
-4892-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/utility.h:33:11: note: in instantiation of member class 'std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare' requested here
-4893-   33 |     First first_;
-4894-      |           ^
-4895-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:205:65: note: in instantiation of template class 'Metrowerks::details::compressed_pair_imp<std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::__tree<std::pair<const unsigned long, FuzzyVariant>, std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::allocator<std::pair<const unsigned long, FuzzyVariant>>>::node *, 0>' requested here
---
-4906-      |        ^
-4907-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/ScriptDefines.cpp:3:
-4908:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:15:101: error: expected unqualified-id
-4909-   15 | typedef std::__tree<ScriptCachePair, ScriptCacheMap::value_compare, std::allocator<ScriptCachePair> > ScriptCacheTree;
-4910-      |                                                                                                     ^
-4911-5 warnings and 4 errors generated.
-4912-[638/1169] Building CXX object CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/ScriptQuestions.cpp.o
-4913:FAILED: [code=1] CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/ScriptQuestions.cpp.o 
-4914-/usr/bin/c++ -DMUSY_TARGET=0 -DMUSY_TARGET_DOLPHIN=1 -DMUSY_TARGET_PC=0 -DMUSY_VERSION_MAJOR=2 -DMUSY_VERSION_MINOR=0 -DMUSY_VERSION_PATCH=3 -DPORT_BUILD_TYPE=\"Release\" -DPORT_USE_AURORA=1 -DPORT_XR_HEADSET=1 -DSV_VISIONOS=1 -DTARGET_PC=1 -D_USE_MATH_DEFINES -DdSINGLE -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/aurora-overlay -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/aurora/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/msl -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/musyx/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/fmt-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-build/include-revision -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/xxhash-src/cmake_unofficial/.. -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/imgui-src -O3 -DNDEBUG -std=gnu++11 -arch arm64 -isysroot /Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk --target=arm64-apple-xros26.0 -fdeclspec -fshort-wchar -include /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/prelude.h -fno-strict-aliasing -fsigned-char -Wno-invalid-offsetof -MD -MT CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/ScriptQuestions.cpp.o -MF CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/ScriptQuestions.cpp.o.d -o CMakeFiles/strikers_game.dir/src/Game/AI/Scripts/ScriptQuestions.cpp.o -c /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/ScriptQuestions.cpp
-4915-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/ScriptQuestions.cpp:1:
-4916-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptQuestions.h:4:
-4917-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlMath.h:4:
-4918-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/types.h:51:9: warning: 'NULL' macro redefined [-Wmacro-redefined]
-4919-   51 | #define NULL 0
---
-4973-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/ScriptQuestions.cpp:2:
-4974-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:7:
-4975:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:363:51: error: reference to 'less' is ambiguous
-4976-  363 | template <class Key, class Value, class Compare = less<Key>, class Allocator = allocator<pair<const Key, Value> > >
-4977-      |                                                   ^
-4978-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-4979-   21 | struct less : public binary_function<T, T, bool>
-4980-      |        ^
-4981-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
---
-4983-      |        ^
-4984-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/ScriptQuestions.cpp:2:
-4985:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:14:48: error: reference to 'less' is ambiguous
-4986-   14 | typedef std::map<uintptr_t, FuzzyVariant, std::less<uintptr_t>, std::allocator<ScriptCachePair> > ScriptCacheMap;
-4987-      |                                                ^
-4988-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
-4989-   25 | struct less;
-4990-      |        ^
-4991-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-4992-   21 | struct less : public binary_function<T, T, bool>
-4993-      |        ^
-4994:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:370:17: error: implicit instantiation of undefined template 'std::__1::less<unsigned long>'
-4995-  370 |         Compare comp;
-4996-      |                 ^
-4997-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/utility.h:33:11: note: in instantiation of member class 'std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare' requested here
-4998-   33 |     First first_;
-4999-      |           ^
-5000-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:205:65: note: in instantiation of template class 'Metrowerks::details::compressed_pair_imp<std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::__tree<std::pair<const unsigned long, FuzzyVariant>, std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::allocator<std::pair<const unsigned long, FuzzyVariant>>>::node *, 0>' requested here
---
-5011-      |        ^
-5012-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/Scripts/ScriptQuestions.cpp:2:
-5013:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:15:101: error: expected unqualified-id
-5014-   15 | typedef std::__tree<ScriptCachePair, ScriptCacheMap::value_compare, std::allocator<ScriptCachePair> > ScriptCacheTree;
-5015-      |                                                                                                     ^
-5016-5 warnings and 4 errors generated.
-5017-[639/1169] Building CXX object CMakeFiles/strikers_game.dir/src/Game/AI/StatsGatherer.cpp.o
-5018-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/AI/StatsGatherer.cpp:1:
-5019-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/StatsGatherer.h:4:
---
-5354-5 warnings generated.
-5355-[647/1169] Building CXX object CMakeFiles/strikers_game.dir/src/Game/Audio/AudioScriptEventMgr.cpp.o
-5356:FAILED: [code=1] CMakeFiles/strikers_game.dir/src/Game/Audio/AudioScriptEventMgr.cpp.o 
-5357-/usr/bin/c++ -DMUSY_TARGET=0 -DMUSY_TARGET_DOLPHIN=1 -DMUSY_TARGET_PC=0 -DMUSY_VERSION_MAJOR=2 -DMUSY_VERSION_MINOR=0 -DMUSY_VERSION_PATCH=3 -DPORT_BUILD_TYPE=\"Release\" -DPORT_USE_AURORA=1 -DPORT_XR_HEADSET=1 -DSV_VISIONOS=1 -DTARGET_PC=1 -D_USE_MATH_DEFINES -DdSINGLE -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/aurora-overlay -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/aurora/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/msl -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/musyx/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/fmt-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-build/include-revision -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/xxhash-src/cmake_unofficial/.. -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/imgui-src -O3 -DNDEBUG -std=gnu++11 -arch arm64 -isysroot /Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk --target=arm64-apple-xros26.0 -fdeclspec -fshort-wchar -include /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/prelude.h -fno-strict-aliasing -fsigned-char -Wno-invalid-offsetof -MD -MT CMakeFiles/strikers_game.dir/src/Game/Audio/AudioScriptEventMgr.cpp.o -MF CMakeFiles/strikers_game.dir/src/Game/Audio/AudioScriptEventMgr.cpp.o.d -o CMakeFiles/strikers_game.dir/src/Game/Audio/AudioScriptEventMgr.cpp.o -c /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/Audio/AudioScriptEventMgr.cpp
-5358-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/Audio/AudioScriptEventMgr.cpp:1:
-5359-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/Audio/AudioLoader.h:4:
-5360-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/types.h:51:9: warning: 'NULL' macro redefined [-Wmacro-redefined]
-5361-   51 | #define NULL 0
-5362-      |         ^
---
-5426-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/Audio/AudioScriptEventMgr.cpp:17:
-5427-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:7:
-5428:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:363:51: error: reference to 'less' is ambiguous
-5429-  363 | template <class Key, class Value, class Compare = less<Key>, class Allocator = allocator<pair<const Key, Value> > >
-5430-      |                                                   ^
-5431-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-5432-   21 | struct less : public binary_function<T, T, bool>
-5433-      |        ^
-5434-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
---
-5436-      |        ^
-5437-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/Audio/AudioScriptEventMgr.cpp:17:
-5438:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:14:48: error: reference to 'less' is ambiguous
-5439-   14 | typedef std::map<uintptr_t, FuzzyVariant, std::less<uintptr_t>, std::allocator<ScriptCachePair> > ScriptCacheMap;
-5440-      |                                                ^
-5441-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
-5442-   25 | struct less;
-5443-      |        ^
-5444-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-5445-   21 | struct less : public binary_function<T, T, bool>
-5446-      |        ^
-5447:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:370:17: error: implicit instantiation of undefined template 'std::__1::less<unsigned long>'
-5448-  370 |         Compare comp;
-5449-      |                 ^
-5450-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/utility.h:33:11: note: in instantiation of member class 'std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare' requested here
-5451-   33 |     First first_;
-5452-      |           ^
-5453-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:205:65: note: in instantiation of template class 'Metrowerks::details::compressed_pair_imp<std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::__tree<std::pair<const unsigned long, FuzzyVariant>, std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::allocator<std::pair<const unsigned long, FuzzyVariant>>>::node *, 0>' requested here
---
-5464-      |        ^
-5465-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/Audio/AudioScriptEventMgr.cpp:17:
-5466:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:15:101: error: expected unqualified-id
-5467-   15 | typedef std::__tree<ScriptCachePair, ScriptCacheMap::value_compare, std::allocator<ScriptCachePair> > ScriptCacheTree;
-5468-      |                                                                                                     ^
-5469-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/Audio/AudioScriptEventMgr.cpp:19:
-5470-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/Render/Presentation.h:10:
-5471-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/OverlayManager.h:23:5: warning: ISO C++11 does not allow conversion from string literal to 'char *' [-Wwritable-strings]
-5472-   23 |     "DAISY",
---
-13213-6 warnings generated.
-13214-[784/1169] Building CXX object CMakeFiles/strikers_game.dir/src/Game/Game.cpp.o
-13215:FAILED: [code=1] CMakeFiles/strikers_game.dir/src/Game/Game.cpp.o 
-13216-/usr/bin/c++ -DMUSY_TARGET=0 -DMUSY_TARGET_DOLPHIN=1 -DMUSY_TARGET_PC=0 -DMUSY_VERSION_MAJOR=2 -DMUSY_VERSION_MINOR=0 -DMUSY_VERSION_PATCH=3 -DPORT_BUILD_TYPE=\"Release\" -DPORT_USE_AURORA=1 -DPORT_XR_HEADSET=1 -DSV_VISIONOS=1 -DTARGET_PC=1 -D_USE_MATH_DEFINES -DdSINGLE -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/aurora-overlay -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/aurora/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/msl -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/musyx/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/fmt-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-build/include-revision -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/xxhash-src/cmake_unofficial/.. -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/imgui-src -O3 -DNDEBUG -std=gnu++11 -arch arm64 -isysroot /Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk --target=arm64-apple-xros26.0 -fdeclspec -fshort-wchar -include /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/prelude.h -fno-strict-aliasing -fsigned-char -Wno-invalid-offsetof -MD -MT CMakeFiles/strikers_game.dir/src/Game/Game.cpp.o -MF CMakeFiles/strikers_game.dir/src/Game/Game.cpp.o.d -o CMakeFiles/strikers_game.dir/src/Game/Game.cpp.o -c /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/Game.cpp
-13217-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/Game.cpp:1:
-13218-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/Game.h:4:
-13219-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlMath.h:4:
-13220-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/types.h:51:9: warning: 'NULL' macro redefined [-Wmacro-redefined]
-13221-   51 | #define NULL 0
---
-13268-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/Game.cpp:10:
-13269-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:7:
-13270:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:363:51: error: reference to 'less' is ambiguous
-13271-  363 | template <class Key, class Value, class Compare = less<Key>, class Allocator = allocator<pair<const Key, Value> > >
-13272-      |                                                   ^
-13273-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-13274-   21 | struct less : public binary_function<T, T, bool>
-13275-      |        ^
-13276-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
---
-13278-      |        ^
-13279-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/Game.cpp:10:
-13280:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:14:48: error: reference to 'less' is ambiguous
-13281-   14 | typedef std::map<uintptr_t, FuzzyVariant, std::less<uintptr_t>, std::allocator<ScriptCachePair> > ScriptCacheMap;
-13282-      |                                                ^
-13283-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
-13284-   25 | struct less;
-13285-      |        ^
-13286-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-13287-   21 | struct less : public binary_function<T, T, bool>
-13288-      |        ^
-13289:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:370:17: error: implicit instantiation of undefined template 'std::__1::less<unsigned long>'
-13290-  370 |         Compare comp;
-13291-      |                 ^
-13292-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/utility.h:33:11: note: in instantiation of member class 'std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare' requested here
-13293-   33 |     First first_;
-13294-      |           ^
-13295-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:205:65: note: in instantiation of template class 'Metrowerks::details::compressed_pair_imp<std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::__tree<std::pair<const unsigned long, FuzzyVariant>, std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::allocator<std::pair<const unsigned long, FuzzyVariant>>>::node *, 0>' requested here
---
-13306-      |        ^
-13307-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/Game.cpp:10:
-13308:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:15:101: error: expected unqualified-id
-13309-   15 | typedef std::__tree<ScriptCachePair, ScriptCacheMap::value_compare, std::allocator<ScriptCachePair> > ScriptCacheTree;
-13310-      |                                                                                                     ^
-13311-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/Game.cpp:26:
-13312-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/Render/Presentation.h:10:
-13313-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/OverlayManager.h:23:5: warning: ISO C++11 does not allow conversion from string literal to 'char *' [-Wwritable-strings]
-13314-   23 |     "DAISY",
---
-21289-1 warning generated.
-21290-[905/1169] Building CXX object CMakeFiles/strikers_game.dir/src/Game/ScriptTuning.cpp.o
-21291:FAILED: [code=1] CMakeFiles/strikers_game.dir/src/Game/ScriptTuning.cpp.o 
-21292-/usr/bin/c++ -DMUSY_TARGET=0 -DMUSY_TARGET_DOLPHIN=1 -DMUSY_TARGET_PC=0 -DMUSY_VERSION_MAJOR=2 -DMUSY_VERSION_MINOR=0 -DMUSY_VERSION_PATCH=3 -DPORT_BUILD_TYPE=\"Release\" -DPORT_USE_AURORA=1 -DPORT_XR_HEADSET=1 -DSV_VISIONOS=1 -DTARGET_PC=1 -D_USE_MATH_DEFINES -DdSINGLE -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/aurora-overlay -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/aurora/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/msl -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/musyx/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/fmt-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-build/include-revision -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/xxhash-src/cmake_unofficial/.. -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/imgui-src -O3 -DNDEBUG -std=gnu++11 -arch arm64 -isysroot /Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk --target=arm64-apple-xros26.0 -fdeclspec -fshort-wchar -include /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/prelude.h -fno-strict-aliasing -fsigned-char -Wno-invalid-offsetof -MD -MT CMakeFiles/strikers_game.dir/src/Game/ScriptTuning.cpp.o -MF CMakeFiles/strikers_game.dir/src/Game/ScriptTuning.cpp.o.d -o CMakeFiles/strikers_game.dir/src/Game/ScriptTuning.cpp.o -c /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/ScriptTuning.cpp
-21293-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/ScriptTuning.cpp:2:
-21294-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/ScriptTuning.h:4:
-21295-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlMath.h:4:
-21296-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/types.h:51:9: warning: 'NULL' macro redefined [-Wmacro-redefined]
-21297-   51 | #define NULL 0
---
-21345-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/ScriptTuning.cpp:3:
-21346-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:7:
-21347:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:363:51: error: reference to 'less' is ambiguous
-21348-  363 | template <class Key, class Value, class Compare = less<Key>, class Allocator = allocator<pair<const Key, Value> > >
-21349-      |                                                   ^
-21350-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-21351-   21 | struct less : public binary_function<T, T, bool>
-21352-      |        ^
-21353-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
---
-21355-      |        ^
-21356-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/ScriptTuning.cpp:3:
-21357:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:14:48: error: reference to 'less' is ambiguous
-21358-   14 | typedef std::map<uintptr_t, FuzzyVariant, std::less<uintptr_t>, std::allocator<ScriptCachePair> > ScriptCacheMap;
-21359-      |                                                ^
-21360-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
-21361-   25 | struct less;
-21362-      |        ^
-21363-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-21364-   21 | struct less : public binary_function<T, T, bool>
-21365-      |        ^
-21366:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:370:17: error: implicit instantiation of undefined template 'std::__1::less<unsigned long>'
-21367-  370 |         Compare comp;
-21368-      |                 ^
-21369-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/utility.h:33:11: note: in instantiation of member class 'std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare' requested here
-21370-   33 |     First first_;
-21371-      |           ^
-21372-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:205:65: note: in instantiation of template class 'Metrowerks::details::compressed_pair_imp<std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::__tree<std::pair<const unsigned long, FuzzyVariant>, std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::allocator<std::pair<const unsigned long, FuzzyVariant>>>::node *, 0>' requested here
---
-21383-      |        ^
-21384-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/ScriptTuning.cpp:3:
-21385:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:15:101: error: expected unqualified-id
-21386-   15 | typedef std::__tree<ScriptCachePair, ScriptCacheMap::value_compare, std::allocator<ScriptCachePair> > ScriptCacheTree;
-21387-      |                                                                                                     ^
-21388-5 warnings and 4 errors generated.
-21389-[906/1169] Building CXX object CMakeFiles/strikers_game.dir/src/Game/SoundProps/birdometalsoundproperties.cpp.o
-21390-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/SoundProps/birdometalsoundproperties.cpp:1:
-21391-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/SoundProps/birdometalsoundproperties.h:4:
---
-23225-3 warnings generated.
-23226-[1028/1169] Building CXX object CMakeFiles/strikers_game.dir/src/Game/Team.cpp.o
-23227:FAILED: [code=1] CMakeFiles/strikers_game.dir/src/Game/Team.cpp.o 
-23228-/usr/bin/c++ -DMUSY_TARGET=0 -DMUSY_TARGET_DOLPHIN=1 -DMUSY_TARGET_PC=0 -DMUSY_VERSION_MAJOR=2 -DMUSY_VERSION_MINOR=0 -DMUSY_VERSION_PATCH=3 -DPORT_BUILD_TYPE=\"Release\" -DPORT_USE_AURORA=1 -DPORT_XR_HEADSET=1 -DSV_VISIONOS=1 -DTARGET_PC=1 -D_USE_MATH_DEFINES -DdSINGLE -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/aurora-overlay -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/aurora/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/msl -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/musyx/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/fmt-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-build/include-revision -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/sdl-src/include -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/xxhash-src/cmake_unofficial/.. -I/Users/runner/work/StrikersVision/StrikersVision/build/game/_deps/imgui-src -O3 -DNDEBUG -std=gnu++11 -arch arm64 -isysroot /Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk --target=arm64-apple-xros26.0 -fdeclspec -fshort-wchar -include /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/port/prelude.h -fno-strict-aliasing -fsigned-char -Wno-invalid-offsetof -MD -MT CMakeFiles/strikers_game.dir/src/Game/Team.cpp.o -MF CMakeFiles/strikers_game.dir/src/Game/Team.cpp.o.d -o CMakeFiles/strikers_game.dir/src/Game/Team.cpp.o -c /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/Team.cpp
-23229-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/Team.cpp:1:
-23230-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/Team.h:4:
-23231-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/types.h:51:9: warning: 'NULL' macro redefined [-Wmacro-redefined]
-23232-   51 | #define NULL 0
-23233-      |         ^
---
-23303-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/Team.cpp:17:
-23304-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:7:
-23305:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:363:51: error: reference to 'less' is ambiguous
-23306-  363 | template <class Key, class Value, class Compare = less<Key>, class Allocator = allocator<pair<const Key, Value> > >
-23307-      |                                                   ^
-23308-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-23309-   21 | struct less : public binary_function<T, T, bool>
-23310-      |        ^
-23311-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
---
-23313-      |        ^
-23314-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/Team.cpp:17:
-23315:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:14:48: error: reference to 'less' is ambiguous
-23316-   14 | typedef std::map<uintptr_t, FuzzyVariant, std::less<uintptr_t>, std::allocator<ScriptCachePair> > ScriptCacheMap;
-23317-      |                                                ^
-23318-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__fwd/functional.h:25:8: note: candidate found by name lookup is 'std::__1::less'
-23319-   25 | struct less;
-23320-      |        ^
-23321-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:21:8: note: candidate found by name lookup is 'std::less'
-23322-   21 | struct less : public binary_function<T, T, bool>
-23323-      |        ^
-23324:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:370:17: error: implicit instantiation of undefined template 'std::__1::less<unsigned long>'
-23325-  370 |         Compare comp;
-23326-      |                 ^
-23327-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/utility.h:33:11: note: in instantiation of member class 'std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare' requested here
-23328-   33 |     First first_;
-23329-      |           ^
-23330-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/PowerPC_EABI_Support/MSL_C++/MSL_Common/msl_tree.h:205:65: note: in instantiation of template class 'Metrowerks::details::compressed_pair_imp<std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::__tree<std::pair<const unsigned long, FuzzyVariant>, std::map<unsigned long, FuzzyVariant, std::__1::less<unsigned long>>::value_compare, std::allocator<std::pair<const unsigned long, FuzzyVariant>>>::node *, 0>' requested here
---
-23341-      |        ^
-23342-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/Team.cpp:17:
-23343:/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/AI/Scripts/ScriptCaching.h:15:101: error: expected unqualified-id
-23344-   15 | typedef std::__tree<ScriptCachePair, ScriptCacheMap::value_compare, std::allocator<ScriptCachePair> > ScriptCacheTree;
-23345-      |                                                                                                     ^
-23346-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/Team.cpp:861:17: warning: enumeration value 'NUM_SITUATIONS' not handled in switch [-Wswitch]
-23347-  861 |         switch (mpCurrentSituation)
-23348-      |                 ^~~~~~~~~~~~~~~~~~
-23349-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/Game/Team.cpp:861:17: note: add missing switch cases
 ### end
-/Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/21/include/__stddef_null.h:21:9: note: previous definition is here
-   21 | #define NULL __null
-      |         ^
-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/platform/fe_clone.cpp:13:
-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/FE/tlTextInstance.h:7:
-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlFont.h:7:
-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlMemory.h:50:6: warning: function previously declared with an explicit exception specification redeclared with an implicit exception specification [-Wimplicit-exception-spec-mismatch]
-   50 | void operator delete[](void* ptr);
-      |      ^
-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__new/global_new_delete.h:49:35: note: previous declaration is here
-   49 | _LIBCPP_OVERRIDABLE_FUNC_VIS void operator delete[](void* __p) _NOEXCEPT;
-      |                                   ^
-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/platform/fe_clone.cpp:13:
-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/FE/tlTextInstance.h:7:
-In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlFont.h:7:
-/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/NL/nlMemory.h:51:6: warning: function previously declared with an explicit exception specification redeclared with an implicit exception specification [-Wimplicit-exception-spec-mismatch]
-   51 | void operator delete(void* ptr);
-      |      ^
-/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk/usr/include/c++/v1/__new/global_new_delete.h:40:35: note: previous declaration is here
-   40 | _LIBCPP_OVERRIDABLE_FUNC_VIS void operator delete(void* __p) _NOEXCEPT;
-      |                                   ^
-3 warnings generated.
 [1129/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/host.c.o
 [1130/1169] Building CXX object CMakeFiles/strikers_platform.dir/src/platform/hud_bridge.cpp.o
 [1131/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/disc.c.o
@@ -695,9 +23,15 @@ In file included from /Users/runner/work/StrikersVision/StrikersVision/smstriker
    21 | #define NULL __null
       |         ^
 1 warning generated.
-[1133/1169] Building CXX object CMakeFiles/strikers_platform.dir/src/platform/launch.cpp.o
-[1134/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/msl_consts.c.o
-[1135/1169] Building CXX object CMakeFiles/strikers_platform.dir/src/platform/fen_convert.cpp.o
+[1133/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/msl_consts.c.o
+[1134/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/morphwatch.c.o
+[1135/1169] Building CXX object CMakeFiles/strikers_platform.dir/src/platform/launch.cpp.o
+[1136/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/musyx_aram.c.o
+[1137/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/mwcc_runtime.c.o
+[1138/1169] Building CXX object CMakeFiles/strikers_platform.dir/src/platform/nlassert.cpp.o
+[1139/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/os.c.o
+[1140/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/prelude_check.c.o
+[1141/1169] Building CXX object CMakeFiles/strikers_platform.dir/src/platform/fen_convert.cpp.o
 In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/src/platform/fen_convert.cpp:19:
 In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/FE/fePackage.h:4:
 In file included from /Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/include/Game/FE/fePresentation.h:4:
@@ -736,21 +70,15 @@ In file included from /Users/runner/work/StrikersVision/StrikersVision/smstriker
    80 |         nlReadAsync(m_pFile, pBuffer, bytesToRead, &cbFileReadAsyncCallback, (uintptr_t)this);
       |                                                     ^
 4 warnings generated.
-[1136/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/mwcc_runtime.c.o
-[1137/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/musyx_aram.c.o
-[1138/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/morphwatch.c.o
-[1139/1169] Building CXX object CMakeFiles/strikers_platform.dir/src/platform/nlassert.cpp.o
-[1140/1169] Building CXX object CMakeFiles/strikers_platform.dir/src/platform/input.cpp.o
-[1141/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/os.c.o
-[1142/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/prelude_check.c.o
-[1143/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/probeobj.c.o
+[1142/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/probeobj.c.o
+[1143/1169] Building CXX object CMakeFiles/strikers_platform.dir/src/platform/input.cpp.o
 [1144/1169] Building CXX object CMakeFiles/strikers_platform.dir/src/platform/region.cpp.o
 [1145/1169] Building CXX object CMakeFiles/strikers_platform.dir/src/platform/shaders.cpp.o
 [1146/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/skin_endian.c.o
 [1147/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/steamdeck.c.o
 [1148/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/stubs_generated.c.o
-[1149/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/texfilter.c.o
-[1150/1169] Building CXX object CMakeFiles/strikers_platform.dir/src/platform/overlay.cpp.o
+[1149/1169] Building CXX object CMakeFiles/strikers_platform.dir/src/platform/overlay.cpp.o
+[1150/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/texfilter.c.o
 [1151/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/thp.c.o
 [1152/1169] Building CXX object CMakeFiles/strikers_platform.dir/src/platform/touch.cpp.o
 [1153/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/vi.c.o
@@ -766,9 +94,9 @@ In file included from /Users/runner/work/StrikersVision/StrikersVision/smstriker
 [1154/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/vm.c.o
 [1155/1169] Building C object CMakeFiles/strikers_platform.dir/src/platform/wld_endian.c.o
 [1156/1169] Linking C static library libport_zstd.a
-[1157/1169] Linking C static library libport_disc_codecs.a
-[1158/1169] Building CXX object CMakeFiles/strikers_platform.dir/src/platform/musyx_data.cpp.o
-[1159/1169] Building CXX object CMakeFiles/strikers_xr.dir/src/platform/xr_net.cpp.o
+[1157/1169] Building CXX object CMakeFiles/strikers_platform.dir/src/platform/musyx_data.cpp.o
+[1158/1169] Building CXX object CMakeFiles/strikers_xr.dir/src/platform/xr_net.cpp.o
+[1159/1169] Linking C static library libport_disc_codecs.a
 [1160/1169] Linking CXX static library extern/aurora/libaurora_gd.a
 [1161/1169] Linking CXX static library extern/aurora/libaurora_pad.a
 [1162/1169] Linking CXX static library extern/aurora/libaurora_vi.a
@@ -859,8 +187,302 @@ In file included from /Users/runner/work/StrikersVision/StrikersVision/smstriker
   126 |         if (&mesh != NULL)
       |              ^~~~    ~~~~
 5 warnings generated.
-ninja: build stopped: cannot make progress due to previous errors.
+[1167/1169] Linking CXX static library libstrikers_game.a
+[1168/1169] libstrikers.a for visionOS
+-- strikers_xros: /Users/runner/work/StrikersVision/StrikersVision/build/game/libstrikers_game.a -> /Users/runner/work/StrikersVision/StrikersVision/build/xros/libstrikers.a; merging 62 archives into /Users/runner/work/StrikersVision/StrikersVision/build/xros/libstrikers_deps.a
+/Users/runner/work/StrikersVision/StrikersVision/build/xros:
+total 76688
+drwxr-xr-x  5 runner  staff       160 Oct 14 05:02 .
+drwxr-xr-x  5 runner  staff       160 Oct 14 04:59 ..
+drwxr-xr-x  6 runner  staff       192 Oct 14 05:02 include
+-rw-r--r--  1 runner  staff  31532912 Oct 14 05:02 libstrikers_deps.a
+-rw-r--r--  1 runner  staff   7728632 Oct 14 05:02 libstrikers.a
 
-## app.log: not produced in this run (cached step or earlier failure)
+/Users/runner/work/StrikersVision/StrikersVision/build/xros/include:
+total 0
+drwxr-xr-x   6 runner  staff   192 Oct 14 05:02 .
+drwxr-xr-x   5 runner  staff   160 Oct 14 05:02 ..
+drwxr-xr-x   8 runner  staff   256 Oct 14 05:02 dawn
+drwxr-xr-x   4 runner  staff   128 Oct 14 05:02 port
+drwxr-xr-x  88 runner  staff  2816 Oct 14 05:02 SDL3
+drwxr-xr-x   7 runner  staff   224 Oct 14 05:02 webgpu
+/Users/runner/work/StrikersVision/StrikersVision/build/xros/libstrikers.a:
+ 612   platform 11
+/Users/runner/work/StrikersVision/StrikersVision/build/xros/libstrikers_deps.a:
+1123   platform 11
 
-## undefined.log: not produced in this run (cached step or earlier failure)
+## app.log:      409 lines
+### errors
+382-    cd /Users/runner/work/StrikersVision/StrikersVision
+383-    /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-xros26.0 -isysroot /Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk -Os -L/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/EagerLinkingTBDs/Release-xros -L/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros -L/Users/runner/work/StrikersVision/StrikersVision/build/xros -F/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/EagerLinkingTBDs/Release-xros -F/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros -filelist /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision.LinkFileList -Xlinker -rpath -Xlinker @executable_path/Frameworks -Xlinker -dead_strip -Xlinker -object_path_lto -Xlinker /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision_lto.o -Xlinker -dependency_info -Xlinker /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision.swiftmodule @/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision-linker-args.resp -force_load /Users/runner/work/StrikersVision/StrikersVision/build/xros/libstrikers.a -lstrikers_deps -lc++ -lz -Wl,-unexported_symbol,__Znwm -Wl,-unexported_symbol,__Znam -Wl,-unexported_symbol,__ZdlPv -Wl,-unexported_symbol,__ZdaPv -framework Metal -framework QuartzCore -framework IOSurface -framework CoreFoundation -framework Foundation -framework UIKit -framework CoreGraphics -framework CoreVideo -framework CoreHaptics -framework CoreMotion -framework GameController -framework AVFoundation -framework AudioToolbox -framework CoreAudio -framework CompositorServices -framework ARKit -framework GroupActivities -framework Network -o /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros/StrikersVision.app/StrikersVision
+384:/Users/runner/work/StrikersVision/StrikersVision/StrikersVision.xcodeproj: StrikersVisionBootstrap: ld: warning: Could not find or use auto-linked framework 'CoreAudioTypes': framework 'CoreAudioTypes' not found
+385:/Users/runner/work/StrikersVision/StrikersVision/StrikersVision.xcodeproj: StrikersVisionBootstrap: ld: warning: Could not find or use auto-linked framework 'UIUtilities': framework 'UIUtilities' not found
+386:/Users/runner/work/StrikersVision/StrikersVision/StrikersVision.xcodeproj: StrikersVisionBootstrap: ld: warning: Could not parse or use implicit file '/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS.sdk/System/Library/Frameworks/SwiftUICore.framework/SwiftUICore.tbd': cannot link directly with 'SwiftUICore' because product being built is not an allowed client of it
+387:Undefined symbols for architecture arm64:
+388-  "_GXPeekARGB", referenced from:
+389-      glx_ScreenCapture(bool) in libstrikers.a[468](glxSwap.cpp.o)
+390-  "_GXPokeARGB", referenced from:
+391-      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+392-      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+393-      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+--
+398-      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+399-      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+400:ld: symbol(s) not found for architecture arm64
+401:/Users/runner/work/StrikersVision/StrikersVision/StrikersVision.xcodeproj: StrikersVisionBootstrap: clang: error: linker command failed with exit code 1 (use -v to see invocation)
+402-
+403:** BUILD FAILED **
+404-
+405-
+406-The following build commands failed:
+407-	Ld /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros/StrikersVision.app/StrikersVision normal (in target 'StrikersVisionBootstrap' from project 'StrikersVision')
+408-	Building project StrikersVision with scheme StrikersVisionBootstrap and configuration Release
+409-(2 failures)
+### end
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/Spatial-ZWKWTDT05S6QA2LGTSPFZZ2A.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CFNetwork-6MWULT17TVJ32JSJCRZ93GDV6.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreAudioTypes-D57ZHU1KDDR1W83KJ6ECZ6RXG.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreServices-ELSDQX0XSQKKW6O62MB5CFSIM.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/Security-30GL2K5A22ZPVHZMF65EWKLOI.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreAudio-GKFWJZHMEQ7KCM74PZAH9AP8.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreGraphics-6WBBBHSFX21PP9OQUF657AIZU.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/Foundation-X7G56W48WPVLGZDYJQDZAPLD.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/ImageIO-BHRJNOGEZAQD4HEXAUVVTW8ZC.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreText-60WZH8SIQJWDHT84BQMP0SVGJ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/_LocationEssentials-5A9IBYNF0DF8NKB3MNHDF1EPP.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/Accessibility-XD73DBWMU3AR6BG84PFIOM5P.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/OSLog-9Z0YTTB7DYLIPVSPQEL8E02XN.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/UniformTypeIdentifiers-89A8PO6S786AB76YV9SDR1J3.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreLocation-C62I4KE3CSR0PMKT5BNYN378E.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/UIUtilities-9EZL61477WN84II7RGLALZHW4.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/IOSurface-6W3LAY3L8NE33IR5MQSGANM7E.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreMIDI-6O0CZOT0A08BVJPCZY62PKL1B.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/DataDetection-F54U5133LW8EE3KGM3G9524LR.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/Network-9GLOCDNK6MNVQXGTI7758CLI5.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/OpenGLES-5M1JPRMIYCUPKITF76PXOXUIG.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/UserNotifications-5JJPGBOHPMF7QZWK0G9FU7E9O.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/Metal-E5CJRG45KHRQZ3Z1KNA15EZ3G.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/Symbols-57JCNXVG4635MAFVJ71AULJHQ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/AVRouting-AOYUEGB1CA8TOJRHSUG05MFE8.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/AudioToolbox-F2SK71TDI9IVNGA2MWP6CIR55.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreTransferable-2USZBZUQLZCHF8GGT546PLOQQ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreMotion-5UUWRJVI1CDOIQESPL3T2ZVCX.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreData-1VEXBQS08K3WEJ42SKO1N4UMY.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/FileProvider-2XNZ6YEZL0OB8MQONHPQYHXH4.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreVideo-L79SOS0YF43AERB5LGKDYFGK.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/ARKit-9F1VJ0O5KFHVMK3P0XR8F3CNO.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreMedia-25FP6HHFJ2QECDQS1NHBGMO6Z.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreImage-DI60E6UMCYESD1O75I44Z745H.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/QuartzCore-5LKOFWBVIPOYVYS0K3ZYCOCF3.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/MediaToolbox-23QSOM909AEABLYX9PVIXDQVH.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/AVFAudio-7TK24SHPANSK08NUK5DM6THAK.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/SwiftUICore-9EYRAANRP0HTG0YEBMOD8QLNX.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/UIKit-2YNQVTY4FASXJR5KGI6A4CG9A.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/AVFoundation-DLGZYM5I28RMDY8AOOJU8UXZV.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/GameController-AI3XKGNJVX9KHM0DG5FQCL4R4.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/SwiftUI-AHO0KFM7BP31TKM4YUIACNT55.pcm
+
+SwiftGeneratePch normal arm64 Compiling\ bridging\ header (in target 'StrikersVisionBootstrap' from project 'StrikersVision')
+
+SwiftDriverJobDiscovery normal arm64 Compiling bridging header (in target 'StrikersVisionBootstrap' from project 'StrikersVision')
+
+SwiftCompile normal arm64 Compiling\ SVBootstrapApp.swift /Users/runner/work/StrikersVision/StrikersVision/visionos/bootstrap/SVBootstrapApp.swift /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/Swift.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/CoreImage.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/_Builtin_float.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/_Concurrency.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/ObjectiveC.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/simd.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/Foundation.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/OSLog.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/CoreGraphics.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/RealityFoundation.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/Spatial.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/os.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/Synchronization.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/Dispatch.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/XPC.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/_StringProcessing.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/Observation.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/Accessibility.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/UIKit.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/CoreMotion.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/Combine.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/AudioToolbox.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/FileProvider.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/ARKit.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/CoreText.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/CoreData.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/DeveloperToolsSupport.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/UniformTypeIdentifiers.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/System.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/SwiftUICore.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/CoreMIDI.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/Network.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/_DarwinFoundation2.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/GameController.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/Metal.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/DataDetection.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/_DarwinFoundation3.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/AVFAudio.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/AVFoundation.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/Distributed.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/CoreLocation.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/QuartzCore.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/CoreMedia.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/_DarwinFoundation1.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/CoreFoundation.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/CoreAudio.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/Symbols.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/CoreVideo.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/SwiftUI.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/Darwin.swiftmodule/arm64e-apple-xros.swiftmodule /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros/prebuilt-modules/26.5/CoreTransferable.swiftmodule/arm64e-apple-xros.swiftmodule /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/AudioToolbox-F2SK71TDI9IVNGA2MWP6CIR55.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreMedia-25FP6HHFJ2QECDQS1NHBGMO6Z.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/MediaToolbox-23QSOM909AEABLYX9PVIXDQVH.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/AVFoundation-DLGZYM5I28RMDY8AOOJU8UXZV.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreVideo-L79SOS0YF43AERB5LGKDYFGK.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/_Builtin_float-AGYAQK7YBE5LMVGJLVHAQS6ZO.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/ARKit-9F1VJ0O5KFHVMK3P0XR8F3CNO.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/UIKit-2YNQVTY4FASXJR5KGI6A4CG9A.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/OpenGLES-5M1JPRMIYCUPKITF76PXOXUIG.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CFNetwork-6MWULT17TVJ32JSJCRZ93GDV6.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/Network-9GLOCDNK6MNVQXGTI7758CLI5.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/_Builtin_stdint-D1OTMTIRCCMEPF73QP5EFJK21.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/_Builtin_stddef-93816FVZZ2XEGX2HNALBZJNNU.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/UniformTypeIdentifiers-89A8PO6S786AB76YV9SDR1J3.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/GameController-AI3XKGNJVX9KHM0DG5FQCL4R4.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreGraphics-6WBBBHSFX21PP9OQUF657AIZU.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/ObjectiveC-TC57YWCTW9JLHF0JTK1SR4NC.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreMIDI-6O0CZOT0A08BVJPCZY62PKL1B.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/XPC-DPQI3YTKG64J2O25SDF7A62SN.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/dnssd-9NKPO983JHUT18ADOGL7A34L9.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/SwiftShims-9GU31TF4I2YJVM73OQMOR3JKC.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreLocation-C62I4KE3CSR0PMKT5BNYN378E.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreMotion-5UUWRJVI1CDOIQESPL3T2ZVCX.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/Foundation-X7G56W48WPVLGZDYJQDZAPLD.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/simd-9UUGAVBBEMNVNYZB9YW4XKTG.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/IOSurface-6W3LAY3L8NE33IR5MQSGANM7E.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/SwiftUI-AHO0KFM7BP31TKM4YUIACNT55.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreImage-DI60E6UMCYESD1O75I44Z745H.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/_DarwinFoundation3-PP6RB10QCRJ16Y4WF9Q1MO8D.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/_DarwinFoundation2-5YYNGYK17SWZ2DLLI7L55438H.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/os_object-689WJW6SRE4VVV9J68FS9KBX6.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreData-1VEXBQS08K3WEJ42SKO1N4UMY.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/_Builtin_inttypes-56Z5F1O5GYNGBW73QWLH310VB.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/AVRouting-AOYUEGB1CA8TOJRHSUG05MFE8.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/DataDetection-F54U5133LW8EE3KGM3G9524LR.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/SwiftUICore-9EYRAANRP0HTG0YEBMOD8QLNX.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreTransferable-2USZBZUQLZCHF8GGT546PLOQQ.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/OSLog-9Z0YTTB7DYLIPVSPQEL8E02XN.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/Darwin-BIYKHEL3C9V6DQ90JB7V2K83L.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/Metal-E5CJRG45KHRQZ3Z1KNA15EZ3G.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/MachO-3GWYW9UK163Q4WT4YOAHXEDSZ.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/sys_types-A47AKHU50R8AY2VNCKTI8V3JZ.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreAudioTypes-D57ZHU1KDDR1W83KJ6ECZ6RXG.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/_AvailabilityInternal-DF98PEEGC9ERBIFT31M42KFDM.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/_DarwinFoundation1-B41MJX0E8T4U2UOFRO8JAXDD5.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/_Builtin_stdarg-DHRP1U64EMZOD8Z8RA4TB5LDH.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/Symbols-57JCNXVG4635MAFVJ71AULJHQ.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/_Builtin_tgmath-29N3MA2G7EXORC9BEHAEDBGH.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/Accessibility-XD73DBWMU3AR6BG84PFIOM5P.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreFoundation-C3FR8D46E02VY5S4TYY56L8Y5.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/UIUtilities-9EZL61477WN84II7RGLALZHW4.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreAudio-GKFWJZHMEQ7KCM74PZAH9AP8.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/Dispatch-5S2919H3LBI8F5W7GAZDOUZ5X.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/_Builtin_limits-97KAYC0F31JLVWIP519OVUO0U.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/os_workgroup-9JCCOCPX1X52EWWYNLWHZ9ICA.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/Spatial-ZWKWTDT05S6QA2LGTSPFZZ2A.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreServices-ELSDQX0XSQKKW6O62MB5CFSIM.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/ptrcheck-3WGEFGBN6E6UNX4MY2ZM5A2U0.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/os-CBXE4D68M6DMGXQ7YG30H2A93.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/Security-30GL2K5A22ZPVHZMF65EWKLOI.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/UserNotifications-5JJPGBOHPMF7QZWK0G9FU7E9O.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/_LocationEssentials-5A9IBYNF0DF8NKB3MNHDF1EPP.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/DeveloperToolsSupport-1QO2KYY0THRZI8TBF5OEX0WQT.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/_Builtin_stdatomic-7W0IIJ4UFQOZR9E0JNQJNIUYS.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/FileProvider-2XNZ6YEZL0OB8MQONHPQYHXH4.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/CoreText-60WZH8SIQJWDHT84BQMP0SVGJ.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/AVFAudio-7TK24SHPANSK08NUK5DM6THAK.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/QuartzCore-5LKOFWBVIPOYVYS0K3ZYCOCF3.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/_Builtin_stdbool-69V51672V200MSPJ5C4CV9ZGF.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/_SwiftConcurrencyShims-DKTEBLBTT9MAX4332YMNS2O5S.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/ptrauth-DUJ0QXVF7GFJ5155POQX8078W.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/ImageIO-BHRJNOGEZAQD4HEXAUVVTW8ZC.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/_Builtin_intrinsics-8HK8EVM4ASF9NL2KDV2SCEAHD.pcm /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision-dependencies-1.json /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVisionBootstrap-primary-Bridging-header.pch (in target 'StrikersVisionBootstrap' from project 'StrikersVision')
+
+SwiftCompile normal arm64 /Users/runner/work/StrikersVision/StrikersVision/visionos/bootstrap/SVBootstrapApp.swift (in target 'StrikersVisionBootstrap' from project 'StrikersVision')
+    cd /Users/runner/work/StrikersVision/StrikersVision
+    
+
+SwiftDriverJobDiscovery normal arm64 Compiling SVBootstrapApp.swift (in target 'StrikersVisionBootstrap' from project 'StrikersVision')
+
+SwiftDriver\ Compilation\ Requirements StrikersVisionBootstrap normal arm64 com.apple.xcode.tools.swift.compiler (in target 'StrikersVisionBootstrap' from project 'StrikersVision')
+    cd /Users/runner/work/StrikersVision/StrikersVision
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name StrikersVision -O -whole-module-optimization @/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk -target arm64-apple-xros26.0 -g -module-cache-path /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros -F /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros -parse-as-library -c -num-threads 3 -Xcc -ivfsstatcache -Xcc /Users/runner/work/StrikersVision/StrikersVision/build/dd/SDKStatCaches.noindex/xros26.5-23O469-688ef53f1462e2c8f657fdc38a81448f0ade8266673b0cdb1441e69d898f0d23.sdkstatcache -output-file-map /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVisionBootstrap-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex -sdk-module-cache-path /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVisionBootstrap_const_extract_protocols.json -Xcc -iquote -Xcc /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/StrikersVision-generated-files.hmap -Xcc -I/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/StrikersVision-own-target-headers.hmap -Xcc -I/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/StrikersVision-all-target-headers.hmap -Xcc -iquote -Xcc /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/StrikersVision-project-headers.hmap -Xcc -I/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros/include -Xcc -I/Users/runner/work/StrikersVision/StrikersVision/visionos/include -Xcc -I/Users/runner/work/StrikersVision/StrikersVision/build/xros/include -Xcc -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/aurora/include -Xcc -I/Users/runner/work/StrikersVision/StrikersVision/smstrikers-port/extern/aurora/lib -Xcc -I/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/DerivedSources/arm64 -Xcc -I/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/DerivedSources -Xcc -DSV_VISIONOS\=1 -Xcc -DPORT_XR_HEADSET\=1 -Xcc -DAURORA\=1 -Xcc -DTARGET_PC\=1 -Xcc -DAURORA_ENABLE_GX\=1 -Xcc -DWEBGPU_DAWN\=1 -emit-objc-header -emit-objc-header-path /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision-Swift.h -import-objc-header /Users/runner/work/StrikersVision/StrikersVision/visionos/bootstrap/SVBootstrap-Bridging-Header.h -working-directory /Users/runner/work/StrikersVision/StrikersVision -no-emit-module-separately-wmo
+
+Copy /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros/StrikersVision.swiftmodule/arm64-apple-xros.swiftmodule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision.swiftmodule (in target 'StrikersVisionBootstrap' from project 'StrikersVision')
+    cd /Users/runner/work/StrikersVision/StrikersVision
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision.swiftmodule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros/StrikersVision.swiftmodule/arm64-apple-xros.swiftmodule
+
+SwiftMergeGeneratedHeaders /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/DerivedSources/StrikersVision-Swift.h /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision-Swift.h (in target 'StrikersVisionBootstrap' from project 'StrikersVision')
+    cd /Users/runner/work/StrikersVision/StrikersVision
+    builtin-swiftHeaderTool -arch arm64 /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision-Swift.h -o /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/DerivedSources/StrikersVision-Swift.h
+
+Copy /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros/StrikersVision.swiftmodule/arm64-apple-xros.swiftdoc /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision.swiftdoc (in target 'StrikersVisionBootstrap' from project 'StrikersVision')
+    cd /Users/runner/work/StrikersVision/StrikersVision
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision.swiftdoc /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros/StrikersVision.swiftmodule/arm64-apple-xros.swiftdoc
+
+Copy /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros/StrikersVision.swiftmodule/arm64-apple-xros.abi.json /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision.abi.json (in target 'StrikersVisionBootstrap' from project 'StrikersVision')
+    cd /Users/runner/work/StrikersVision/StrikersVision
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision.abi.json /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros/StrikersVision.swiftmodule/arm64-apple-xros.abi.json
+
+Copy /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros/StrikersVision.swiftmodule/Project/arm64-apple-xros.swiftsourceinfo /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision.swiftsourceinfo (in target 'StrikersVisionBootstrap' from project 'StrikersVision')
+    cd /Users/runner/work/StrikersVision/StrikersVision
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision.swiftsourceinfo /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros/StrikersVision.swiftmodule/Project/arm64-apple-xros.swiftsourceinfo
+
+ScanDependencies /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/sv_bootstrap_stubs.o /Users/runner/work/StrikersVision/StrikersVision/visionos/bootstrap/sv_bootstrap_stubs.c normal arm64 c com.apple.compilers.llvm.clang.1_0.compiler (in target 'StrikersVisionBootstrap' from project 'StrikersVision')
+    cd /Users/runner/work/StrikersVision/StrikersVision
+    
+    Using response file: /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/7187679823f38a2a940e0043cdf9d637-common-args.resp
+    
+    builtin-ScanDependencies -o /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/sv_bootstrap_stubs.o.scan -- /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -x c -ivfsstatcache /Users/runner/work/StrikersVision/StrikersVision/build/dd/SDKStatCaches.noindex/xros26.5-23O469-688ef53f1462e2c8f657fdc38a81448f0ade8266673b0cdb1441e69d898f0d23.sdkstatcache -target arm64-apple-xros26.0 -fmessage-length\=0 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit\=0 -fno-color-diagnostics -fmodules-prune-interval\=86400 -fmodules-prune-after\=345600 -fbuild-session-file\=/Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/Session.modulevalidation -fmodules-validate-once-per-build-session -Wnon-modular-include-in-framework-module -Werror\=non-modular-include-in-framework-module -Wno-trigraphs -Wno-missing-field-initializers -Wno-missing-prototypes -Werror\=return-type -Wdocumentation -Wunreachable-code -Wquoted-include-in-framework-header -Werror\=deprecated-objc-isa-usage -Werror\=objc-root-class -Wno-missing-braces -Wparentheses -Wswitch -Wunused-function -Wno-unused-label -Wno-unused-parameter -Wunused-variable -Wunused-value -Wempty-body -Wuninitialized -Wconditional-uninitialized -Wno-unknown-pragmas -Wno-shadow -Wno-four-char-constants -Wno-conversion -Wconstant-conversion -Wint-conversion -Wbool-conversion -Wenum-conversion -Wno-float-conversion -Wnon-literal-null-conversion -Wobjc-literal-conversion -Wshorten-64-to-32 -Wpointer-sign -Wno-newline-eof -Wno-implicit-fallthrough -isysroot /Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk -fstrict-aliasing -Wdeprecated-declarations -Wno-sign-conversion -Winfinite-recursion -Wcomma -Wblock-capture-autoreleasing -Wstrict-prototypes -Wno-semicolon-before-method-body -Wunguarded-availability @/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/7187679823f38a2a940e0043cdf9d637-common-args.resp -MMD -MT dependencies -MF /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/sv_bootstrap_stubs.d --serialize-diagnostics /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/sv_bootstrap_stubs.dia -c /Users/runner/work/StrikersVision/StrikersVision/visionos/bootstrap/sv_bootstrap_stubs.c -o /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/sv_bootstrap_stubs.o
+
+PrecompileModule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/ExplicitPrecompiledModules/_Builtin_stdarg-8CZSMQTCYD4DTABWWQX0TIU0Y.scan
+    cd /
+    builtin-precompileModule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/ExplicitPrecompiledModules/_Builtin_stdarg-8CZSMQTCYD4DTABWWQX0TIU0Y.scan
+
+PrecompileModule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/ExplicitPrecompiledModules/_Builtin_stddef-2TWBS9ZDP5SASBHE6AH47L6SP.scan
+    cd /
+    builtin-precompileModule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/ExplicitPrecompiledModules/_Builtin_stddef-2TWBS9ZDP5SASBHE6AH47L6SP.scan
+
+PrecompileModule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/ExplicitPrecompiledModules/_AvailabilityInternal-AA2TTMPIHD3IQD44GNAYNKZL7.scan
+    cd /
+    builtin-precompileModule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/ExplicitPrecompiledModules/_AvailabilityInternal-AA2TTMPIHD3IQD44GNAYNKZL7.scan
+
+PrecompileModule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/ExplicitPrecompiledModules/ptrcheck-57SJS0S57HXCYXDXLH110LX6A.scan
+    cd /
+    builtin-precompileModule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/ExplicitPrecompiledModules/ptrcheck-57SJS0S57HXCYXDXLH110LX6A.scan
+
+PrecompileModule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/ExplicitPrecompiledModules/_DarwinFoundation1-8556XJTCAU87QWZ67ZBEHSTMR.scan
+    cd /
+    builtin-precompileModule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/ExplicitPrecompiledModules/_DarwinFoundation1-8556XJTCAU87QWZ67ZBEHSTMR.scan
+
+PrecompileModule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/ExplicitPrecompiledModules/_DarwinFoundation2-6LHIE7LKGHCIZ4QJAF4XX0KEG.scan
+    cd /
+    builtin-precompileModule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/ExplicitPrecompiledModules/_DarwinFoundation2-6LHIE7LKGHCIZ4QJAF4XX0KEG.scan
+
+PrecompileModule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/ExplicitPrecompiledModules/_Builtin_stdint-D8LZTSZKFZ9MUG6JHUAVIRPAU.scan
+    cd /
+    builtin-precompileModule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/ExplicitPrecompiledModules/_Builtin_stdint-D8LZTSZKFZ9MUG6JHUAVIRPAU.scan
+
+PrecompileModule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/ExplicitPrecompiledModules/_DarwinFoundation3-CEVGPLZP9BFI2HBY2JES8VVY0.scan
+    cd /
+    builtin-precompileModule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/ExplicitPrecompiledModules/_DarwinFoundation3-CEVGPLZP9BFI2HBY2JES8VVY0.scan
+
+PrecompileModule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/ExplicitPrecompiledModules/_Builtin_stdatomic-7GFGJHKLTCW1NXR192TZ144LQ.scan
+    cd /
+    builtin-precompileModule /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/ExplicitPrecompiledModules/_Builtin_stdatomic-7GFGJHKLTCW1NXR192TZ144LQ.scan
+
+CompileC /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/sv_bootstrap_stubs.o /Users/runner/work/StrikersVision/StrikersVision/visionos/bootstrap/sv_bootstrap_stubs.c normal arm64 c com.apple.compilers.llvm.clang.1_0.compiler (in target 'StrikersVisionBootstrap' from project 'StrikersVision')
+    cd /Users/runner/work/StrikersVision/StrikersVision
+    
+    Using response file: /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/7187679823f38a2a940e0043cdf9d637-common-args.resp
+    
+    /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -x c -ivfsstatcache /Users/runner/work/StrikersVision/StrikersVision/build/dd/SDKStatCaches.noindex/xros26.5-23O469-688ef53f1462e2c8f657fdc38a81448f0ade8266673b0cdb1441e69d898f0d23.sdkstatcache -target arm64-apple-xros26.0 -fmessage-length\=0 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit\=0 -fno-color-diagnostics -fmodules-prune-interval\=86400 -fmodules-prune-after\=345600 -fbuild-session-file\=/Users/runner/work/StrikersVision/StrikersVision/build/dd/ModuleCache.noindex/Session.modulevalidation -fmodules-validate-once-per-build-session -Wnon-modular-include-in-framework-module -Werror\=non-modular-include-in-framework-module -Wno-trigraphs -Wno-missing-field-initializers -Wno-missing-prototypes -Werror\=return-type -Wdocumentation -Wunreachable-code -Wquoted-include-in-framework-header -Werror\=deprecated-objc-isa-usage -Werror\=objc-root-class -Wno-missing-braces -Wparentheses -Wswitch -Wunused-function -Wno-unused-label -Wno-unused-parameter -Wunused-variable -Wunused-value -Wempty-body -Wuninitialized -Wconditional-uninitialized -Wno-unknown-pragmas -Wno-shadow -Wno-four-char-constants -Wno-conversion -Wconstant-conversion -Wint-conversion -Wbool-conversion -Wenum-conversion -Wno-float-conversion -Wnon-literal-null-conversion -Wobjc-literal-conversion -Wshorten-64-to-32 -Wpointer-sign -Wno-newline-eof -Wno-implicit-fallthrough -isysroot /Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk -fstrict-aliasing -Wdeprecated-declarations -Wno-sign-conversion -Winfinite-recursion -Wcomma -Wblock-capture-autoreleasing -Wstrict-prototypes -Wno-semicolon-before-method-body -Wunguarded-availability @/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/7187679823f38a2a940e0043cdf9d637-common-args.resp -MMD -MT dependencies -MF /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/sv_bootstrap_stubs.d --serialize-diagnostics /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/sv_bootstrap_stubs.dia -c /Users/runner/work/StrikersVision/StrikersVision/visionos/bootstrap/sv_bootstrap_stubs.c -o /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/sv_bootstrap_stubs.o
+
+Ld /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros/StrikersVision.app/StrikersVision normal (in target 'StrikersVisionBootstrap' from project 'StrikersVision')
+    cd /Users/runner/work/StrikersVision/StrikersVision
+    /Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-xros26.0 -isysroot /Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS26.5.sdk -Os -L/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/EagerLinkingTBDs/Release-xros -L/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros -L/Users/runner/work/StrikersVision/StrikersVision/build/xros -F/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/EagerLinkingTBDs/Release-xros -F/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros -filelist /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision.LinkFileList -Xlinker -rpath -Xlinker @executable_path/Frameworks -Xlinker -dead_strip -Xlinker -object_path_lto -Xlinker /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision_lto.o -Xlinker -dependency_info -Xlinker /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode_26.6.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/xros -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision.swiftmodule @/Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Intermediates.noindex/StrikersVision.build/Release-xros/StrikersVisionBootstrap.build/Objects-normal/arm64/StrikersVision-linker-args.resp -force_load /Users/runner/work/StrikersVision/StrikersVision/build/xros/libstrikers.a -lstrikers_deps -lc++ -lz -Wl,-unexported_symbol,__Znwm -Wl,-unexported_symbol,__Znam -Wl,-unexported_symbol,__ZdlPv -Wl,-unexported_symbol,__ZdaPv -framework Metal -framework QuartzCore -framework IOSurface -framework CoreFoundation -framework Foundation -framework UIKit -framework CoreGraphics -framework CoreVideo -framework CoreHaptics -framework CoreMotion -framework GameController -framework AVFoundation -framework AudioToolbox -framework CoreAudio -framework CompositorServices -framework ARKit -framework GroupActivities -framework Network -o /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros/StrikersVision.app/StrikersVision
+/Users/runner/work/StrikersVision/StrikersVision/StrikersVision.xcodeproj: StrikersVisionBootstrap: ld: warning: Could not find or use auto-linked framework 'CoreAudioTypes': framework 'CoreAudioTypes' not found
+/Users/runner/work/StrikersVision/StrikersVision/StrikersVision.xcodeproj: StrikersVisionBootstrap: ld: warning: Could not find or use auto-linked framework 'UIUtilities': framework 'UIUtilities' not found
+/Users/runner/work/StrikersVision/StrikersVision/StrikersVision.xcodeproj: StrikersVisionBootstrap: ld: warning: Could not parse or use implicit file '/Applications/Xcode_26.6.app/Contents/Developer/Platforms/XROS.platform/Developer/SDKs/XROS.sdk/System/Library/Frameworks/SwiftUICore.framework/SwiftUICore.tbd': cannot link directly with 'SwiftUICore' because product being built is not an allowed client of it
+Undefined symbols for architecture arm64:
+  "_GXPeekARGB", referenced from:
+      glx_ScreenCapture(bool) in libstrikers.a[468](glxSwap.cpp.o)
+  "_GXPokeARGB", referenced from:
+      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+  "_GXPokeBlendMode", referenced from:
+      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+  "_GXPokeColorUpdate", referenced from:
+      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+ld: symbol(s) not found for architecture arm64
+/Users/runner/work/StrikersVision/StrikersVision/StrikersVision.xcodeproj: StrikersVisionBootstrap: clang: error: linker command failed with exit code 1 (use -v to see invocation)
+
+** BUILD FAILED **
+
+
+The following build commands failed:
+	Ld /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros/StrikersVision.app/StrikersVision normal (in target 'StrikersVisionBootstrap' from project 'StrikersVision')
+	Building project StrikersVision with scheme StrikersVisionBootstrap and configuration Release
+(2 failures)
+
+## undefined.log:       23 lines
+### errors
+1:Undefined symbols for architecture arm64:
+2-  "_GXPeekARGB", referenced from:
+3-      glx_ScreenCapture(bool) in libstrikers.a[468](glxSwap.cpp.o)
+4-  "_GXPokeARGB", referenced from:
+5-      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+6-      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+7-      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+--
+12-      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+13-      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+14:ld: symbol(s) not found for architecture arm64
+15:/Users/runner/work/StrikersVision/StrikersVision/StrikersVision.xcodeproj: StrikersVisionBootstrap: clang: error: linker command failed with exit code 1 (use -v to see invocation)
+16-
+17:** BUILD FAILED **
+18-
+19-
+20-The following build commands failed:
+21-	Ld /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros/StrikersVision.app/StrikersVision normal (in target 'StrikersVisionBootstrap' from project 'StrikersVision')
+22-	Building project StrikersVision with scheme StrikersVisionBootstrap and configuration Release
+23-(2 failures)
+### end
+Undefined symbols for architecture arm64:
+  "_GXPeekARGB", referenced from:
+      glx_ScreenCapture(bool) in libstrikers.a[468](glxSwap.cpp.o)
+  "_GXPokeARGB", referenced from:
+      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+  "_GXPokeBlendMode", referenced from:
+      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+  "_GXPokeColorUpdate", referenced from:
+      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+      DisplayMessage(int, int, unsigned char const*, int, unsigned long, bool) in libstrikers.a[109](LidOpenMessage.cpp.o)
+ld: symbol(s) not found for architecture arm64
+/Users/runner/work/StrikersVision/StrikersVision/StrikersVision.xcodeproj: StrikersVisionBootstrap: clang: error: linker command failed with exit code 1 (use -v to see invocation)
+
+** BUILD FAILED **
+
+
+The following build commands failed:
+	Ld /Users/runner/work/StrikersVision/StrikersVision/build/dd/Build/Products/Release-xros/StrikersVision.app/StrikersVision normal (in target 'StrikersVisionBootstrap' from project 'StrikersVision')
+	Building project StrikersVision with scheme StrikersVisionBootstrap and configuration Release
+(2 failures)
