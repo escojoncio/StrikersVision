@@ -1,0 +1,49 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "CFBundleDisplayName": {
+      "shouldTranslate": false
+    },
+    "NSAccessoryTrackingUsageDescription": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para seguir los mandos PlayStation VR2 Sense en el espacio: agarrar la mesa y apuntar a los menús."
+          }
+        }
+      }
+    },
+    "NSBluetoothAlwaysUsageDescription": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para usar mandos que se conectan por Bluetooth."
+          }
+        }
+      }
+    },
+    "NSHandsTrackingUsageDescription": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para agarrar, mover y cambiar de tamaño la mesa con las manos."
+          }
+        }
+      }
+    },
+    "NSWorldSensingUsageDescription": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para colocar la pantalla gigante y la mesa en tu habitación y que no se muevan cuando tú te mueves."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

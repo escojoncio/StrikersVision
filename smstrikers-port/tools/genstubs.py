@@ -340,6 +340,12 @@ def main():
         "#include <stdio.h>",
         "#include <stdlib.h>",
         "",
+        "// The labels are written without the object format's C prefix and get it from the compiler",
+        "// (__USER_LABEL_PREFIX__: '_' on Mach-O, nothing on ELF), so one file serves every target.",
+        "#define PORT_STR_(x) #x",
+        "#define PORT_STR(x) PORT_STR_(x)",
+        "#define PORT_SYM(s) PORT_STR(__USER_LABEL_PREFIX__) s",
+        "",
         "static void port_missing(const char* name)",
         "{",
         '    fprintf(stderr, "\\n[port] not implemented yet: %s\\n", name);',
@@ -348,17 +354,18 @@ def main():
         "",
     ]
     for i, s in enumerate(syms):
-        # `s` is spelled exactly as the object format spells it, with the leading underscore on
-        # Mach-O, without it on ELF; which is exactly what the asm label needs in either case.
+        # `s` is spelled as this host's object format spells it; the label drops that prefix and
+        # PORT_SYM puts back the one of whatever target the file is compiled for.
+        b = bare(s)
         if s in noop_set:
-            lines.append(f'long port_stub_{i}(void) __asm__("{s}");')
+            lines.append(f'long port_stub_{i}(void) __asm__(PORT_SYM("{b}"));')
             lines.append(f'long port_stub_{i}(void) {{ return 0; }}')
         elif is_msvc_data_symbol(s):
             # A missing *variable*, defined as a variable.
-            lines.append(f'char port_stub_{i}[16] __asm__("{s}") = {{ 0 }};')
+            lines.append(f'char port_stub_{i}[16] __asm__(PORT_SYM("{b}")) = {{ 0 }};')
         else:
-            lines.append(f'void port_stub_{i}(void) __asm__("{s}");')
-            lines.append(f'void port_stub_{i}(void) {{ port_missing("{s}"); }}')
+            lines.append(f'void port_stub_{i}(void) __asm__(PORT_SYM("{b}"));')
+            lines.append(f'void port_stub_{i}(void) {{ port_missing("{b}"); }}')
 
     out = pathlib.Path(args.out)
     out.write_text("\n".join(lines) + "\n")

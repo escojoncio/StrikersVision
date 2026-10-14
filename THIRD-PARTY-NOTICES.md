@@ -1,6 +1,7 @@
 # Third-Party Notices
 
-This app (the Meta Quest APK built from `smstrikers-port/`) contains software and assets made by
+This file covers the Meta Quest APK built from `smstrikers-port/` and, in the section after these
+notes, the Apple Vision Pro app built from `smstrikers-port/` and `visionos/`. The APK contains software and assets made by
 third parties. Most of it is compiled and statically linked into the native library
 `lib/arm64-v8a/libmain.so`; some of it ships as separate shared libraries, Java code or asset files
 inside the APK. This file lists every third-party component that ends up in the APK, with its
@@ -25,6 +26,24 @@ Notes:
   license, jsoncpp under the MIT License, and stb / miniz under their public-domain options.
 
 ---
+
+## The Apple Vision Pro app
+
+The visionOS app (`StrikersVision.ipa`, built from `smstrikers-port/` and `visionos/`) contains the
+same game, port and engine code as the APK's `libmain.so` (Aurora, MusyX, zstd, bzip2, LZMA SDK, ODE,
+SDL 3, Dawn with Tint and its bundled code, Abseil, {fmt}, xxHash, libpng, FreeType, Dear ImGui,
+SQLite and the Kenney Input Prompts), statically linked into the app's executable, with these
+differences:
+
+- **Dawn** is built for Metal on visionOS rather than taken from the Android prebuilt package; its
+  license (BSD-3-Clause) and bundled components are the same as listed below, at the version the
+  build pins.
+- **Not in the visionOS app**: the Khronos OpenXR loader (and jsoncpp, jnipp, android-jni-wrappers),
+  libadrenotools and liblinkernsbypass, the SDL and Aurora Java glue, and the NDK's `libc++_shared.so`
+  (Apple's system C++ library is used).
+- **The app's own Swift code** (`visionos/app`, `visionos/net`) uses only Apple's system frameworks
+  (SwiftUI, Compositor Services, ARKit, GameController, GroupActivities, Foundation), which are part
+  of the operating system and not redistributed. It adds no third-party code.
 
 ## Contents of the APK
 

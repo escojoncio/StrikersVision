@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  StrikersVision's Info.plist. Complete on its own (the bundle keys use the usual build-setting
+  variables), so it works whether or not the project also generates keys.
+
+  Usage descriptions: on visionOS a missing one is not a refused permission but a process kill the
+  moment the matching ARKit provider is requested (TCC). The XR layer runs world tracking, hand
+  tracking and accessory tracking (the PlayStation VR2 Sense controllers), and builds the accessory
+  provider even with no controller paired, so all three strings are here.
+-->
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>es</string>
+	</array>
+	<key>CFBundleDisplayName</key>
+	<string>StrikersVision</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UILaunchScreen</key>
+	<dict/>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>arm64</string>
+	</array>
+
+	<!-- The launcher window plus the immersive space. Without the immersive role here the space
+	     opens and renders but composites nowhere. Mixed matches the app's default style; the
+	     space also accepts .full (the "Allow full immersion" setting). -->
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationPreferredDefaultSceneSessionRole</key>
+		<string>UIWindowSceneSessionRoleApplication</string>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<true/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UISceneSessionRoleImmersiveSpaceApplication</key>
+			<array>
+				<dict>
+					<key>UISceneInitialImmersionStyle</key>
+					<string>UIImmersionStyleMixed</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
+
+	<!-- Documents/Strikers in the Files app ("On My Apple Vision Pro › StrikersVision"): the disc
+	     image goes there, and the logs and saves can be taken out. -->
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+
+	<!-- Game controllers: the Sense controllers come as spatial gamepads, a Bluetooth pad as an
+	     extended one. -->
+	<key>GCSupportsControllerUserInteraction</key>
+	<true/>
+	<key>GCSupportedGameControllers</key>
+	<array>
+		<dict>
+			<key>ProfileName</key>
+			<string>SpatialGamepad</string>
+		</dict>
+		<dict>
+			<key>ProfileName</key>
+			<string>ExtendedGamepad</string>
+		</dict>
+	</array>
+
+	<!-- ARKit (see the note at the top). -->
+	<key>NSWorldSensingUsageDescription</key>
+	<string>To place the big screen and the table in your room and keep them still while you move.</string>
+	<key>NSHandsTrackingUsageDescription</key>
+	<string>To grab, move and resize the table with your hands.</string>
+	<key>NSAccessoryTrackingUsageDescription</key>
+	<string>To track the PlayStation VR2 Sense controllers in space: grabbing the table and pointing at the menus.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>To use game controllers that connect over Bluetooth.</string>
+
+	<!-- SharePlay: lets the app start an activity outside a FaceTime call (the share sheet), and
+	     marks it as supporting group activities. The entitlement is in StrikersVision.entitlements. -->
+	<key>NSSupportsGroupActivities</key>
+	<true/>
+</dict>
+</plist>

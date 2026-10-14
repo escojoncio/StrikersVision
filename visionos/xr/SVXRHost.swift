@@ -1,0 +1,620 @@
+// StrikersVision headset layer, Swift half: Compositor Services frames, ARKit (head and PlayStation
+// VR2 Sense controller poses), GameController buttons and haptics. The C++ half (sv_xr.mm) drives it
+// from the game thread through the @_cdecl functions below (declared in sv_xr.h); nothing here runs a
+// loop of its own except the ARKit anchor stream.
+//
+// Why Swift for this part: the Compositor Services and ARKit calls below are the ones the Klepton
+// visionOS client (same owner) has run on device; their Swift spellings are proven, while several C
+// spellings of the same calls are not documented. The frame order, the drawable handling and the
+// Sense controller element names follow that client (credit: Klepton, building on ALVR's visionOS
+// client), written again here for this game.
+
+import ARKit
+import CompositorServices
+import CoreHaptics
+import Foundation
+import GameController
+import Metal
+import QuartzCore
+import simd
+
+/// The C side's log (sv_log_line in sv_game.mm), handed over by sv_xrhost_start: stderr (the game
+/// log file) and the app's log viewer.
+nonisolated(unsafe) private var svLogSink: (@convention(c) (UnsafePointer<CChar>?) -> Void)?
+
+private func xrLog(_ s: String) {
+    if let sink = svLogSink { s.withCString { sink($0) } } else { NSLog("%@", s) }
+}
+
+// sv_xr.h's SV_XRB_* / SV_GPB_* bits, spelled here so this file does not depend on how Swift
+// imports an anonymous C enum.
+private enum XRB {
+    static let lower: UInt32 = 1 << 0
+    static let upper: UInt32 = 1 << 1
+    static let menu: UInt32 = 1 << 2
+    static let stickClick: UInt32 = 1 << 3
+    static let ps: UInt32 = 1 << 4
+}
+private enum GPB {
+    static let south: UInt32 = 1 << 0
+    static let east: UInt32 = 1 << 1
+    static let west: UInt32 = 1 << 2
+    static let north: UInt32 = 1 << 3
+    static let start: UInt32 = 1 << 4
+    static let rShoulder: UInt32 = 1 << 5
+    static let lShoulder: UInt32 = 1 << 6
+    static let lStick: UInt32 = 1 << 7
+    static let rStick: UInt32 = 1 << 8
+    static let up: UInt32 = 1 << 9
+    static let down: UInt32 = 1 << 10
+    static let left: UInt32 = 1 << 11
+    static let right: UInt32 = 1 << 12
+    static let home: UInt32 = 1 << 13
+}
+
+/// Seconds since the Compositor Services clock's epoch: the CACurrentMediaTime domain ARKit takes.
+private func seconds(_ instant: LayerRenderer.Clock.Instant) -> Double {
+    let d = LayerRenderer.Clock.Instant.epoch.duration(to: instant)
+    let c = d.components
+    return Double(c.seconds) + Double(c.attoseconds) * 1e-18
+}
+
+private func store(_ m: simd_float4x4, _ out: UnsafeMutablePointer<Float>?) {
+    guard let out else { return }
+    // simd_float4x4 is four SIMD4<Float> columns: column-major, as sv_xr.mm expects.
+    withUnsafeBytes(of: m) { raw in
+        let f = raw.bindMemory(to: Float.self)
+        for i in 0..<16 { out[i] = f[i] }
+    }
+}
+
+final class SVXRHost: @unchecked Sendable {
+    static let shared = SVXRHost()
+
+    private let lock = NSLock()
+
+    // ARKit
+    private let session = ARKitSession()
+    private let world = WorldTrackingProvider()
+    private var accessoryProvider: Any?          // AccessoryTrackingProvider (visionOS 26)
+    private var accessoryAnchors: [Int: Any] = [:] // AccessoryAnchor by hand (0 left, 1 right)
+    private var trackedSpatial: [GCController] = []
+    private var started = false
+    private var running = false
+    private var lastControllerCheck: Double = 0
+    private var headLogged = false
+    private var headMisses = 0
+
+    // The frame in flight (game thread only).
+    private var frame: LayerRenderer.Frame?
+    private var drawables: [LayerRenderer.Drawable] = []
+    private var drawableLogged = false
+
+    // Device anchors handed out to C by id, so a drawable can later be told the exact anchor its
+    // pixels were drawn for (eye images are re-shown on display frames without a new game frame).
+    private var anchorRing = [DeviceAnchor?](repeating: nil, count: 64)
+    private var anchorNext: Int32 = 0
+
+    // Controllers (game thread only, apart from the anchor dictionary above).
+    private struct HandSample {
+        var buttons: UInt32 = 0
+        var trigger: Float = 0
+        var grip: Float = 0
+        var stick = SIMD2<Float>(0, 0)
+    }
+    private var handCache: [ObjectIdentifier: HandSample] = [:]
+    private var captured = Set<ObjectIdentifier>()
+    private var pressSeen = Set<String>()
+    private var engines: [ObjectIdentifier: CHHapticEngine] = [:]
+    private var players: [ObjectIdentifier: CHHapticAdvancedPatternPlayer] = [:]
+    private var hapticsNoted = Set<String>()
+
+    // MARK: ARKit
+
+    func start() {
+        lock.lock()
+        if started { lock.unlock(); return }
+        started = true
+        lock.unlock()
+        xrLog("[xr] arkit: world tracking supported \(WorldTrackingProvider.isSupported)")
+        Task { await self.runSession() }
+    }
+
+    private static func spatialControllers() -> [GCController] {
+        guard #available(visionOS 26.0, *) else { return [] }
+        return GCController.controllers().filter { $0.productCategory == GCProductCategorySpatialController }
+    }
+
+    /// (Re)runs the session with the world tracker and an accessory tracker for whatever Sense
+    /// controllers are paired now. The provider list is fixed at run(), so a change of controllers
+    /// means running again (not stopping: world tracking carries on).
+    private func runSession() async {
+        var providers: [any DataProvider] = [world]
+        var names: [String] = []
+        if #available(visionOS 26.0, *), AccessoryTrackingProvider.isSupported {
+            let spatial = Self.spatialControllers()
+            var accessories: [Accessory] = []
+            for c in spatial {
+                do { accessories.append(try await Accessory(device: c)) } catch {
+                    xrLog("[xr] arkit: accessory for \(c.vendorName ?? "?") failed: \(error)")
+                }
+            }
+            names = accessories.map { $0.name }
+            let provider = AccessoryTrackingProvider(accessories: accessories)
+            install(provider, spatial)
+            providers.append(provider)
+            Task { await self.consume(provider) }
+        }
+        do {
+            try await session.run(providers)
+            setRunning()
+            xrLog("[xr] arkit: session running (accessories: \(names))")
+        } catch {
+            xrLog("[xr] arkit error: session.run failed: \(error)")
+        }
+    }
+
+    @available(visionOS 26.0, *)
+    private func consume(_ provider: AccessoryTrackingProvider) async {
+        for await update in provider.anchorUpdates {
+            let anchor = update.anchor
+            let hand: Int
+            switch anchor.accessory.inherentChirality {
+            case .left: hand = 0
+            default: hand = 1
+            }
+            keep(hand: hand, anchor: update.event == .removed ? nil : anchor)
+        }
+    }
+
+    // Synchronous on purpose: a lock must never be held across a suspension point.
+    private func install(_ provider: Any, _ spatial: [GCController]) {
+        lock.lock()
+        trackedSpatial = spatial
+        accessoryProvider = provider
+        accessoryAnchors.removeAll()
+        lock.unlock()
+    }
+
+    private func setRunning() {
+        lock.lock(); running = true; lock.unlock()
+    }
+
+    private func keep(hand: Int, anchor: Any?) {
+        lock.lock()
+        accessoryAnchors[hand] = anchor
+        lock.unlock()
+    }
+
+    // MARK: head
+
+    func head(_ time: Double, _ out: UnsafeMutablePointer<Float>?) -> Int32 {
+        // ARKit refuses instants too far ahead; stepping back finds the edge of what it predicts.
+        var t = time
+        for _ in 0..<8 {
+            if let a = world.queryDeviceAnchor(atTimestamp: t) {
+                if !headLogged {
+                    headLogged = true
+                    xrLog(String(format: "[xr] arkit: first head pose, %.1f ms ahead", (time - CACurrentMediaTime()) * 1000))
+                }
+                store(a.originFromAnchorTransform, out)
+                let id = anchorNext
+                anchorRing[Int(id) % anchorRing.count] = a
+                anchorNext = (anchorNext + 1) % 0x4000_0000
+                return id
+            }
+            t -= 0.005
+        }
+        headMisses += 1
+        if headMisses == 1 || headMisses % 900 == 0 {
+            lock.lock(); let isRunning = running; lock.unlock()
+            xrLog("[xr] arkit warn: no head pose (\(headMisses) misses; session running \(isRunning))")
+        }
+        return -1
+    }
+
+    private func anchor(_ id: Int32) -> DeviceAnchor? {
+        guard id >= 0 else { return nil }
+        // Only while it is still in the ring: an id older than the ring is a stale picture anyway.
+        if anchorNext - id > Int32(anchorRing.count) || id >= anchorNext { return nil }
+        return anchorRing[Int(id) % anchorRing.count]
+    }
+
+    // MARK: frames
+
+    func rendererState(_ r: LayerRenderer) -> Int32 {
+        switch r.state {
+        case .running: return 1
+        case .invalidated: return 2
+        default: return 0
+        }
+    }
+
+    func frameBegin(_ r: LayerRenderer, _ device: UnsafeMutablePointer<UnsafeMutableRawPointer?>?) -> Int32 {
+        guard let f = r.queryNextFrame() else { return 0 }
+        f.startUpdate()
+        f.endUpdate()
+        if let timing = f.predictTiming() {
+            LayerRenderer.Clock().wait(until: timing.optimalInputTime)
+        }
+        // All drawables, not the first: visionOS 26 hands out more than one while the render quality
+        // changes, and each must be presented.
+        let ds = f.queryDrawables()
+        // No drawable: the frame is abandoned without endSubmission (ending a submission that
+        // presented nothing aborts the process).
+        guard !ds.isEmpty else { return 0 }
+        f.startSubmission()
+        frame = f
+        drawables = ds
+        device?.pointee = Unmanaged.passUnretained(r.device as AnyObject).toOpaque()
+        if !drawableLogged {
+            drawableLogged = true
+            let d = ds[0]
+            var line = "[xr] cp: \(ds.count) drawable(s), \(d.views.count) view(s), \(d.colorTextures.count) colour / "
+                + "\(d.depthTextures.count) depth texture(s), layout "
+                + (r.configuration.layout == .layered ? "layered" : (r.configuration.layout == .dedicated ? "dedicated" : "shared"))
+                + ", colour format \(r.configuration.colorFormat.rawValue), depth range \(d.depthRange)"
+            for (i, t) in d.colorTextures.enumerated() {
+                line += "; colour[\(i)] \(t.width)x\(t.height) array \(t.arrayLength)"
+            }
+            for (i, v) in d.views.enumerated() {
+                let m = v.textureMap
+                line += "; view[\(i)] texture \(m.textureIndex) slice \(m.sliceIndex) viewport "
+                    + "\(Int(m.viewport.width))x\(Int(m.viewport.height))+\(Int(m.viewport.originX))+\(Int(m.viewport.originY))"
+            }
+            xrLog(line)
+        }
+        return Int32(ds.count)
+    }
+
+    func drawableInfo(_ i: Int32, _ time: UnsafeMutablePointer<Double>?, _ range: UnsafeMutablePointer<Float>?,
+                      _ views: UnsafeMutablePointer<Int32>?) -> Int32 {
+        guard i >= 0, Int(i) < drawables.count else { return 0 }
+        let d = drawables[Int(i)]
+        time?.pointee = seconds(d.frameTiming.presentationTime)
+        if let range {
+            range[0] = d.depthRange.x
+            range[1] = d.depthRange.y
+        }
+        views?.pointee = Int32(d.views.count)
+        return 1
+    }
+
+    func frameView(_ i: Int32, _ v: Int32, _ deviceFromView: UnsafeMutablePointer<Float>?,
+                   _ projection: UnsafeMutablePointer<Float>?, _ color: UnsafeMutablePointer<UnsafeMutableRawPointer?>?,
+                   _ depth: UnsafeMutablePointer<UnsafeMutableRawPointer?>?, _ slice: UnsafeMutablePointer<Int32>?,
+                   _ viewport: UnsafeMutablePointer<Float>?) -> Int32 {
+        guard i >= 0, Int(i) < drawables.count else { return 0 }
+        let d = drawables[Int(i)]
+        guard v >= 0, Int(v) < d.views.count else { return 0 }
+        let view = d.views[Int(v)]
+        store(view.transform, deviceFromView)
+        store(d.computeProjection(viewIndex: Int(v)), projection)
+        let map = view.textureMap
+        if map.textureIndex < d.colorTextures.count {
+            color?.pointee = Unmanaged.passUnretained(d.colorTextures[map.textureIndex] as AnyObject).toOpaque()
+        } else {
+            color?.pointee = nil
+        }
+        if map.textureIndex < d.depthTextures.count {
+            depth?.pointee = Unmanaged.passUnretained(d.depthTextures[map.textureIndex] as AnyObject).toOpaque()
+        } else {
+            depth?.pointee = nil
+        }
+        slice?.pointee = Int32(map.sliceIndex)
+        if let viewport {
+            viewport[0] = Float(map.viewport.originX)
+            viewport[1] = Float(map.viewport.originY)
+            viewport[2] = Float(map.viewport.width)
+            viewport[3] = Float(map.viewport.height)
+        }
+        return 1
+    }
+
+    func present(_ i: Int32, _ cmd: UnsafeMutableRawPointer?, _ anchorId: Int32) {
+        guard i >= 0, Int(i) < drawables.count, let cmd else { return }
+        guard let buffer = Unmanaged<AnyObject>.fromOpaque(cmd).takeUnretainedValue() as? any MTLCommandBuffer else {
+            xrLog("[xr] cp error: present without a command buffer")
+            return
+        }
+        let d = drawables[Int(i)]
+        d.deviceAnchor = anchor(anchorId)
+        d.encodePresent(commandBuffer: buffer)
+    }
+
+    func finish() {
+        frame?.endSubmission()
+        frame = nil
+        drawables = []
+    }
+
+    // MARK: input
+
+    private func noteFirstPress(_ name: String) {
+        if pressSeen.insert(name).inserted { xrLog("[xr] input: first press of \"\(name)\"") }
+    }
+
+    /// Keeps the PS / Create / Options buttons from being taken by the system, so the game never
+    /// leaves on a press (what the system does with the PS button is its own decision; this asks).
+    private func capture(_ c: GCController) {
+        guard captured.insert(ObjectIdentifier(c)).inserted else { return }
+        var names: [String] = []
+        for (name, el) in c.physicalInputProfile.buttons {
+            let n = name.lowercased()
+            guard n.contains("home") || n.contains("menu") || n.contains("ps") || n.contains("options")
+                || n.contains("share") else { continue }
+            el.preferredSystemGestureState = .disabled
+            names.append("\(name)=\(el.isBoundToSystemGesture ? "system" : "game")")
+        }
+        if let h = c.extendedGamepad?.buttonHome { h.preferredSystemGestureState = .disabled }
+        if let m = c.extendedGamepad?.buttonMenu { m.preferredSystemGestureState = .disabled }
+        xrLog("[xr] input: controller \"\(c.vendorName ?? "?")\" (\(c.productCategory)) attached; system buttons \(names.sorted())")
+    }
+
+    private static func isLeft(_ c: GCController) -> Bool { (c.vendorName ?? "").hasSuffix("(L)") }
+
+    @available(visionOS 26.0, *)
+    private func senseSample(_ c: GCController) -> HandSample {
+        let key = ObjectIdentifier(c)
+        c.input.inputStateQueueDepth = 1
+        // nil = nothing new since the last poll, not "all released".
+        guard let s = c.input.nextInputState() else { return handCache[key] ?? HandSample() }
+        let b = s.buttons, ax = s.axes, dp = s.dpads
+        func pressed(_ n: String) -> Bool { b[n]?.pressedInput.isPressed ?? false }
+        func value(_ n: String) -> Float { b[n]?.pressedInput.value ?? 0 }
+        func axis(_ n: String) -> Float { ax[n]?.absoluteInput?.value ?? 0 }
+        for el in b where el.pressedInput.isPressed {
+            for n in el.aliases { noteFirstPress("\(n) [\(Self.isLeft(c) ? "L" : "R")]") }
+        }
+        var h = HandSample()
+        if pressed("Button A") { h.buttons |= XRB.lower }
+        if pressed("Button B") { h.buttons |= XRB.upper }
+        if pressed("Button Menu") || pressed("Button Options") || pressed("Button Share") {
+            h.buttons |= XRB.menu
+        }
+        if pressed("Thumbstick Button") { h.buttons |= XRB.stickClick }
+        if pressed("Button Home") || pressed("Button PS") || pressed("Button PS Button") {
+            h.buttons |= XRB.ps
+        }
+        h.trigger = value("Trigger")
+        h.grip = max(value("Grip"), pressed("Grip") ? 1 : 0)
+        // The Sense publishes its stick several ways and not every one carries the analog value:
+        // the first one that is deflected wins.
+        func live(_ v: SIMD2<Float>) -> Bool { v.x * v.x + v.y * v.y > 0.0004 }
+        var stick = SIMD2<Float>(0, 0)
+        if let d = dp["Thumbstick"], live(SIMD2(d.xAxis.value, d.yAxis.value)) {
+            stick = SIMD2(d.xAxis.value, d.yAxis.value)
+        } else if let d = dp[Self.isLeft(c) ? "Left Thumbstick" : "Right Thumbstick"],
+                  live(SIMD2(d.xAxis.value, d.yAxis.value)) {
+            stick = SIMD2(d.xAxis.value, d.yAxis.value)
+        } else if live(SIMD2(axis("Thumbstick X Axis"), axis("Thumbstick Y Axis"))) {
+            stick = SIMD2(axis("Thumbstick X Axis"), axis("Thumbstick Y Axis"))
+        } else {
+            stick = SIMD2(value("Thumbstick Right") - value("Thumbstick Left"),
+                          value("Thumbstick Up") - value("Thumbstick Down"))
+        }
+        h.stick = stick
+        handCache[key] = h
+        return h
+    }
+
+    @available(visionOS 26.0, *)
+    private func gripPose(hand: Int, time: Double) -> simd_float4x4? {
+        lock.lock()
+        let stored = accessoryAnchors[hand] as? AccessoryAnchor
+        let provider = accessoryProvider as? AccessoryTrackingProvider
+        lock.unlock()
+        guard let stored, let provider else { return nil }
+        let a = provider.predictAnchor(for: stored, at: time) ?? stored
+        guard a.isTracked else { return nil }
+        if a.accessory.locations.contains(.grip) {
+            return a.coordinateSpace(for: .grip, correction: .rendered).ancestorFromSpaceTransformFloat().matrix
+        }
+        return a.originFromAnchorTransform
+    }
+
+    func input(_ time: Double, _ handConnected: UnsafeMutablePointer<Int32>?, _ handButtons: UnsafeMutablePointer<UInt32>?,
+               _ handAnalog: UnsafeMutablePointer<Float>?, _ poseValid: UnsafeMutablePointer<Int32>?,
+               _ originFromGrip: UnsafeMutablePointer<Float>?, _ padConnected: UnsafeMutablePointer<Int32>?,
+               _ padButtons: UnsafeMutablePointer<UInt32>?, _ padAnalog: UnsafeMutablePointer<Float>?) {
+        for h in 0..<2 {
+            handConnected?[h] = 0
+            handButtons?[h] = 0
+            poseValid?[h] = 0
+            for k in 0..<4 { handAnalog?[h * 4 + k] = 0 }
+        }
+        padConnected?.pointee = 0
+        padButtons?.pointee = 0
+        for k in 0..<6 { padAnalog?[k] = 0 }
+
+        let now = CACurrentMediaTime()
+        let controllers = GCController.controllers()
+        var spatialNow: [GCController] = []
+        for c in controllers {
+            capture(c)
+            var spatial = false
+            if #available(visionOS 26.0, *) { spatial = c.productCategory == GCProductCategorySpatialController }
+            if spatial {
+                spatialNow.append(c)
+                guard #available(visionOS 26.0, *) else { continue }
+                let hand = Self.isLeft(c) ? 0 : 1
+                let s = senseSample(c)
+                handConnected?[hand] = 1
+                handButtons?[hand] = s.buttons
+                handAnalog?[hand * 4 + 0] = s.trigger
+                handAnalog?[hand * 4 + 1] = s.grip
+                handAnalog?[hand * 4 + 2] = s.stick.x
+                handAnalog?[hand * 4 + 3] = s.stick.y
+            } else if let g = c.extendedGamepad, padConnected?.pointee == 0 {
+                padConnected?.pointee = 1
+                var b: UInt32 = 0
+                func bit(_ on: Bool, _ flag: UInt32) { if on { b |= flag } }
+                bit(g.buttonA.isPressed, GPB.south)
+                bit(g.buttonB.isPressed, GPB.east)
+                bit(g.buttonX.isPressed, GPB.west)
+                bit(g.buttonY.isPressed, GPB.north)
+                bit(g.buttonMenu.isPressed, GPB.start)
+                bit(g.rightShoulder.isPressed, GPB.rShoulder)
+                bit(g.leftShoulder.isPressed, GPB.lShoulder)
+                bit(g.leftThumbstickButton?.isPressed ?? false, GPB.lStick)
+                bit(g.rightThumbstickButton?.isPressed ?? false, GPB.rStick)
+                bit(g.dpad.up.isPressed, GPB.up)
+                bit(g.dpad.down.isPressed, GPB.down)
+                bit(g.dpad.left.isPressed, GPB.left)
+                bit(g.dpad.right.isPressed, GPB.right)
+                bit(g.buttonHome?.isPressed ?? false, GPB.home)
+                padButtons?.pointee = b
+                padAnalog?[0] = g.leftThumbstick.xAxis.value
+                padAnalog?[1] = g.leftThumbstick.yAxis.value
+                padAnalog?[2] = g.rightThumbstick.xAxis.value
+                padAnalog?[3] = g.rightThumbstick.yAxis.value
+                padAnalog?[4] = g.leftTrigger.value
+                padAnalog?[5] = g.rightTrigger.value
+            }
+        }
+        if #available(visionOS 26.0, *) {
+            for h in 0..<2 {
+                if let m = gripPose(hand: h, time: time) {
+                    poseValid?[h] = 1
+                    if let originFromGrip { store(m, originFromGrip + h * 16) }
+                }
+            }
+        }
+        // Pairing changes rebuild the accessory tracker (polled once a second).
+        if now - lastControllerCheck > 1.0 {
+            lastControllerCheck = now
+            lock.lock()
+            let changed = running && spatialNow != trackedSpatial
+            if changed { trackedSpatial = spatialNow }
+            lock.unlock()
+            if changed {
+                xrLog("[xr] input: Sense controllers changed (\(spatialNow.count) now); rebuilding the accessory tracker")
+                Task { await self.runSession() }
+            }
+        }
+    }
+
+    // MARK: haptics
+
+    private func engine(_ c: GCController) -> CHHapticEngine? {
+        let key = ObjectIdentifier(c)
+        if let e = engines[key] { return e }
+        guard let haptics = c.haptics else {
+            if hapticsNoted.insert("none \(c.vendorName ?? "?")").inserted {
+                xrLog("[xr] input: \(c.vendorName ?? "controller") has no haptics")
+            }
+            return nil
+        }
+        var made = haptics.createEngine(withLocality: .default)
+        if made == nil { made = haptics.createEngine(withLocality: .all) }
+        guard let e = made else {
+            if hapticsNoted.insert("engine \(c.vendorName ?? "?")").inserted {
+                xrLog("[xr] input warn: no haptic engine for \(c.vendorName ?? "?")")
+            }
+            return nil
+        }
+        e.resetHandler = { [weak e] in try? e?.start() }
+        do { try e.start() } catch {
+            xrLog("[xr] input warn: haptic engine would not start: \(error)")
+            return nil
+        }
+        engines[key] = e
+        xrLog("[xr] input: haptics ready on \(c.vendorName ?? "?")")
+        return e
+    }
+
+    func rumble(_ amplitude: Float, _ secs: Float) {
+        for c in GCController.controllers() {
+            let key = ObjectIdentifier(c)
+            if secs <= 0 || amplitude <= 0 {
+                if let p = players[key] { try? p.stop(atTime: CHHapticTimeImmediate) }
+                players[key] = nil
+                continue
+            }
+            guard let e = engine(c) else { continue }
+            do {
+                let event = CHHapticEvent(eventType: .hapticContinuous, parameters: [
+                    CHHapticEventParameter(parameterID: .hapticIntensity, value: min(1, amplitude)),
+                    CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5),
+                ], relativeTime: 0, duration: Double(max(secs, 0.03)))
+                let p = try e.makeAdvancedPlayer(with: CHHapticPattern(events: [event], parameters: []))
+                if let old = players[key] { try? old.stop(atTime: CHHapticTimeImmediate) }
+                try p.start(atTime: CHHapticTimeImmediate)
+                players[key] = p
+            } catch {
+                xrLog("[xr] input warn: rumble failed on \(c.vendorName ?? "?"): \(error); engine dropped")
+                engines[key] = nil
+                players[key] = nil
+            }
+        }
+    }
+}
+
+// MARK: - C entry points (sv_xr.h). Game thread.
+
+private func renderer(_ p: UnsafeMutableRawPointer?) -> LayerRenderer? {
+    guard let p else { return nil }
+    return Unmanaged<LayerRenderer>.fromOpaque(p).takeUnretainedValue()
+}
+
+@_cdecl("sv_xrhost_start")
+public func sv_xrhost_start(_ log: (@convention(c) (UnsafePointer<CChar>?) -> Void)?) {
+    svLogSink = log
+    SVXRHost.shared.start()
+}
+
+@_cdecl("sv_xrhost_renderer_state")
+public func sv_xrhost_renderer_state(_ r: UnsafeMutableRawPointer?) -> Int32 {
+    guard let lr = renderer(r) else { return 2 }
+    return SVXRHost.shared.rendererState(lr)
+}
+
+@_cdecl("sv_xrhost_frame_begin")
+public func sv_xrhost_frame_begin(_ r: UnsafeMutableRawPointer?,
+                                  _ device: UnsafeMutablePointer<UnsafeMutableRawPointer?>?) -> Int32 {
+    guard let lr = renderer(r) else { return 0 }
+    return SVXRHost.shared.frameBegin(lr, device)
+}
+
+@_cdecl("sv_xrhost_drawable_info")
+public func sv_xrhost_drawable_info(_ d: Int32, _ time: UnsafeMutablePointer<Double>?,
+                                    _ range: UnsafeMutablePointer<Float>?, _ views: UnsafeMutablePointer<Int32>?) -> Int32 {
+    SVXRHost.shared.drawableInfo(d, time, range, views)
+}
+
+@_cdecl("sv_xrhost_frame_view")
+public func sv_xrhost_frame_view(_ d: Int32, _ v: Int32, _ deviceFromView: UnsafeMutablePointer<Float>?,
+                                 _ projection: UnsafeMutablePointer<Float>?,
+                                 _ color: UnsafeMutablePointer<UnsafeMutableRawPointer?>?,
+                                 _ depth: UnsafeMutablePointer<UnsafeMutableRawPointer?>?,
+                                 _ slice: UnsafeMutablePointer<Int32>?, _ viewport: UnsafeMutablePointer<Float>?) -> Int32 {
+    SVXRHost.shared.frameView(d, v, deviceFromView, projection, color, depth, slice, viewport)
+}
+
+@_cdecl("sv_xrhost_head")
+public func sv_xrhost_head(_ time: Double, _ out: UnsafeMutablePointer<Float>?) -> Int32 {
+    SVXRHost.shared.head(time, out)
+}
+
+@_cdecl("sv_xrhost_frame_present")
+public func sv_xrhost_frame_present(_ d: Int32, _ cmd: UnsafeMutableRawPointer?, _ anchorId: Int32) {
+    SVXRHost.shared.present(d, cmd, anchorId)
+}
+
+@_cdecl("sv_xrhost_frame_finish")
+public func sv_xrhost_frame_finish() { SVXRHost.shared.finish() }
+
+@_cdecl("sv_xrhost_input")
+public func sv_xrhost_input(_ time: Double, _ handConnected: UnsafeMutablePointer<Int32>?,
+                            _ handButtons: UnsafeMutablePointer<UInt32>?, _ handAnalog: UnsafeMutablePointer<Float>?,
+                            _ poseValid: UnsafeMutablePointer<Int32>?, _ originFromGrip: UnsafeMutablePointer<Float>?,
+                            _ padConnected: UnsafeMutablePointer<Int32>?, _ padButtons: UnsafeMutablePointer<UInt32>?,
+                            _ padAnalog: UnsafeMutablePointer<Float>?) {
+    SVXRHost.shared.input(time, handConnected, handButtons, handAnalog, poseValid, originFromGrip, padConnected,
+                          padButtons, padAnalog)
+}
+
+@_cdecl("sv_xrhost_rumble")
+public func sv_xrhost_rumble(_ amplitude: Float, _ seconds: Float) {
+    SVXRHost.shared.rumble(amplitude, seconds)
+}

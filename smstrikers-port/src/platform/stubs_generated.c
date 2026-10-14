@@ -6,35 +6,41 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// The labels are written without the object format's C prefix and get it from the compiler
+// (__USER_LABEL_PREFIX__: '_' on Mach-O, nothing on ELF), so one file serves every target.
+#define PORT_STR_(x) #x
+#define PORT_STR(x) PORT_STR_(x)
+#define PORT_SYM(s) PORT_STR(__USER_LABEL_PREFIX__) s
+
 static void port_missing(const char* name)
 {
     fprintf(stderr, "\n[port] not implemented yet: %s\n", name);
     abort();
 }
 
-long port_stub_0(void) __asm__("GXPeekARGB");
+long port_stub_0(void) __asm__(PORT_SYM("GXPeekARGB"));
 long port_stub_0(void) { return 0; }
-long port_stub_1(void) __asm__("GXPokeARGB");
+long port_stub_1(void) __asm__(PORT_SYM("GXPokeARGB"));
 long port_stub_1(void) { return 0; }
-long port_stub_2(void) __asm__("GXPokeBlendMode");
+long port_stub_2(void) __asm__(PORT_SYM("GXPokeBlendMode"));
 long port_stub_2(void) { return 0; }
-long port_stub_3(void) __asm__("GXPokeColorUpdate");
+long port_stub_3(void) __asm__(PORT_SYM("GXPokeColorUpdate"));
 long port_stub_3(void) { return 0; }
-void port_stub_4(void) __asm__("_Z9dSolveLCPiPfS_S_S_iS_S_Pi");
+void port_stub_4(void) __asm__(PORT_SYM("_Z9dSolveLCPiPfS_S_S_iS_S_Pi"));
 void port_stub_4(void) { port_missing("_Z9dSolveLCPiPfS_S_S_iS_S_Pi"); }
-void port_stub_5(void) __asm__("_ZN13StatsGatherer14DoFunctionCallEj");
+void port_stub_5(void) __asm__(PORT_SYM("_ZN13StatsGatherer14DoFunctionCallEj"));
 void port_stub_5(void) { port_missing("_ZN13StatsGatherer14DoFunctionCallEj"); }
-void port_stub_6(void) __asm__("_ZN13StatsGatherer3RunEf");
+void port_stub_6(void) __asm__(PORT_SYM("_ZN13StatsGatherer3RunEf"));
 void port_stub_6(void) { port_missing("_ZN13StatsGatherer3RunEf"); }
-void port_stub_7(void) __asm__("_ZN13StatsGatherer7GetNameEv");
+void port_stub_7(void) __asm__(PORT_SYM("_ZN13StatsGatherer7GetNameEv"));
 void port_stub_7(void) { port_missing("_ZN13StatsGatherer7GetNameEv"); }
-void port_stub_8(void) __asm__("_ZN16TMAnimControllerC1EPKcP5World");
+void port_stub_8(void) __asm__(PORT_SYM("_ZN16TMAnimControllerC1EPKcP5World"));
 void port_stub_8(void) { port_missing("_ZN16TMAnimControllerC1EPKcP5World"); }
-void port_stub_9(void) __asm__("_ZN21SkinnedAnimController16CreateGLSkinMeshEP7glModel");
+void port_stub_9(void) __asm__(PORT_SYM("_ZN21SkinnedAnimController16CreateGLSkinMeshEP7glModel"));
 void port_stub_9(void) { port_missing("_ZN21SkinnedAnimController16CreateGLSkinMeshEP7glModel"); }
-void port_stub_10(void) __asm__("_ZN21SkinnedAnimControllerC1EPKcP5World");
+void port_stub_10(void) __asm__(PORT_SYM("_ZN21SkinnedAnimControllerC1EPKcP5World"));
 void port_stub_10(void) { port_missing("_ZN21SkinnedAnimControllerC1EPKcP5World"); }
-void port_stub_11(void) __asm__("_ZThn72_N13StatsGatherer3RunEf");
+void port_stub_11(void) __asm__(PORT_SYM("_ZThn72_N13StatsGatherer3RunEf"));
 void port_stub_11(void) { port_missing("_ZThn72_N13StatsGatherer3RunEf"); }
-void port_stub_12(void) __asm__("_ZThn72_N13StatsGatherer7GetNameEv");
+void port_stub_12(void) __asm__(PORT_SYM("_ZThn72_N13StatsGatherer7GetNameEv"));
 void port_stub_12(void) { port_missing("_ZThn72_N13StatsGatherer7GetNameEv"); }

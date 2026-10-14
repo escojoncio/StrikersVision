@@ -1,0 +1,44 @@
+# Headset layer settings (visionos/xr)
+
+Every setting is an environment variable. The app puts them into the environment before
+`sv_game_start()`; the ones marked **live** also take effect mid-game through
+`sv_setting_changed(key, value)` (the XR layer also `setenv`s every key it receives, so code that
+reads the variable later sees the new value). Unknown keys are ignored; an empty value means
+"back to the default". Out-of-range values are clamped.
+
+| Key | Values | Default | Live | What it does |
+|---|---|---|---|---|
+| `STRIKERS_XR_START_VIEW` | `0`..`3` | `0` | no | View mode at start: 0 Jumbotron · Living Room, 1 Jumbotron · Stadium, 2 Tabletop · Living Room, 3 Tabletop · Stadium (`SV_VIEW_*`). Mid-game use `sv_set_view_mode`. |
+| `STRIKERS_XR_SCREEN_SIZE` | `0`, `1`, `2` | `1` | yes | Jumbotron screen preset: 0 = 2.4 m wide at 2.5 m, 1 = 3.6 m at 3.0 m, 2 = 6.0 m at 4.0 m (single click of the right stick cycles it too). |
+| `STRIKERS_XR_SCREEN_CURVE` | `0`..`1` | `0` | yes | Jumbotron curvature: 0 flat, 1 = curved around you (radius = viewing distance). Values between bend it partly. |
+| `STRIKERS_XR_RES_SCALE` | `1.0`..`3.0` | `2.0` | no | The game's own render size for the flat picture (2 ≈ 1600×900). Read by main.cpp at start. |
+| `STRIKERS_XR_EYE_SCALE` | `0.3`..`1.5` | `1.0` | no | Size of each eye image in the 3D modes, relative to the headset's drawable size. |
+| `STRIKERS_XR_MSAA` | `1`, `4` | `4` | yes | Multisampling of the 3D eye passes (both layers). |
+| `STRIKERS_XR_MSAA_TABLE` | `1`, `4` | = `STRIKERS_XR_MSAA` | yes | Overrides it for frames that draw only the table. |
+| `STRIKERS_XR_MSAA_STADIUM` | `1`, `4` | = `STRIKERS_XR_MSAA` | yes | Overrides it for frames that draw the life-size stadium. |
+| `STRIKERS_XR_ANISO` | `1`, `2`, `4`, `8`, `16` | `8` | yes | Anisotropic filtering of mipmapped textures (the pitch at a slant). |
+| `STRIKERS_XR_DECODE` | `0`, `1`, `2` | `2` | yes | Decode-once vertex path: 0 off, 1 players only, 2 everything eligible. |
+| `STRIKERS_XR_HUD_ONLY` | `0`, `1` | `1` | yes | Tabletop during live play: the flat picture draws only the HUD (score bar / Super Strike meter over the table). 0 keeps the full broadcast view. |
+| `STRIKERS_XR_CHARSCALE` | `1.0`..`3.0` | `1.5` | yes | Tabletop only: players drawn this much bigger. |
+| `STRIKERS_XR_STADIUM_SCALE` | `0.1`..`2.0` | `1.0` | yes | Life-size stadium scale (1 = 1 m per game unit). |
+| `STRIKERS_XR_LOD` | `0`..`32` (pixels) | `0` | yes | Stadium economy: stadium objects smaller than this in an eye are skipped (0 = off). |
+| `STRIKERS_XR_SKIP_TALL_FIELD` | `0`, `1` | `0` | yes | Tabletop · Stadium: leave out the life-size goals, benches and fence (the table carries the game). |
+| `STRIKERS_XR_CULL` | `0`, `1` | `1` | no | Per-view culling of stadium objects (xr_layers.cpp reads it once). |
+| `STRIKERS_XR_HAPTICS` | `0`..`100` (%) | `100` | yes | Strength of the game's rumble on the Sense controllers / gamepad. 0 = off. |
+| `STRIKERS_XR_DEADZONE` | `0.0`..`0.4` | `0.12` | yes | Stick dead zone (both sticks). |
+| `STRIKERS_XR_PS_BUTTON` | `0`, `1` | `0` | yes | PS (home) button, when visionOS lets it through: 0 ignored, 1 = Start (pause). It never leaves the game. |
+| `STRIKERS_XR_DEPTH` | `0`, `1` | `1` | yes | Write depth into the drawable for the system's reprojection (diagnostic switch). |
+| `STRIKERS_XR_STATS_SECONDS` | `1`..`60` | `5` | yes | Interval of the `stats:` lines in the log. |
+| `STRIKERS_XR_FOVEATION` | `0`, `1` | `0` | no | Read by `SVLayerConfiguration` (CompositorLayer setup). Kept off: the compositor does not draw through a rasterization rate map. |
+
+## View modes
+
+`sv_set_view_mode(SV_VIEW_*)` (any thread) and the stick double-clicks switch modes; every change is
+reported through `SVAppCallbacks.view_mode_changed`. Stadium modes call
+`set_upper_limbs_visible(0)`; Living Room modes call `set_upper_limbs_visible(1)`.
+
+## Log lines worth knowing
+
+- `[xr] SV_XR build=...` first line of the headset layer.
+- `[xr] stats: display ... fps, game ... fps, ...` every `STRIKERS_XR_STATS_SECONDS`.
+- `[xr] cp: ...` Compositor Services; `[xr] arkit: ...`; `[xr] dawn: ...`; `[xr] input: ...`; `[xr] fx: ...`.

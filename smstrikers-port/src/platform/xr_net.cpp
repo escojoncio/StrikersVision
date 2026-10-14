@@ -11,11 +11,28 @@
 
 extern "C" void PortNetSetFixedStep(int on);  // src/platform/vi.c
 
+// Which transport carries the room: Android (Quest) reaches NetWs.java over JNI; visionOS reaches the
+// sv_net_* functions of visionos/include/sv_bridge.h (WebSocket relay or SharePlay, in Swift). The
+// lockstep, the message format and the protocol number are shared, so a Vision Pro and a Quest on
+// the same release play each other through the same relay.
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#endif
 #if defined(__ANDROID__) && defined(STRIKERS_XR)
+#define XRNET_ANDROID 1
+#elif defined(__APPLE__) && (defined(STRIKERS_VISIONOS) || (defined(TARGET_OS_VISION) && TARGET_OS_VISION))
+#define XRNET_APPLE 1
+#endif
 
+#if defined(XRNET_ANDROID) || defined(XRNET_APPLE)
+
+#if defined(XRNET_ANDROID)
 #include <SDL3/SDL_system.h>
 #include <android/log.h>
 #include <jni.h>
+#else
+#include "../../../visionos/include/sv_bridge.h"
+#endif
 #include <unistd.h>
 
 #include <algorithm>
@@ -47,11 +64,16 @@ static void net_file_log(const char* fmt, ...) {
   va_end(args);
   std::fprintf(stderr, "[xr] %s\n", line);
 }
+#if defined(XRNET_ANDROID)
 #define NLOG(...)                                                       \
   do {                                                                  \
     __android_log_print(ANDROID_LOG_INFO, "strikers_xr", __VA_ARGS__); \
     xrnet::net_file_log(__VA_ARGS__);                                   \
   } while (0)
+#else
+// visionOS: stderr is the game log (STRIKERS_LOG), which the app's log viewer shows.
+#define NLOG(...) xrnet::net_file_log(__VA_ARGS__)
+#endif
 
 // r39: the game's own room server (server/ in this repository, a Cloudflare Worker). Each headset holds
 // one WebSocket to wss://<host>/room/<CODE>; every binary message goes to everyone in that room,
@@ -82,6 +104,25 @@ std::string sanitize_room(const char* s) {
   return r.size() >= 3 ? r : std::string();
 }
 
+// ---------------------------------------------------------------------------------------------
+// The queues between the game thread and the network thread
+// ---------------------------------------------------------------------------------------------
+
+struct Shared {
+  std::mutex m;
+  std::deque<std::vector<uint8_t>> out;  // to send
+  std::deque<std::vector<uint8_t>> in;   // received (every message in the room, ours included)
+  std::string room;                      // the room picked, "" = none (under m)
+  // strikers-quest r39b: the room the game has moved to (poll, never during a match), which the
+  // connection follows (under m). `room` is only the pick, so a pick mid-match no longer cuts it.
+  std::string activeRoom;
+  bool roomSet = false;                  // room came from nativeSetRoom (under m)
+  std::atomic<bool> connected{false};
+  std::atomic<bool> running{false};
+};
+Shared sh;
+
+#if defined(XRNET_ANDROID)
 // ---------------------------------------------------------------------------------------------
 // The connection: NetWs.java (TLS + WebSocket, Android's own TLS and certificate checks) over JNI.
 // The class is looked up on the game thread, a Java thread whose class loader knows the app's
@@ -129,19 +170,7 @@ bool jni_init() {
 // The network thread
 // ---------------------------------------------------------------------------------------------
 
-struct Shared {
-  std::mutex m;
-  std::deque<std::vector<uint8_t>> out;  // to send
-  std::deque<std::vector<uint8_t>> in;   // received (every message in the room, ours included)
-  std::string room;                      // the room picked, "" = none (under m)
-  // strikers-quest r39b: the room the game has moved to (poll, never during a match), which the
-  // connection follows (under m). `room` is only the pick, so a pick mid-match no longer cuts it.
-  std::string activeRoom;
-  bool roomSet = false;                  // room came from nativeSetRoom (under m)
-  std::atomic<bool> connected{false};
-  std::atomic<bool> running{false};
-};
-Shared sh;
+bool net_bridge_init() { return jni_init(); }
 
 void net_thread(uint64_t myId) {
   auto* env = static_cast<JNIEnv*>(SDL_GetAndroidJNIEnv());
@@ -273,6 +302,142 @@ void net_thread(uint64_t myId) {
   }
   drop(nullptr);
 }
+
+#endif  // XRNET_ANDROID
+
+// ---------------------------------------------------------------------------------------------
+// The connection on visionOS: the sv_net_* transports (visionos/net). The room key is the code, or
+// "~" + the code for the SharePlay group (sv_net_set_room), so switching between the relay and
+// SharePlay reads as a room change everywhere below and the link follows it.
+// ---------------------------------------------------------------------------------------------
+
+#if defined(XRNET_APPLE)
+constexpr char kSharePlayMark = '~';
+
+bool net_bridge_init() { return true; }
+
+void net_thread(uint64_t myId) {
+  std::vector<uint8_t> rx(65536);
+  int handle = -1;
+  std::string room;
+  uint64_t retryAt = 0;
+  uint64_t unechoedSince = 0;  // as on Android: the oldest send still waiting for its echo
+  unsigned failures = 0;
+  auto drop = [&](const char* why) {
+    if (handle >= 0) {
+      sv_net_close(handle);
+      if (why != nullptr) NLOG("net: left room %s (%s)", room.c_str(), why);
+    }
+    handle = -1;
+    sh.connected = false;
+  };
+  while (sh.running.load()) {
+    std::string want;
+    {
+      std::lock_guard<std::mutex> lock(sh.m);
+      want = sh.activeRoom;
+    }
+    if (handle >= 0 && want != room) drop("the room changed");
+    if (handle < 0) {
+      if (want.empty() || now_ms() < retryAt) {
+        usleep(50000);
+        continue;
+      }
+      const bool viaSharePlay = want[0] == kSharePlayMark;
+      const std::string code = viaSharePlay ? want.substr(1) : want;
+      // sv_net_open never blocks; the link counts as up once the transport says so (NetWs.open
+      // returned only after the WebSocket upgrade, with the same 5 s budget).
+      handle = sv_net_open(viaSharePlay ? SV_NET_SHAREPLAY : kServerHost, kServerPort, code.c_str(), 0);
+      const uint64_t deadline = now_ms() + 5000;
+      while (handle >= 0 && sv_net_connected(handle) == 0 && now_ms() < deadline && sh.running.load()) {
+        usleep(10000);
+      }
+      if (handle >= 0 && sv_net_connected(handle) == 0) {
+        sv_net_close(handle);
+        handle = -1;
+      }
+      if (handle < 0) {
+        ++failures;
+        retryAt = now_ms() + std::min<uint64_t>(10000, 1000ull * failures);
+        if (failures <= 3 || failures % 10 == 0) {
+          NLOG("net: %s did not answer (try %u)", viaSharePlay ? "the SharePlay group" : "the room server",
+               failures);
+        }
+        continue;
+      }
+      failures = 0;
+      room = want;
+      unechoedSince = 0;
+      sh.connected = true;
+      NLOG("net: in room %s%s", code.c_str(), viaSharePlay ? " (SharePlay)" : "");
+    }
+
+    // Out, in order. What could not be sent goes back to the front of the queue for the next link.
+    std::deque<std::vector<uint8_t>> out;
+    {
+      std::lock_guard<std::mutex> lock(sh.m);
+      if (sh.activeRoom != room) continue;
+      out.swap(sh.out);
+    }
+    while (!out.empty()) {
+      const std::vector<uint8_t>& msg = out.front();
+      if (sv_net_send(handle, msg.data(), static_cast<int>(msg.size())) != 1) break;
+      out.pop_front();
+      if (unechoedSince == 0) unechoedSince = now_ms();
+    }
+    if (!out.empty()) {
+      {
+        std::lock_guard<std::mutex> lock(sh.m);
+        while (sh.activeRoom == room && !out.empty()) {
+          sh.out.push_front(std::move(out.back()));
+          out.pop_back();
+        }
+      }
+      drop("a send failed");
+      retryAt = now_ms() + 200;
+      continue;
+    }
+
+    // In: every whole message already here; sv_net_recv never waits, so a quiet link sleeps 4 ms
+    // (the wait NetWs.recv did on Android).
+    bool any = false;
+    for (;;) {
+      const int n = sv_net_recv(handle, rx.data(), static_cast<int>(rx.size()));
+      if (n == 0) break;
+      if (n == -2) {  // bigger than the game takes: it would read as a different message
+        drop("a message bigger than the game takes");
+        retryAt = now_ms() + 200;
+        break;
+      }
+      if (n < 0) {
+        drop("closed by the server");
+        retryAt = now_ms() + 200;
+        break;
+      }
+      any = true;
+      if (n >= 10) {
+        uint64_t sender = 0;
+        for (int i = 0; i < 8; ++i) sender |= static_cast<uint64_t>(rx[2 + i]) << (8 * i);
+        if (sender == myId) unechoedSince = 0;
+      }
+      std::lock_guard<std::mutex> lock(sh.m);
+      if (sh.activeRoom != room) continue;
+      sh.in.emplace_back(rx.begin(), rx.begin() + n);
+      if (sh.in.size() > 8192) sh.in.pop_front();
+    }
+    if (handle < 0) continue;
+    if (!any) usleep(4000);
+
+    // Both transports hand a sender its own messages back (the relay does; the SharePlay transport
+    // loops them back once delivered), so the same 5 s rule finds a dead link.
+    if (unechoedSince != 0 && now_ms() - unechoedSince > 5000) {
+      drop("no echo for 5 s");
+      retryAt = now_ms() + 200;
+    }
+  }
+  drop(nullptr);
+}
+#endif  // XRNET_APPLE
 
 // ---------------------------------------------------------------------------------------------
 // Messages: [type][protocol][sender id: 8 bytes] then the body, little-endian.
@@ -718,7 +883,7 @@ void poll() {
   }
   if (!st.threadStarted) {
     if (st.room.empty() || st.netBroken) return;  // offline: nothing on the network at all
-    if (!jni_init()) {
+    if (!net_bridge_init()) {
       st.netBroken = true;
       NLOG("net: no Java bridge for the room connection, staying offline");
       return;
@@ -965,6 +1130,7 @@ extern "C" int PortNetOnline(void) { return st.online ? 1 : 0; }
 // r39: the room code from the launcher panel when the game was already running (StrikersActivity
 // .onNewIntent). Takes effect between matches; "" is offline. r39b: only the pick is set here; poll()
 // moves the game and the connection to it (sh.activeRoom) once no match needs the old room.
+#if defined(XRNET_ANDROID)
 extern "C" JNIEXPORT void JNICALL Java_io_github_newcoke_strikers_StrikersActivity_nativeSetRoom(JNIEnv* env, jclass,
                                                                                                jstring jroom) {
   const char* s = jroom != nullptr ? env->GetStringUTFChars(jroom, nullptr) : nullptr;
@@ -974,8 +1140,20 @@ extern "C" JNIEXPORT void JNICALL Java_io_github_newcoke_strikers_StrikersActivi
   xrnet::sh.room = room;
   xrnet::sh.roomSet = true;
 }
+#else
+// visionOS: the launcher's pick (sv_bridge.h), before the game starts or between matches, the same
+// role as nativeSetRoom. viaSharePlay routes the room through the SharePlay group instead of the
+// relay; the code then only names the match inside that group.
+extern "C" void sv_net_set_room(const char* room, int viaSharePlay) {
+  std::string r = xrnet::sanitize_room(room);
+  if (!r.empty() && viaSharePlay != 0) r.insert(r.begin(), xrnet::kSharePlayMark);
+  std::lock_guard<std::mutex> lock(xrnet::sh.m);
+  xrnet::sh.room = r;
+  xrnet::sh.roomSet = true;
+}
+#endif
 
-#else  // !__ANDROID__ || !STRIKERS_XR
+#else  // no online transport on this platform
 
 namespace xrnet {
 void poll() {}

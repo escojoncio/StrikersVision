@@ -76,6 +76,7 @@ bool g_astcTexturesSupported = false;
 bool g_textureComponentSwizzleSupported = false;
 bool g_xrHeadless = false; // strikers-quest: see gpu.hpp
 bool g_vulkanSharedImageExportSupported = false; // strikers-quest: see gpu.hpp
+bool g_metalSharedImageSupported = false; // StrikersVision: see gpu.hpp
 static std::atomic_bool g_initialized = false;
 static std::atomic_bool g_vsyncEnabled = true;
 
@@ -987,6 +988,26 @@ bool initialize(AuroraBackend auroraBackend, bool allowCpu) {
       g_vulkanSharedImageExportSupported = opaqueFdImage && (syncFd || opaqueFdFence);
       Log.info("XR shared image export: {} (opaqueFd={} dedicated={} syncFd={} semFd={})",
                g_vulkanSharedImageExportSupported, opaqueFdImage, dedicated, syncFd, opaqueFdFence);
+    }
+#endif
+#if defined(__APPLE__)
+    // StrikersVision: the visionOS eye passes render into IOSurfaces the headset layer allocates
+    // (visionos/xr/sv_xr.mm) and composites into the Compositor Services drawable with its own Metal
+    // pipeline; Dawn's end-of-access fence is an MTLSharedEvent that command buffer waits on.
+    // Features cannot be added after device creation, so both are asked for whenever offered (they
+    // cost nothing unused, and a macOS build simply never imports anything).
+    {
+      const bool ioSurface = g_adapter.HasFeature(wgpu::FeatureName::SharedTextureMemoryIOSurface);
+      const bool sharedEvent = g_adapter.HasFeature(wgpu::FeatureName::SharedFenceMTLSharedEvent);
+      if (ioSurface) {
+        requiredFeatures.push_back(wgpu::FeatureName::SharedTextureMemoryIOSurface);
+      }
+      if (sharedEvent) {
+        requiredFeatures.push_back(wgpu::FeatureName::SharedFenceMTLSharedEvent);
+      }
+      g_metalSharedImageSupported = ioSurface && sharedEvent;
+      Log.info("XR shared image (Metal): {} (ioSurface={} mtlSharedEvent={})", g_metalSharedImageSupported, ioSurface,
+               sharedEvent);
     }
 #endif
     std::string featureList;

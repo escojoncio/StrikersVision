@@ -1,0 +1,1329 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "%@ is not Super Mario Strikers. The game's disc code begins with G4Q.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ no es Super Mario Strikers. El código del disco del juego empieza por G4Q."
+          }
+        }
+      }
+    },
+    "1 = life size. Smaller makes the stadium a model around you.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 = tamaño real. Menos lo convierte en una maqueta a tu alrededor."
+          }
+        }
+      }
+    },
+    "3D view resolution": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resolución de la vista 3D"
+          }
+        }
+      }
+    },
+    "A code is at least 3 letters or numbers.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un código tiene al menos 3 letras o números."
+          }
+        }
+      }
+    },
+    "Allow full immersion": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir inmersión total"
+          }
+        }
+      }
+    },
+    "Anisotropic filtering: keeps the pitch's grass and lines crisp at a slant.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtrado anisotrópico: mantiene nítidos el césped y las líneas del campo vistos en ángulo."
+          }
+        }
+      }
+    },
+    "App log": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registro de la app"
+          }
+        }
+      }
+    },
+    "Automatic": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automático"
+          }
+        }
+      }
+    },
+    "Automatic uses your headset's language when the disc has it, and English when not. The US disc is English only; the European disc has English, German, French, Spanish and Italian; the Japanese disc has all six.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automático usa el idioma del visor si el disco lo tiene, y si no, inglés. El disco de EE. UU. solo está en inglés; el europeo tiene inglés, alemán, francés, español e italiano; el japonés tiene los seis."
+          }
+        }
+      }
+    },
+    "Back": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atrás"
+          }
+        }
+      }
+    },
+    "Before you play": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antes de jugar"
+          }
+        }
+      }
+    },
+    "Big screen": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pantalla gigante"
+          }
+        }
+      }
+    },
+    "Big screen · stadium": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pantalla gigante · estadio"
+          }
+        }
+      }
+    },
+    "Big screen · your room": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pantalla gigante · tu habitación"
+          }
+        }
+      }
+    },
+    "CODE": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CÓDIGO"
+          }
+        }
+      }
+    },
+    "Close": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cerrar"
+          }
+        }
+      }
+    },
+    "Continue": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar"
+          }
+        }
+      }
+    },
+    "Controller vibration": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vibración de los mandos"
+          }
+        }
+      }
+    },
+    "Controllers": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mandos"
+          }
+        }
+      }
+    },
+    "Controls": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Controles"
+          }
+        }
+      }
+    },
+    "Copied": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiado"
+          }
+        }
+      }
+    },
+    "Copy": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar"
+          }
+        }
+      }
+    },
+    "Copy your own Super Mario Strikers (GameCube) disc image — .iso, .rvz, .wia, .gcm, .ciso or .gcz — with the Files app to On My Apple Vision Pro › StrikersVision › Strikers. Or press Pick a folder… to use a folder somewhere else (iCloud Drive, a USB drive). No game files come with this app.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copia tu propia imagen de disco de Super Mario Strikers (GameCube) — .iso, .rvz, .wia, .gcm, .ciso o .gcz — con la app Archivos a En mi Apple Vision Pro › StrikersVision › Strikers. O pulsa Elegir carpeta… para usar una carpeta en otro sitio (iCloud Drive, una memoria USB). Esta app no incluye ningún archivo del juego."
+          }
+        }
+      }
+    },
+    "Detailed": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detallado"
+          }
+        }
+      }
+    },
+    "Diagnostics": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnóstico"
+          }
+        }
+      }
+    },
+    "Edge smoothing (MSAA)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suavizado de bordes (MSAA)"
+          }
+        }
+      }
+    },
+    "Europe": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Europa"
+          }
+        }
+      }
+    },
+    "Everything": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todo"
+          }
+        }
+      }
+    },
+    "Folder: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carpeta: %@"
+          }
+        }
+      }
+    },
+    "Forget folder": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olvidar carpeta"
+          }
+        }
+      }
+    },
+    "Game language": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idioma del juego"
+          }
+        }
+      }
+    },
+    "Game log": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registro del juego"
+          }
+        }
+      }
+    },
+    "Game picture resolution": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resolución de la imagen del juego"
+          }
+        }
+      }
+    },
+    "Game volume": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volumen del juego"
+          }
+        }
+      }
+    },
+    "Hands": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manos"
+          }
+        }
+      }
+    },
+    "Help": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ayuda"
+          }
+        }
+      }
+    },
+    "Host an online match": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crear partida online"
+          }
+        }
+      }
+    },
+    "How much the game writes to its log. More detail helps when reporting a problem.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuánto escribe el juego en su registro. Más detalle ayuda al informar de un problema."
+          }
+        }
+      }
+    },
+    "How strongly the game's rumble reaches the PlayStation VR2 Sense controllers. 0 turns it off.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Con qué fuerza llega la vibración del juego a los mandos PlayStation VR2 Sense. 0 la apaga."
+          }
+        }
+      }
+    },
+    "In On My Apple Vision Pro › StrikersVision › Strikers": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En En mi Apple Vision Pro › StrikersVision › Strikers"
+          }
+        }
+      }
+    },
+    "In a FaceTime call with Apple Vision Pro users, press Play with SharePlay: the first two to start a Grudge Match play each other.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En una llamada de FaceTime con usuarios de Apple Vision Pro, pulsa Jugar con SharePlay: los dos primeros que empiecen un Grudge Match juegan entre sí."
+          }
+        }
+      }
+    },
+    "In the folder you picked": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En la carpeta que elegiste"
+          }
+        }
+      }
+    },
+    "Japan": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Japón"
+          }
+        }
+      }
+    },
+    "Join": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unirse"
+          }
+        }
+      }
+    },
+    "Join a room": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unirse a una sala"
+          }
+        }
+      }
+    },
+    "Join the SharePlay match": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unirse a la partida de SharePlay"
+          }
+        }
+      }
+    },
+    "Join with a code": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unirse con un código"
+          }
+        }
+      }
+    },
+    "Language": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idioma"
+          }
+        }
+      }
+    },
+    "Leave the game view": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salir de la vista del juego"
+          }
+        }
+      }
+    },
+    "Left stick, click twice fast: your room ⇄ the stadium. Right stick, click twice fast: big screen ⇄ table. Right stick once: big screen size. Left stick once: bring the table back in front of you. Hold the left grip to grab the table; the left stick then resizes and turns it.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stick izquierdo, dos clics rápidos: tu habitación ⇄ el estadio. Stick derecho, dos clics rápidos: pantalla gigante ⇄ mesa. Stick derecho una vez: tamaño de la pantalla. Stick izquierdo una vez: trae la mesa delante de ti. Mantén el agarre izquierdo para coger la mesa; el stick izquierdo entonces la escala y la gira."
+          }
+        }
+      }
+    },
+    "Lets the stadium views hide your room completely (turn the Digital Crown). Off keeps passthrough around you.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deja que las vistas del estadio oculten tu habitación por completo (gira la Digital Crown). Desactivado, sigues viendo tu entorno."
+          }
+        }
+      }
+    },
+    "Live": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En directo"
+          }
+        }
+      }
+    },
+    "Log": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registro"
+          }
+        }
+      }
+    },
+    "Log detail": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detalle del registro"
+          }
+        }
+      }
+    },
+    "Look again": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar de nuevo"
+          }
+        }
+      }
+    },
+    "Multisampling for the 3D views. Off is faster.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Multimuestreo en las vistas 3D. Desactivado va más rápido."
+          }
+        }
+      }
+    },
+    "New code": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código nuevo"
+          }
+        }
+      }
+    },
+    "No game disc found": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se ha encontrado el disco del juego"
+          }
+        }
+      }
+    },
+    "No game disc yet. Put your .iso or .rvz in the Strikers folder (Files app), or pick a folder.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún no hay disco. Pon tu .iso o .rvz en la carpeta Strikers (app Archivos), o elige una carpeta."
+          }
+        }
+      }
+    },
+    "Normal": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Normal"
+          }
+        }
+      }
+    },
+    "Nothing here yet.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún no hay nada."
+          }
+        }
+      }
+    },
+    "Nothing leaves the headset. You can change these later in Settings › Privacy & Security.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada sale del visor. Puedes cambiarlos luego en Ajustes › Privacidad y seguridad."
+          }
+        }
+      }
+    },
+    "Off": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No"
+          }
+        }
+      }
+    },
+    "One player presses Host an online match and reads out the code; the other presses Join with a code. Then both pick Grudge Match, choose teams and start. A Quest 3 on the same release can play against you.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un jugador pulsa Crear partida online y lee el código; el otro pulsa Unirse con un código. Luego los dos eligen Grudge Match, escogen equipo y empiezan. Un Quest 3 con la misma versión puede jugar contra ti."
+          }
+        }
+      }
+    },
+    "Online": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Online"
+          }
+        }
+      }
+    },
+    "Online room %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sala online %@"
+          }
+        }
+      }
+    },
+    "Online: both players pick Grudge Match in the same room, choose their teams and start.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Online: los dos jugadores eligen Partido amistoso (Grudge Match) en la misma sala, escogen equipo y empiezan."
+          }
+        }
+      }
+    },
+    "Open Log (top right) and share it. The game's log is also in the Strikers folder as strikers-log.txt.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre Registro (arriba a la derecha) y compártelo. El registro del juego también está en la carpeta Strikers como strikers-log.txt."
+          }
+        }
+      }
+    },
+    "PUT YOUR GAME DISC HERE.txt": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PON AQUÍ TU DISCO DEL JUEGO.txt"
+          }
+        }
+      }
+    },
+    "Performance overlay": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Indicador de rendimiento"
+          }
+        }
+      }
+    },
+    "Pick a folder…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir carpeta…"
+          }
+        }
+      }
+    },
+    "Picture": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imagen"
+          }
+        }
+      }
+    },
+    "Play a Friendly together": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jugad un amistoso juntos"
+          }
+        }
+      }
+    },
+    "Play offline": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jugar sin conexión"
+          }
+        }
+      }
+    },
+    "Play with SharePlay": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jugar con SharePlay"
+          }
+        }
+      }
+    },
+    "PlayStation VR2 Sense controllers: left stick moves, Cross passes, Circle shoots, Square uses your item, Triangle hits, right grip swaps items, the triggers are L and R, the right stick is the C-stick, Options pauses. A Bluetooth gamepad also works offline.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mandos PlayStation VR2 Sense: el stick izquierdo mueve, Cruz pasa, Círculo chuta, Cuadrado usa tu objeto, Triángulo golpea, el agarre derecho cambia de objeto, los gatillos son L y R, el stick derecho es el C-stick, Options pausa. Un mando Bluetooth también sirve sin conexión."
+          }
+        }
+      }
+    },
+    "Player size on the table": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamaño de los jugadores en la mesa"
+          }
+        }
+      }
+    },
+    "Playing offline": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jugando sin conexión"
+          }
+        }
+      }
+    },
+    "Playing with SharePlay": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jugando con SharePlay"
+          }
+        }
+      }
+    },
+    "Put your .iso or .rvz in Files › On My Apple Vision Pro › StrikersVision › Strikers, or pick a folder.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pon tu .iso o .rvz en Archivos › En mi Apple Vision Pro › StrikersVision › Strikers, o elige una carpeta."
+          }
+        }
+      }
+    },
+    "Quit game": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salir del juego"
+          }
+        }
+      }
+    },
+    "Reset": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restablecer"
+          }
+        }
+      }
+    },
+    "Reset all settings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restablecer todos los ajustes"
+          }
+        }
+      }
+    },
+    "Reset all settings?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Restablecer todos los ajustes?"
+          }
+        }
+      }
+    },
+    "Return to the game": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver al juego"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustes"
+          }
+        }
+      }
+    },
+    "Settings marked “next launch” take effect the next time you open the app.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los ajustes marcados como «próximo inicio» se aplican la próxima vez que abras la app."
+          }
+        }
+      }
+    },
+    "Share": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compartir"
+          }
+        }
+      }
+    },
+    "SharePlay": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SharePlay"
+          }
+        }
+      }
+    },
+    "SharePlay is not available in this install: the signing removed its permission (free Apple accounts cannot have it). Online rooms with a code work the same.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SharePlay no está disponible en esta instalación: la firma quitó su permiso (las cuentas de Apple gratuitas no pueden tenerlo). Las salas online con código funcionan igual."
+          }
+        }
+      }
+    },
+    "SharePlay is turned off for this app.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SharePlay está desactivado para esta app."
+          }
+        }
+      }
+    },
+    "SharePlay: %lld in the group. The first two to start a Grudge Match play each other.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SharePlay: %lld en el grupo. Los dos primeros que empiecen un Grudge Match juegan entre sí."
+          }
+        }
+      }
+    },
+    "Show my hands and arms": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar mis manos y brazos"
+          }
+        }
+      }
+    },
+    "Something wrong?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Algo va mal?"
+          }
+        }
+      }
+    },
+    "Sound": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonido"
+          }
+        }
+      }
+    },
+    "Source": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Origen"
+          }
+        }
+      }
+    },
+    "Stadium size": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamaño del estadio"
+          }
+        }
+      }
+    },
+    "Start": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar"
+          }
+        }
+      }
+    },
+    "Start in": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar en"
+          }
+        }
+      }
+    },
+    "Super Mario Strikers": {
+      "shouldTranslate": false
+    },
+    "Super Mario Strikers for Apple Vision Pro\n\nCopy your own disc image of Super Mario Strikers (GameCube) into this folder.\nAccepted: .iso, .gcm, .rvz, .wia, .ciso, .gcz (also NKit .iso).\nRegions: USA (G4QE01), Europe (G4QP01, \"Mario Smash Football\"), Japan (G4QJ01).\n\nNo game files come with this app. Use a copy of a disc you own.\nYour saves and the game's log (strikers-log.txt) are kept here too.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Super Mario Strikers para Apple Vision Pro\n\nCopia en esta carpeta tu propia imagen de disco de Super Mario Strikers (GameCube).\nFormatos: .iso, .gcm, .rvz, .wia, .ciso, .gcz (también .iso NKit).\nRegiones: EE. UU. (G4QE01), Europa (G4QP01, \"Mario Smash Football\"), Japón (G4QJ01).\n\nEsta app no incluye ningún archivo del juego. Usa una copia de un disco que tengas.\nAquí se guardan también tus partidas y el registro del juego (strikers-log.txt)."
+          }
+        }
+      }
+    },
+    "Super Mario Strikers match": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partido de Super Mario Strikers"
+          }
+        }
+      }
+    },
+    "Surroundings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entorno"
+          }
+        }
+      }
+    },
+    "Table": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mesa"
+          }
+        }
+      }
+    },
+    "Table · stadium": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mesa · estadio"
+          }
+        }
+      }
+    },
+    "Tabletop only: the players are drawn this much bigger so they read at table size.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo en la mesa: los jugadores se dibujan así de grandes para que se vean bien a ese tamaño."
+          }
+        }
+      }
+    },
+    "Tabletop · stadium": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mesa · estadio"
+          }
+        }
+      }
+    },
+    "Tabletop · your room": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mesa · tu habitación"
+          }
+        }
+      }
+    },
+    "Tell your friend this code. Both of you: Grudge Match, pick your team, start.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dile este código a tu amigo. Los dos: Grudge Match, elegid equipo y empezad."
+          }
+        }
+      }
+    },
+    "Texture sharpness": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nitidez de texturas"
+          }
+        }
+      }
+    },
+    "That folder could not be opened.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo abrir esa carpeta."
+          }
+        }
+      }
+    },
+    "That folder could not be remembered.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo recordar esa carpeta."
+          }
+        }
+      }
+    },
+    "The game could not start. See the log.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El juego no pudo arrancar. Mira el registro."
+          }
+        }
+      }
+    },
+    "The game has ended: %@\nClose the app completely and open it again to play another session.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El juego ha terminado: %@\nCierra la app del todo y vuelve a abrirla para otra sesión."
+          }
+        }
+      }
+    },
+    "The game view could not open. Close other immersive apps and try again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo abrir la vista del juego. Cierra otras apps inmersivas y vuelve a intentarlo."
+          }
+        }
+      }
+    },
+    "The game will ask for three permissions. Each one is used only while you play:": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El juego pedirá tres permisos. Cada uno se usa solo mientras juegas:"
+          }
+        }
+      }
+    },
+    "The game's master volume, on top of the headset's.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El volumen general del juego, además del del visor."
+          }
+        }
+      }
+    },
+    "The game's own render size for the big screen (2 = about 1600×900). Higher is sharper and slower.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El tamaño al que el juego dibuja la pantalla gigante (2 = unos 1600×900). Más alto, más nítido y más lento."
+          }
+        }
+      }
+    },
+    "The port's heads-up display: frame rate and timings.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La superposición del port: fotogramas por segundo y tiempos."
+          }
+        }
+      }
+    },
+    "The size of each eye's picture in the 3D views, against the headset's own recommendation.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El tamaño de la imagen de cada ojo en las vistas 3D, respecto a la que recomienda el visor."
+          }
+        }
+      }
+    },
+    "The view the game opens in. Switch any time with the stick double-clicks.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La vista con la que se abre el juego. Cámbiala cuando quieras con el doble clic de los sticks."
+          }
+        }
+      }
+    },
+    "This disc is %@, not Super Mario Strikers (G4Q…).": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este disco es %@, no Super Mario Strikers (G4Q…)."
+          }
+        }
+      }
+    },
+    "To grab, move and resize the table with your hands.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para agarrar, mover y cambiar de tamaño la mesa con las manos."
+          }
+        }
+      }
+    },
+    "To place the big screen and the table in your room and keep them still while you move.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para colocar la pantalla gigante y la mesa en tu habitación y que no se muevan cuando tú te mueves."
+          }
+        }
+      }
+    },
+    "To track the PlayStation VR2 Sense controllers in space (grabbing the table, the pointer over the menus).": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para seguir los mandos PlayStation VR2 Sense en el espacio (agarrar la mesa, el puntero en los menús)."
+          }
+        }
+      }
+    },
+    "Type the code your friend sees.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe el código que ve tu amigo."
+          }
+        }
+      }
+    },
+    "USA": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EE. UU."
+          }
+        }
+      }
+    },
+    "View": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vista"
+          }
+        }
+      }
+    },
+    "Views": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vistas"
+          }
+        }
+      }
+    },
+    "Your game disc": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu disco del juego"
+          }
+        }
+      }
+    },
+    "Your real hands over the game. The stadium hides them while you stand in it, whatever this says.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus manos reales sobre el juego. El estadio las oculta mientras estás dentro, diga lo que diga esto."
+          }
+        }
+      }
+    },
+    "Your room code": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu código de sala"
+          }
+        }
+      }
+    },
+    "next launch": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "próximo inicio"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

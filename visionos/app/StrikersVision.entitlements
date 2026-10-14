@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- SharePlay (GroupActivities). Free-account signing may strip it; the app checks at launch
+	     (SVEntitlements.swift) and turns the SharePlay button off instead of failing. -->
+	<key>com.apple.developer.group-session</key>
+	<true/>
+	<!-- The game keeps the whole GameCube memory map, the disc cache and Dawn's pipelines resident. -->
+	<key>com.apple.developer.kernel.increased-memory-limit</key>
+	<true/>
+</dict>
+</plist>
