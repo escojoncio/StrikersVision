@@ -22,7 +22,9 @@
   entitlements; ahora sale sin firmar (como VisionQuestPro) y la firma la pone el instalador.
 - Diagnóstico de arranque: `visionos/app/Native/sv_boot_trace.c` escribe `Documents/arranque.txt` desde un
   constructor de carga (pasos 1-7, stderr redirigido ahí hasta `open_log_early`). Sigue cerrándose al abrir sin
-  informe tras quitar `group-session` y la firma ad hoc; causa aún desconocida.
+  informe tras quitar `group-session` y la firma ad hoc; causa aún desconocida (visionOS 27.2; ni
+  `arranque.txt` se crea → muere antes de cualquier constructor). Sondas en cada build: `SVProbeMinimal`
+  (`Prueba1-Minima.ipa`) y `SVProbeGame` (`Prueba2-Juego.ipa`), `visionos/probe/`.
 - Limitación: las Personas no se ven mientras se dibuja con Compositor Services (Apple, foros 791591/801420).
 - Pendiente (por orden):
   1. Primera prueba en el visor; leer `Documents/Strikers/strikers-log.txt`. Puntos sin verificar: import de

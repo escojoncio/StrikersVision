@@ -21,7 +21,7 @@ env:
   # The schemes to build, in order. StrikersVision is the app packaged and published;
   # StrikersVisionBootstrap (the game side linked into a placeholder app, never published) only on
   # demand: Run workflow with scheme "StrikersVisionBootstrap".
-  APP_SCHEMES: ${{ inputs.scheme || 'StrikersVision' }}
+  APP_SCHEMES: ${{ inputs.scheme || 'StrikersVision SVProbeMinimal SVProbeGame' }}
   XCODEGEN_VERSION: "2.46.0"
 jobs:
   app:
@@ -110,16 +110,27 @@ jobs:
             grep -E 'error:|BUILD (SUCCEEDED|FAILED)' "app-$SCHEME.log" | head -80 || true
             # The whole list of what the link could not find, which the log summary would cut short.
             grep -A600 'Undefined symbols' "app-$SCHEME.log" > "undefined-$SCHEME.log" || rm -f "undefined-$SCHEME.log"
-            if ! grep -q 'BUILD SUCCEEDED' "app-$SCHEME.log"; then FAILED=1; continue; fi
-            if [ "$SCHEME" = StrikersVision ]; then
-              APP=$(find build/dd/Build/Products -name 'StrikersVision.app' -maxdepth 3 | head -n 1)
+            # A probe that fails is logged but does not hold back the app's release.
+            if ! grep -q 'BUILD SUCCEEDED' "app-$SCHEME.log"; then
+              if [ "$SCHEME" = StrikersVision ]; then FAILED=1; fi
+              continue
+            fi
+            case "$SCHEME" in
+              StrikersVision) IPA=StrikersVision ;;
+              SVProbeMinimal) IPA=Prueba1-Minima ;;
+              SVProbeGame) IPA=Prueba2-Juego ;;
+              *) IPA= ;;
+            esac
+            if [ -n "$IPA" ]; then
+              APP=$(find build/dd/Build/Products -name "$SCHEME.app" -maxdepth 3 | head -n 1)
+              if [ -z "$APP" ]; then echo "no $SCHEME.app"; if [ "$SCHEME" = StrikersVision ]; then FAILED=1; fi; continue; fi
               # Shipped unsigned: the sideloading tool signs it with the installer's own profile. A
               # signature carrying entitlements that profile lacks makes visionOS refuse to launch it.
               ls -la "$APP" | tee -a "app-$SCHEME.log"
-              mkdir -p build/ipa/Payload
-              cp -R "$APP" build/ipa/Payload/
-              (cd build/ipa && zip -qry ../StrikersVision.ipa Payload)
-              ls -la build/StrikersVision.ipa
+              rm -rf "build/ipa-$SCHEME" && mkdir -p "build/ipa-$SCHEME/Payload"
+              cp -R "$APP" "build/ipa-$SCHEME/Payload/"
+              (cd "build/ipa-$SCHEME" && zip -qry "../$IPA.ipa" Payload)
+              ls -la "build/$IPA.ipa"
             fi
           done
           exit $FAILED
@@ -134,7 +145,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete visionos --yes --cleanup-tag || true
-          gh release create visionos build/StrikersVision.ipa \
+          ASSETS=build/StrikersVision.ipa
+          for P in build/Prueba1-Minima.ipa build/Prueba2-Juego.ipa; do if [ -f "$P" ]; then ASSETS="$ASSETS $P"; fi; done
+          gh release create visionos $ASSETS \
             --target "$GITHUB_SHA" --prerelease \
             --title "StrikersVision para Apple Vision Pro" \
             --notes "App sin firmar, compilada de ${GITHUB_SHA::7}. Super Mario Strikers nativo para visionOS: juego compilado para xros, Aurora sobre Dawn (Metal) y SDL3."

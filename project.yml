@@ -150,3 +150,42 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         SWIFT_OBJC_BRIDGING_HEADER: visionos/bootstrap/SVBootstrap-Bridging-Header.h
+
+  # Launch probes (built with the app on every [build], published next to it): the same Info.plist and
+  # bundle id as StrikersVision, so installing one in turn shows which part makes visionOS kill the
+  # launch. SVProbeMinimal links nothing of the game; SVProbeGame force-loads the game libraries.
+  SVProbeMinimal:
+    type: application
+    platform: visionOS
+    scheme: {}
+    sources:
+      - path: visionos/probe/SVProbeApp.swift
+      - path: visionos/app/Native/sv_boot_trace.c
+    settings:
+      base:
+        PRODUCT_NAME: SVProbeMinimal
+        PRODUCT_BUNDLE_IDENTIFIER: com.kdt.livecontainer
+        SUPPORTED_PLATFORMS: "xros"
+        TARGETED_DEVICE_FAMILY: "7"
+        INFOPLIST_FILE: visionos/app/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_PREPROCESS: NO
+        SWIFT_OBJC_BRIDGING_HEADER: visionos/probe/SVProbe-Bridging-Header.h
+        CODE_SIGN_STYLE: Automatic
+
+  SVProbeGame:
+    type: application
+    platform: visionOS
+    scheme: {}
+    sources:
+      - path: visionos/probe/SVProbeApp.swift
+      - path: visionos/app/Native/sv_boot_trace.c
+      - path: visionos/probe/SVProbeGameLink.c
+      - path: visionos/bootstrap/sv_bootstrap_stubs.c
+    settings:
+      groups: [strikers]
+      base:
+        PRODUCT_NAME: SVProbeGame
+        INFOPLIST_FILE: visionos/app/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        SWIFT_OBJC_BRIDGING_HEADER: visionos/probe/SVProbe-Bridging-Header.h
