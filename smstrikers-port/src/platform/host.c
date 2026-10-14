@@ -240,7 +240,10 @@ int port_executable_dir(char* buf, size_t size)
     // private files directory in STRIKERS_HOME before it loads this library, and that directory is
     // what "beside the game" means there; everything downstream, strikers.ini and the log and the
     // button prompt artwork and the files/ scan in DVDInit, then works unchanged.
-#if defined(__ANDROID__)
+    //
+    // StrikersVision: the same on visionOS. The executable sits inside a signed, read-only bundle,
+    // and the app sets STRIKERS_HOME to Documents/Strikers (the folder the Files app shows).
+#if defined(__ANDROID__) || defined(SV_VISIONOS)
     {
         const char* home = getenv("STRIKERS_HOME");
         size_t n;

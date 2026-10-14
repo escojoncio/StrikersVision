@@ -1,0 +1,129 @@
+# StrikersVision for Apple Vision Pro, as an XcodeGen project: `xcodegen generate` writes
+# StrikersVision.xcodeproj. Built by .github/workflows/visionos.yml, which first leaves the game side
+# in build/xros (scripts/build-game-xros.sh):
+#   libstrikers.a       the game (smstrikers-port), force-loaded
+#   libstrikers_deps.a  Aurora, SDL3, Dawn (Metal) and the rest, merged
+#   include/            SDL3/, webgpu/, dawn/, port/xr_quest.h, port/xr_net.h
+#
+# Two targets on the same settings:
+#   StrikersVision           the app: visionos/app (SwiftUI), visionos/xr (Compositor Services,
+#                            Metal), visionos/net (relay + SharePlay).
+#   StrikersVisionBootstrap  a placeholder app with inert stubs for every app-side symbol
+#                            (visionos/bootstrap), which proves the game side links on its own.
+name: StrikersVision
+options:
+  deploymentTarget:
+    visionOS: "26.0"
+  createIntermediateGroups: true
+  xcodeVersion: "26.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+
+settingGroups:
+  strikers:
+    PRODUCT_BUNDLE_IDENTIFIER: com.kdt.livecontainer
+    INFOPLIST_KEY_CFBundleDisplayName: StrikersVision
+    SUPPORTED_PLATFORMS: "xros"
+    TARGETED_DEVICE_FAMILY: "7"
+    ENABLE_BITCODE: NO
+    CODE_SIGN_STYLE: Automatic
+    CLANG_CXX_LANGUAGE_STANDARD: "c++20"
+    CLANG_CXX_LIBRARY: "libc++"
+    CLANG_ENABLE_OBJC_ARC: YES
+    GCC_C_LANGUAGE_STANDARD: "gnu11"
+    # The same macros the game side is built with (CMake: SV_VISIONOS, PORT_XR_HEADSET; Aurora's
+    # public AURORA, TARGET_PC, AURORA_ENABLE_GX, WEBGPU_DAWN), so a header shared with it (Aurora's
+    # dolphin/pad.h PADStatus, gpu.hpp) has the same layout on both sides.
+    GCC_PREPROCESSOR_DEFINITIONS:
+      - $(inherited)
+      - SV_VISIONOS=1
+      - PORT_XR_HEADSET=1
+      - AURORA=1
+      - TARGET_PC=1
+      - AURORA_ENABLE_GX=1
+      - WEBGPU_DAWN=1
+    HEADER_SEARCH_PATHS:
+      - $(SRCROOT)/visionos/include
+      - $(SRCROOT)/build/xros/include
+      - $(SRCROOT)/smstrikers-port/extern/aurora/include
+      - $(SRCROOT)/smstrikers-port/extern/aurora/lib
+      - $(inherited)
+    LIBRARY_SEARCH_PATHS:
+      - $(SRCROOT)/build/xros
+    # Dead stripping is what the desktop build relies on for the decomp's debug classes, whose vtables
+    # name methods no source defines (CMakeLists.txt, -dead_strip); and operator new/delete stay
+    # unexported, so the system's own frameworks never bind to the game's allocator.
+    DEAD_CODE_STRIPPING: YES
+    OTHER_LDFLAGS:
+      - -force_load
+      - $(SRCROOT)/build/xros/libstrikers.a
+      - -lstrikers_deps
+      - -lc++
+      - -lz
+      - -Wl,-unexported_symbol,__Znwm
+      - -Wl,-unexported_symbol,__Znam
+      - -Wl,-unexported_symbol,__ZdlPv
+      - -Wl,-unexported_symbol,__ZdaPv
+      - -framework Metal
+      - -framework QuartzCore
+      - -framework IOSurface
+      - -framework CoreFoundation
+      - -framework Foundation
+      - -framework UIKit
+      - -framework CoreGraphics
+      - -framework CoreVideo
+      - -framework CoreHaptics
+      - -framework CoreMotion
+      - -framework GameController
+      - -framework AVFoundation
+      - -framework AudioToolbox
+      - -framework CoreAudio
+      - -framework CompositorServices
+      - -framework ARKit
+      - -framework GroupActivities
+      - -framework Network
+    LD_RUNPATH_SEARCH_PATHS:
+      - $(inherited)
+      - "@executable_path/Frameworks"
+    INFOPLIST_KEY_GCSupportsControllerUserInteraction: YES
+    INFOPLIST_KEY_UIFileSharingEnabled: YES
+    INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace: YES
+
+targets:
+  StrikersVision:
+    type: application
+    platform: visionOS
+    scheme: {}
+    sources:
+      - path: visionos/app/Sources
+        optional: true
+      - path: visionos/xr
+        optional: true
+      - path: visionos/net
+        optional: true
+    settings:
+      groups: [strikers]
+      base:
+        PRODUCT_NAME: StrikersVision
+        INFOPLIST_FILE: visionos/app/Info.plist
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_ENTITLEMENTS: visionos/app/StrikersVision.entitlements
+        SWIFT_OBJC_BRIDGING_HEADER: visionos/app/StrikersVision-Bridging-Header.h
+
+  StrikersVisionBootstrap:
+    type: application
+    platform: visionOS
+    scheme: {}
+    sources:
+      - path: visionos/bootstrap
+    settings:
+      groups: [strikers]
+      base:
+        PRODUCT_NAME: StrikersVision
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        SWIFT_OBJC_BRIDGING_HEADER: visionos/bootstrap/SVBootstrap-Bridging-Header.h

@@ -25,6 +25,17 @@ extern "C" void PortDebugFrame(void);   // PORT: defined in Game.cpp
 #include "port/shaders.h"   // PORT: the shader stage, held on the memory card screen
 #include <aurora/main.h>   // #define main aurora_main
 #include <aurora/event.h>
+#if defined(SV_VISIONOS)
+// StrikersVision: the process is the visionOS app's, which runs this on a thread of its own
+// (sv_game_start, visionos/include/sv_bridge.h). Not aurora_main: aurora::main (SDL's entry point)
+// is not linked there.
+#undef main
+#define main strikers_main
+extern "C" int strikers_main(int argc, char* argv[]);
+// SDL_main.h is not included: it would rename main again. SDL needs to be told its "main" thread
+// is ready, which is this one: the events and the controllers are pumped here.
+extern "C" void SDL_SetMainReady(void);
+#endif
 #include <stdio.h>   // PORT: snprintf
 #endif
 #include "port/benchmark.h"
@@ -698,6 +709,9 @@ static void PortPumpAuroraEvents()
 
 int main(int argc, char* argv[])
 {
+#if defined(SV_VISIONOS)
+    SDL_SetMainReady();
+#endif
     // PORT: strikers.ini -> environment, before anything reads one.
     {
         const int applied = PortConfigLoad();
