@@ -11,7 +11,8 @@ extern unsigned char g_bScriptQuestionCachingUseSTD;
 
 // PORT: uintptr_t keys, the key is two pointers summed, and is 32 bits on Windows otherwise.
 typedef std::pair<const uintptr_t, FuzzyVariant> ScriptCachePair;
-typedef std::map<uintptr_t, FuzzyVariant, std::less<uintptr_t>, std::allocator<ScriptCachePair> > ScriptCacheMap;
+// StrikersVision: MSL_TREE_LESS is std::less except on libc++ (msl_tree.h).
+typedef std::map<uintptr_t, FuzzyVariant, MSL_TREE_LESS<uintptr_t>, std::allocator<ScriptCachePair> > ScriptCacheMap;
 typedef std::__tree<ScriptCachePair, ScriptCacheMap::value_compare, std::allocator<ScriptCachePair> > ScriptCacheTree;
 
 class ScriptQuestionCache : public nlSingleton<ScriptQuestionCache>

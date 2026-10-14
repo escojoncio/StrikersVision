@@ -6,6 +6,8 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "types.h"
+// _LIBCPP_VERSION, when the C++ library is libc++ (see less below).
+#include <cstddef>
 
 namespace std
 {
@@ -16,12 +18,32 @@ struct binary_function
 };
 
 // PORT: MSVC's <type_traits> already defines std::less.
-#if !defined(_MSC_VER)
+// StrikersVision: and newer libc++ (Xcode 26) declares one in its inline namespace std::__1 from
+// headers the game already includes, so a second std::less makes every less<Key> ambiguous. There the
+// tag lives in Metrowerks:: instead (MSL_TREE_LESS); the map only stores it as an empty comparator.
+#if !defined(_MSC_VER) && !defined(_LIBCPP_VERSION)
 template <class T>
 struct less : public binary_function<T, T, bool>
 {
 };
 #endif
+} // namespace std
+
+#if defined(_LIBCPP_VERSION)
+namespace Metrowerks
+{
+template <class T>
+struct less : public std::binary_function<T, T, bool>
+{
+};
+} // namespace Metrowerks
+#define MSL_TREE_LESS ::Metrowerks::less
+#else
+#define MSL_TREE_LESS std::less
+#endif
+
+namespace std
+{
 
 template <int N>
 class __red_black_tree
@@ -360,7 +382,7 @@ __tree<T, Compare, Allocator>::insert_node_at(node* p, bool leftchild, bool is_l
     return new_node;
 }
 
-template <class Key, class Value, class Compare = less<Key>, class Allocator = allocator<pair<const Key, Value> > >
+template <class Key, class Value, class Compare = MSL_TREE_LESS<Key>, class Allocator = allocator<pair<const Key, Value> > >
 class map
 {
 public:
