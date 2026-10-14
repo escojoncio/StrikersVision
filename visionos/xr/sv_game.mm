@@ -10,7 +10,9 @@
 
 #include <CoreFoundation/CoreFoundation.h>
 
+#include <fcntl.h>
 #include <pthread.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include <atomic>
@@ -56,6 +58,87 @@ float g_remoteScale = 1.0f;
 
 std::string g_home;
 
+// The log viewer feed (see sv_xr.h): set once the tail thread sees fd 2 is the log file it follows,
+// from then on lines reach the viewer through the file only (no duplicates).
+std::atomic<bool> g_tailOwnsStderr{false};
+std::string g_logPath;
+
+void deliver_line(const char* line) {
+  void (*logLine)(const char*) = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(g_lock);
+    if (g_haveCallbacks) logLine = g_callbacks.log_line;
+  }
+  if (logLine != nullptr) logLine(line);
+}
+
+bool stderr_is(const struct stat& file) {
+  struct stat err {};
+  return fstat(STDERR_FILENO, &err) == 0 && err.st_dev == file.st_dev && err.st_ino == file.st_ino;
+}
+
+// Follows the game log ten times a second and hands each complete new line to the viewer. Reading
+// the file (rather than putting a pipe behind stderr) keeps the file the first and only writer's
+// target: a crash loses nothing on disk, and the viewer shows it on the next launch's tail anyway.
+void* log_tail_thread(void*) {
+  pthread_setname_np("strikers-log-tail");
+  off_t offset = 0;
+  ino_t inode = 0;
+  std::string pending;
+  char buf[16384];
+  for (;;) {
+    usleep(100000);
+    struct stat st {};
+    if (stat(g_logPath.c_str(), &st) != 0) continue;
+    if (!g_tailOwnsStderr.load() && stderr_is(st)) {
+      g_tailOwnsStderr.store(true);
+    }
+    if (!g_tailOwnsStderr.load()) continue;
+    if (st.st_ino != inode || st.st_size < offset) {
+      // A new or truncated file (the port opens its log with "w"): from the top.
+      inode = st.st_ino;
+      offset = 0;
+      pending.clear();
+    }
+    if (st.st_size <= offset) continue;
+    const int fd = open(g_logPath.c_str(), O_RDONLY);
+    if (fd < 0) continue;
+    while (offset < st.st_size) {
+      const ssize_t n = pread(fd, buf, sizeof(buf), offset);
+      if (n <= 0) break;
+      offset += n;
+      pending.append(buf, static_cast<size_t>(n));
+      size_t start = 0;
+      for (size_t nl; (nl = pending.find('\n', start)) != std::string::npos; start = nl + 1) {
+        std::string line = pending.substr(start, nl - start);
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        // The app's own lines, mirrored into this file by SVLog, are in the viewer already.
+        if (line.rfind("[app] ", 0) == 0) continue;
+        deliver_line(line.c_str());
+      }
+      pending.erase(0, start);
+      if (pending.size() > 65536) {  // a runaway line without a newline: hand it over as it is
+        deliver_line(pending.c_str());
+        pending.clear();
+      }
+    }
+    close(fd);
+  }
+  return nullptr;
+}
+
+void start_log_tail() {
+  const char* path = std::getenv("STRIKERS_LOG");
+  if (path == nullptr || path[0] != '/') return;  // only a file path can be followed
+  g_logPath = path;
+  pthread_t thread;
+  if (pthread_create(&thread, nullptr, log_tail_thread, nullptr) == 0) {
+    pthread_detach(thread);
+  } else {
+    SVWARN("log: could not start the viewer feed; the log file is still written");
+  }
+}
+
 void release_renderer_locked() {
   if (g_renderer != nullptr) {
     CFRelease(g_renderer);
@@ -99,13 +182,10 @@ extern "C" void sv_log_line(const char* line) {
   if (line == nullptr) return;
   // stderr is the game log once PortConfigLoad has redirected it (STRIKERS_LOG); before that it is
   // the process's own stderr (the device console).
+  // stderr is unbuffered there (config.c), so the line is on disk before this returns.
   std::fprintf(stderr, "%s\n", line);
-  void (*logLine)(const char*) = nullptr;
-  {
-    std::lock_guard<std::mutex> lock(g_lock);
-    if (g_haveCallbacks) logLine = g_callbacks.log_line;
-  }
-  if (logLine != nullptr) logLine(line);
+  // Until the log file is stderr (and followed), the viewer gets the line directly.
+  if (!g_tailOwnsStderr.load()) deliver_line(line);
 }
 
 extern "C" void sv_log(const char* level, const char* fmt, ...) {
@@ -174,6 +254,8 @@ extern "C" int sv_game_start(const char* home, const char* discFolder) {
   setenv("SDL_JOYSTICK_HIDAPI", "0", 0);
   // Quest's defaults, unless the app set them (main.cpp and audio_out.cpp read them).
   setenv("STRIKERS_AUDIO_BUFFERS", "10", 0);
+
+  start_log_tail();
 
   pthread_attr_t attr;
   pthread_attr_init(&attr);
@@ -264,9 +346,12 @@ extern "C" void sv_apply_remote_table_pose(const float m[16], float scale) {
 // Game-thread side (sv_xr.h)
 // ---------------------------------------------------------------------------------------------
 
-extern "C" void* sv_game_current_renderer(uint32_t* generation) {
+extern "C" void* sv_game_copy_renderer(uint32_t* generation) {
   std::lock_guard<std::mutex> lock(g_lock);
   if (generation != nullptr) *generation = g_rendererGeneration;
+  // Retained for the caller: the app may hand over another renderer (releasing this one here) at any
+  // moment, and the game thread keeps using the one it took until its next frame.
+  if (g_renderer != nullptr) CFRetain(g_renderer);
   return g_renderer;
 }
 

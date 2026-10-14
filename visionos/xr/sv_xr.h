@@ -30,9 +30,9 @@ void sv_log(const char* level, const char* fmt, ...) __attribute__((format(print
 void sv_log_line(const char* line);
 
 /* ---- sv_game.mm -> sv_xr.mm */
-/* The renderer the app handed over (cp_layer_renderer_t, retained by sv_game.mm), or NULL; and a
- * generation number that changes every time a new one is set. Game thread reads. */
-void* sv_game_current_renderer(uint32_t* generation);
+/* The renderer the app handed over (cp_layer_renderer_t), retained for the caller (+1: CFRelease
+ * it), or NULL; and a generation number that changes every time a new one is set. */
+void* sv_game_copy_renderer(uint32_t* generation);
 int sv_game_paused(void);
 int sv_game_quit_requested(void);
 /* Pending live settings (sv_setting_changed), applied by sv_xr.mm on the game thread. Returns 1 and
@@ -72,11 +72,10 @@ enum {
 void sv_pad_set_virtual(int port, const SVPad* pad);
 void sv_pad_clear_virtual(int port);
 
-/* ---- sv_game.mm: every byte the process writes to stderr (the game's log, OSReport, Aurora, SDL,
- * crash handlers) also goes, line by line, to SVAppCallbacks.log_line. Installed once, before the
- * game thread starts; the game's own STRIKERS_LOG redirection (config.c, dup2 onto fd 2) is caught
- * too because the pipe sits behind fd 2 again afterwards (sv_game_stderr_reattach). */
-void sv_game_stderr_reattach(void);
+/* ---- sv_game.mm: the game's log reaches the app's viewer. stderr stays the log file itself (the port
+ * dup2s STRIKERS_LOG onto fd 2, unbuffered), so every byte, a crash handler's last words included, is
+ * on disk before anything else happens; a thread follows the file and hands each new line to
+ * SVAppCallbacks.log_line. Started by sv_game_start when STRIKERS_LOG is an absolute path. */
 
 /* ---- Helpers on environment variables (STRIKERS_*). */
 float sv_env_float(const char* name, float fallback, float lo, float hi);

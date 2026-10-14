@@ -106,6 +106,8 @@ targets:
       - path: visionos/net
       - path: visionos/xr/sv_game.mm
       - path: visionos/xr/sv_fx.mm
+      - path: visionos/xr/sv_xr.mm
+      - path: visionos/xr/sv_xr_pad.cpp
       - path: visionos/xr/SVXRHost.swift
       - path: visionos/xr/sv_xr.h
         buildPhase: none
@@ -114,7 +116,6 @@ targets:
       - path: visionos/include/sv_bridge.h
         buildPhase: none
       # Temporary: what visionos/xr does not provide yet.
-      - path: visionos/bootstrap/sv_xr_pending_stubs.c
       - path: visionos/bootstrap/SVPendingLayerConfiguration.swift
       - path: visionos/app/Localizable.xcstrings
         buildPhase: resources
