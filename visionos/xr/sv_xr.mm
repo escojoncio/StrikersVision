@@ -1129,6 +1129,8 @@ bool end_access(SharedImage& img) {
     info.nextInChain = &mtlInfo;
     state.fences[i].ExportInfo(&info);
     if (info.type != wgpu::SharedFenceType::MTLSharedEvent || mtlInfo.sharedEvent == nullptr) continue;
+    // A pending fence handed back unused (the composite's own event) says nothing about Dawn's writes.
+    if (g.compositeEvent != nil && mtlInfo.sharedEvent == (__bridge void*)g.compositeEvent) continue;
     const uint64_t v = i < state.signaledValueCount ? state.signaledValues[i] : 0;
     if (event == nil || v > value) {
       event = (__bridge id<MTLSharedEvent>)mtlInfo.sharedEvent;
@@ -1583,7 +1585,9 @@ void display_frame() {
   const uint64_t t1 = now_ns();
   g.beginWaitNs += t1 - t0;
   if (count <= 0) {
+    // No frame to draw this time: a short sleep instead of spinning (the next query paces again).
     ++g.noFrameSinceStats;
+    usleep(2000);
     return;
   }
   ++g.displayFramesSinceStats;
@@ -1652,6 +1656,7 @@ void display_frame() {
     return;
   }
   cmd.label = @"SV composite";
+  if (g.compositeEvent == nil) g.compositeEvent = [device newSharedEvent];  // CPU path: orders the uploads
   if (!g.gpuScreen) upload_cpu_screen(device);
 
   // Which pose this frame is drawn with.
@@ -2073,6 +2078,8 @@ extern "C" int PortXrStereoFrameBegin(void) {
   }
   g.frameLayerKind[0] = kinds[0];
   g.frameLayerKind[1] = kinds[1];
+  // Never into the pair on show (possible only after failed hand-backs): composites read it.
+  if (g.eyeSlot == g.shownSlot) g.eyeSlot = (g.eyeSlot + 1) % kEyeSlots;
   for (int e = 0; e < 2; ++e) {
     SharedImage& img = g.eyes[g.eyeSlot][e];
     begin_access(img);
