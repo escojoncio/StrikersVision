@@ -31,6 +31,12 @@
   Prueba2 no). Arreglo: `dvd.c` difiere `DVDInit` en `SV_VISIONOS` sin `STRIKERS_HOME` (`PortDVDInitDeferred`,
   llamado en el hilo del juego antes de `strikers_main`); `fatal.c` → `sv_game_fatal` (sv_game.mm) termina solo
   el hilo del juego y avisa a la app (`game_ended`). `PortConfigLoad` corre ahora en ese DVDInit diferido.
+- Primera prueba con disco (visionOS 27.2): la app abre, el juego arranca, XR a 87 fps/juego 60 fps, Sense
+  detectados y con pose, modo Tabletop activo. Crash al entrar en la escena 35 (saving_loading.fen):
+  SIGBUS en `___chkstk_darwin` desde `nlFont::DrawString` → clang convertía `nlStrLen<unsigned short>` en
+  `wcslen` (wchar 16 bits por `-fshort-wchar`, wcslen del sistema cuenta 32 bits) → alloca gigante.
+  Arreglo: `-fno-builtin-wcslen` en `port_flags` (`smstrikers-port/CMakeLists.txt`) + la CI falla si la app
+  importa `_wcslen`. (`wmemchr` lo importa solo Aurora, con wchar de 32 bits: correcto.)
 - Limitación: las Personas no se ven mientras se dibuja con Compositor Services (Apple, foros 791591/801420).
 - Pendiente (por orden):
   1. Primera prueba en el visor; leer `Documents/Strikers/strikers-log.txt`. Puntos sin verificar: import de
