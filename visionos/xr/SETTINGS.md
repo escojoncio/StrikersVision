@@ -20,7 +20,8 @@ reads the variable later sees the new value). Unknown keys are ignored; an empty
 | `STRIKERS_XR_DECODE` | `0`, `1`, `2` | `2` | yes | Decode-once vertex path: 0 off, 1 players only, 2 everything eligible. |
 | `STRIKERS_XR_HUD_ONLY` | `0`, `1` | `1` | yes | Tabletop during live play: the flat picture draws only the HUD (score bar / Super Strike meter over the table). 0 keeps the full broadcast view. |
 | `STRIKERS_XR_CHARSCALE` | `1.0`..`3.0` | `1.5` | yes | Tabletop only: players drawn this much bigger. |
-| `STRIKERS_XR_STADIUM_SCALE` | `0.1`..`2.0` | `1.0` | yes | Life-size stadium scale (1 = 1 m per game unit). |
+| `STRIKERS_XR_TABLE_SCALE` | `0.25`..`4.0` | `1.0` | yes | Tabletop field size, times the default 0.032 m per game unit (a 1.3 m pitch). Applied when it changes; the hands (both grips) and the left stick with the left grip held also resize the table in play. |
+| `STRIKERS_XR_STADIUM_SCALE` | `0.1`..`2.0` | `1.0` | yes | Life-size stadium scale (1 = 1 m per game unit). Stadium views only; in the Living Room views there is no stadium (a log line says so). |
 | `STRIKERS_XR_LOD` | `0`..`32` (pixels) | `0` | yes | Stadium economy: stadium objects smaller than this in an eye are skipped (0 = off). |
 | `STRIKERS_XR_SKIP_TALL_FIELD` | `0`, `1` | `0` | yes | Tabletop · Stadium: leave out the life-size goals, benches and fence (the table carries the game). |
 | `STRIKERS_XR_CULL` | `0`, `1` | `1` | no | Per-view culling of stadium objects (xr_layers.cpp reads it once). |

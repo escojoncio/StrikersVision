@@ -68,8 +68,8 @@ final class SVSettings: ObservableObject {
     @Published var allowFullImmersion = UserDefaults.standard.bool(forKey: "sv.allowFullImmersion") {
         didSet { UserDefaults.standard.set(allowFullImmersion, forKey: "sv.allowFullImmersion") }
     }
-    @Published var showHands = UserDefaults.standard.object(forKey: "sv.showHands") as? Bool ?? true {
-        didSet { UserDefaults.standard.set(showHands, forKey: "sv.showHands") }
+    @Published var showHands = UserDefaults.standard.object(forKey: "sv.showHands2") as? Bool ?? false {
+        didSet { UserDefaults.standard.set(showHands, forKey: "sv.showHands2") }
     }
 
     @Published private(set) var values: [String: String] = [:]
@@ -100,8 +100,12 @@ final class SVSettings: ObservableObject {
                          help: "Tabletop only: the players are drawn this much bigger so they read at table size.",
                          kind: .slider(min: 1.0, max: 3.0, step: 0.1, format: { String(format: "%.1f×", $0) }),
                          defaultValue: "1.5", live: true),
-            SVSettingDef(key: "STRIKERS_XR_STADIUM_SCALE", title: "Stadium size",
-                         help: "1 = life size. Smaller makes the stadium a model around you.",
+            SVSettingDef(key: "STRIKERS_XR_TABLE_SCALE", title: "Table size",
+                         help: "Tabletop views: the size of the field on the table (1 = a 1.3 m pitch). Holding the left grip, the left stick also resizes it, and both grips together let you stretch it.",
+                         kind: .slider(min: 0.25, max: 4.0, step: 0.05, format: { String(format: "%.2f×", $0) }),
+                         defaultValue: "1", live: true),
+            SVSettingDef(key: "STRIKERS_XR_STADIUM_SCALE", title: "Stadium size (stadium views)",
+                         help: "Only in the stadium views: 1 = life size. Smaller makes the stadium a model around you.",
                          kind: .slider(min: 0.1, max: 2.0, step: 0.05, format: { String(format: "%.2f×", $0) }),
                          defaultValue: "1", live: true),
             SVSettingDef(key: "STRIKERS_XR_SKIP_TALL_FIELD", title: "Table only in the stadium",
@@ -229,7 +233,7 @@ final class SVSettings: ObservableObject {
     func resetAll() {
         for def in Self.all { set(def.key, def.defaultValue) }
         allowFullImmersion = false
-        showHands = true
+        showHands = false
     }
 
     /// One setting as the variables it stands for (nil = unset).
@@ -285,7 +289,7 @@ struct SVSettingsView: View {
                         Text("Lets the stadium views hide your room completely (turn the Digital Crown). Off keeps passthrough around you.")
                             .font(.footnote).foregroundStyle(.secondary)
                         Toggle("Show my hands and arms", isOn: $settings.showHands)
-                        Text("Your real hands over the game. The stadium hides them while you stand in it, whatever this says.")
+                        Text("Your real hands (and what they hold) cut out over the game. Off keeps the game on top of everything; the stadium hides them while you stand in it, whatever this says.")
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                     ForEach(group.settings) { def in
