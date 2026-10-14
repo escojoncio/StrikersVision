@@ -216,6 +216,11 @@ else()
     target_compile_options(port_flags INTERFACE
         -fdeclspec
         -fshort-wchar
+        # The game's 16-bit string loops (nlStrLen<unsigned short> and friends) match clang's wcslen
+        # idiom once wchar_t is 16 bits, and get replaced by a call to the C library's wcslen, which
+        # counts 32-bit units everywhere but Windows: a garbage length, then a huge alloca in
+        # nlFont::DrawString and a stack overflow on the first long text.
+        -fno-builtin-wcslen
         -include "${CMAKE_CURRENT_SOURCE_DIR}/include/port/prelude.h"
         -fno-strict-aliasing
         -fsigned-char

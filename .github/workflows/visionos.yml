@@ -100,6 +100,15 @@ jobs:
           if ! "$XCODEGEN" --version; then brew install xcodegen; XCODEGEN=xcodegen; fi
           "$XCODEGEN" generate --spec project.yml
           FAILED=0
+          # The game is built with 16-bit wchar_t; the system wcslen counts 32-bit units, so a call to it
+          # from game code is a wrong string length (smstrikers-port/CMakeLists.txt, -fno-builtin-wcslen).
+          # Checked on the game library itself, not the app, where 32-bit-wchar code may use it rightly.
+          if ! xcrun nm -u build/xros/libstrikers.a > game-undefined.txt 2>&1; then
+            echo "error: nm could not read libstrikers.a"; cat game-undefined.txt; exit 1
+          fi
+          if grep -Eq '(^|[[:space:]])_wcslen$' game-undefined.txt; then
+            echo "error: libstrikers.a calls wcslen (16-bit strings measured as 32-bit)"; exit 1
+          fi
           for SCHEME in $APP_SCHEMES; do
             xcodebuild -project StrikersVision.xcodeproj -scheme "$SCHEME" \
               -sdk xros -configuration Release -destination 'generic/platform=visionOS' \
