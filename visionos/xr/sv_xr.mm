@@ -419,7 +419,7 @@ struct State {
   // 3D modes.
   bool stereoFailed = false;
   bool stereoReady = false;
-  uint32_t eyeWidth = 0, eyeHeight = 0;
+  uint32_t eyeWidth = 0, eyePxHeight = 0;  // the eye images, pixels
   SharedImage eyes[kEyeSlots][2];
   int eyeSlot = 0;  // the slot this game frame renders into
   int shownSlot = -1;
@@ -1239,7 +1239,7 @@ bool create_stereo_resources() {
   if (!g.drawableKnown || g.viewportW <= 0.0f) return false;
   const uint32_t w = (static_cast<uint32_t>(g.viewportW * g.set.eyeScale) / 8) * 8;
   const uint32_t h = (static_cast<uint32_t>(g.viewportH * g.set.eyeScale) / 8) * 8;
-  if (g.stereoReady && w == g.eyeWidth && h == g.eyeHeight) return true;
+  if (g.stereoReady && w == g.eyeWidth && h == g.eyePxHeight) return true;
   auto fail = [](const char* why) {
     SVERR("3D modes unavailable: %s (the Jumbotron still works)", why);
     g.stereoFailed = true;
@@ -1258,7 +1258,7 @@ bool create_stereo_resources() {
       if (!create_shared(g.eyes[s][e], w, h, "eye image")) return fail("eye image import");
     }
   g.eyeWidth = w;
-  g.eyeHeight = h;
+  g.eyePxHeight = h;
   g.eyeSlot = 0;
   g.stereoReady = true;
   SVLOG("3D modes ready: %ux%u per eye (drawable viewport %.0fx%.0f x %.2f), GPU hand-off", w, h, g.viewportW,
