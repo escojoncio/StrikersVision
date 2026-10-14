@@ -23,7 +23,8 @@ struct EyeUniforms {
     float4 eyePos;         // xyz LOCAL
     float4 tableA;         // table centre xyz (LOCAL, field top), yaw
     float4 tableB;         // table scale (m per game unit), floor y, max distance (m), table plane on
-    float4 mode;           // x: over passthrough (alpha = coverage), y: write depth
+    float4 mode;           // x: over passthrough (alpha = coverage), y: write depth, z: eye depth bound
+    float4 proj;           // x, y: this view's projection P22, P23; z, w: the eye pass's near, far (m)
 };
 
 struct EyeVOut {
@@ -46,7 +47,8 @@ struct EyeFOut {
 };
 
 fragment EyeFOut eye_fragment(EyeVOut in [[stage_in]], texture2d<float> eye [[texture(0)]],
-                              sampler smp [[sampler(0)]], constant EyeUniforms& u [[buffer(0)]]) {
+                              texture2d<float> eyeDepth [[texture(1)]], sampler smp [[sampler(0)]],
+                              constant EyeUniforms& u [[buffer(0)]]) {
     // The eye image holds display-encoded values (the game's picture), read through an sRGB view so
     // they arrive linear; the sRGB drawable encodes them back unchanged.
     float4 c = eye.sample(smp, in.uv);
@@ -60,6 +62,19 @@ fragment EyeFOut eye_fragment(EyeVOut in [[stage_in]], texture2d<float> eye [[te
     if (u.mode.y < 0.5) {
         o.depth = 0.0;  // "far": no depth for the system's reprojection
         return o;
+    }
+    if (u.mode.z > 0.5) {
+        // The eye pass's own depth (Aurora's reverse-Z snapshot: 1 near, 0 far / nothing drawn), read
+        // at the nearest texel: filtering depth across an edge would invent a point in between.
+        uint2 px = uint2(clamp(in.uv, 0.0, 0.9999) * float2(eyeDepth.get_width(), eyeDepth.get_height()));
+        float d = eyeDepth.read(px).r;
+        if (d > 0.0) {
+            float n = u.proj.z, f = u.proj.w;
+            float zv = -n * f / (d * (f - n) + n);  // view-space z of the eye pass (metres, negative)
+            o.depth = clamp((u.proj.x * zv + u.proj.y) / (-zv), 0.0, 1.0);
+            return o;
+        }
+        // Nothing drawn here: the estimate below (the stadium modes' sky, the room's floor).
     }
     // The depth of what this pixel most likely shows: the Tabletop field's top, or the floor, or far
     // away. The eye passes' own depth stays inside Dawn; this estimate is what the system's

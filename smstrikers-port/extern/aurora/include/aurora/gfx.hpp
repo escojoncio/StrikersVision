@@ -182,6 +182,10 @@ struct ExternalPassTarget {
   /// strikers-quest: 4 renders into a pooled multisampled color + depth target that resolves into
   /// `texture` when the pass ends (smooth edges on the headset); 1 renders into it directly.
   uint32_t sampleCount = 1;
+  /// strikers-vision: an optional single-sample R32Float texture of the same size that receives the
+  /// pass's raw depth when it closes with resolve_pass({.color = false, .depth = true}), instead of a
+  /// pooled snapshot. The depth is then kept at the pass end (it is discarded otherwise).
+  wgpu::TextureView depthSnapshot;
 };
 
 /// create_pass() with the caller's own color target instead of a pooled offscreen texture (depth
