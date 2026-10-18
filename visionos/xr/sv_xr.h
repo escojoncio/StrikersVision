@@ -136,6 +136,8 @@ void sv_xrhost_frame_finish(void);
  * analog[4] = trigger, grip, stick x, stick y; poseValid and originFromGrip (column-major). The
  * gamepad (any other controller with an extended gamepad profile): buttons (SV_GPB_*) and
  * analog[6] = left x, left y, right x, right y, left trigger, right trigger. */
+/* Hand tracking (pinch placing): per hand 0 left / 1 right, tracked, pinching, pinch point xyz (origin). */
+void sv_xrhost_hands(double time, int32_t* valid, int32_t* pinch, float* pos);
 void sv_xrhost_input(double time, int32_t* handConnected, uint32_t* handButtons, float* handAnalog,
                      int32_t* poseValid, float* originFromGrip, int32_t* gamepadConnected, uint32_t* gamepadButtons,
                      float* gamepadAnalog);
