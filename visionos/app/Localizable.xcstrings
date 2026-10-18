@@ -81,6 +81,16 @@
         }
       }
     },
+    "Arrows: nearer, farther, turn, lower, higher. With Sense controllers, hold the left grip on the screen or the table to carry it.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flechas: acercar, alejar, girar, bajar, subir. Con los mandos Sense, mantén el agarre izquierdo sobre la pantalla o la mesa para llevarla."
+          }
+        }
+      }
+    },
     "Automatic": {
       "localizations": {
         "es": {
@@ -971,6 +981,16 @@
         }
       }
     },
+    "Place": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Colocar"
+          }
+        }
+      }
+    },
     "Play a Friendly together": {
       "localizations": {
         "es": {
@@ -1137,6 +1157,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Igual que arriba"
+          }
+        }
+      }
+    },
+    "Screen back to its place": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pantalla a su sitio"
+          }
+        }
+      }
+    },
+    "Screen in front of me": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pantalla delante de mí"
           }
         }
       }
@@ -1390,6 +1430,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mesa"
+          }
+        }
+      }
+    },
+    "Table in front of me": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mesa delante de mí"
           }
         }
       }

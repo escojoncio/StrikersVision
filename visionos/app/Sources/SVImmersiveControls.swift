@@ -30,6 +30,7 @@ struct SVImmersiveControlsView: View {
     @State private var showAll = false
     @State private var confirmQuit = false
     @State private var testRun = 0
+    @State private var placeRun = 0
 
     var body: some View {
         NavigationStack {
@@ -49,6 +50,32 @@ struct SVImmersiveControlsView: View {
                         Text("Large").tag("2")
                     }
                     .pickerStyle(.segmented)
+                }
+                Section {
+                    // Works with any controller (a DualSense has no tracked hands). With Sense controllers
+                    // the left grip also carries the screen or the table.
+                    HStack {
+                        Button("Screen in front of me") { place("screen-here") }
+                        Button("Screen back to its place") { place("screen-reset") }
+                    }
+                    .buttonStyle(.bordered)
+                    if game.viewMode == Int32(SV_VIEW_TABLETOP_ROOM) || game.viewMode == Int32(SV_VIEW_TABLETOP_STADIUM) {
+                        Button("Table in front of me") { place("table-here") }
+                            .buttonStyle(.bordered)
+                        HStack {
+                            Button { place("table-near") } label: { Image(systemName: "arrow.down") }
+                            Button { place("table-far") } label: { Image(systemName: "arrow.up") }
+                            Button { place("table-left") } label: { Image(systemName: "rotate.left") }
+                            Button { place("table-right") } label: { Image(systemName: "rotate.right") }
+                            Button { place("table-down") } label: { Image(systemName: "chevron.down") }
+                            Button { place("table-up") } label: { Image(systemName: "chevron.up") }
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                } header: {
+                    Text("Place")
+                } footer: {
+                    Text("Arrows: nearer, farther, turn, lower, higher. With Sense controllers, hold the left grip on the screen or the table to carry it.")
                 }
                 Section {
                     DisclosureGroup("All live settings", isExpanded: $showAll) {
@@ -117,6 +144,13 @@ struct SVImmersiveControlsView: View {
         }
         if SVLauncherWindows.open == 0 { openWindow(id: SVScene.launcher) }
         dismissWindow(id: SVScene.controls)
+    }
+
+    private func place(_ command: String) {
+        // A fresh tag every press (also across reopened windows): the XR layer runs each value once.
+        placeRun += 1
+        let tag = "\(Int(Date().timeIntervalSince1970 * 1000))-\(placeRun)"
+        sv_setting_changed("STRIKERS_XR_PLACE", "\(tag):\(command)")
     }
 
     private func binding(_ key: String) -> Binding<String> {
