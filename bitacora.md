@@ -75,6 +75,13 @@
   color y la profundidad en `StoreOp::Discard` (puesto en `start_offscreen` para los pases externos) y la continuación
   los cargaba → memoria de tile de otros pases. Arreglo (recording.cpp): el pase sellado guarda color y profundidad
   (Store); la continuación hereda los store ops originales y `externalTarget`. **Pendiente de probar.**
+- Ritmo de pantalla (referencia AVP/Alyx): el visor va a 90 Hz (100 con luz artificial parpadeante, 96 posible); Alyx
+  mide el periodo real y regula el juego a 1/2 o 1/3 de él (cada imagen exactamente N refrescos). No aplicable tal cual:
+  la lógica de Strikers es fija a 60 Hz (bajarla a 45/50 ralentiza el partido) y muestrear imágenes a 45/50 desde 60
+  da saltos de 1-2 frames de juego (pulsación a 10-15 Hz, peor que el 3:2 actual). Se mantiene 60 imágenes + reproyección
+  con profundidad real. Añadida medida de GPU al log (`gpu (ms): eye pair … composite … display period`): par de ojos
+  desde el traspaso hasta la valla de Dawn (`MTLSharedEventListener`), composite por `GPUStart/EndTime`. Si el par de ojos
+  pasa de ~16 ms en Tabletop · Stadium, el cuello es GPU → bajar `STRIKERS_XR_EYE_SCALE`/MSAA de estadio.
 - Limitación: las Personas no se ven mientras se dibuja con Compositor Services (Apple, foros 791591/801420).
 - Pendiente (por orden):
   1. Cuadros verdes / texturas corruptas intermitentes, sobre todo con confeti (pools de Aurora suben 0→38 % entonces):

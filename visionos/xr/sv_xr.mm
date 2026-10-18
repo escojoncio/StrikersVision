@@ -516,6 +516,18 @@ using Lock = std::lock_guard<std::recursive_mutex>;
 std::thread g_displayThread;
 std::atomic<bool> g_displayQuit{false};
 
+// GPU timing for the log (Metal completion handlers and shared-event listeners, any thread): the eye
+// images from Dawn's hand-off to its fence firing, and the composite's own GPU time, in microseconds.
+std::atomic<uint64_t> g_eyeGpuUs{0}, g_eyeGpuMaxUs{0}, g_eyeGpuCount{0};
+std::atomic<uint64_t> g_compGpuUs{0}, g_compGpuMaxUs{0}, g_compGpuCount{0};
+MTLSharedEventListener* g_eventListener = nil;
+
+void note_max(std::atomic<uint64_t>& m, uint64_t v) {
+  uint64_t cur = m.load();
+  while (v > cur && !m.compare_exchange_weak(cur, v)) {
+  }
+}
+
 // The newest flat frame read back by Aurora on its render worker (CPU fallback only).
 std::mutex g_frameMutex;
 std::vector<uint8_t> g_frame;  // tightly packed RGBA8
@@ -1447,6 +1459,20 @@ void finish_stereo_frame() {
     return;
   }
   if (ok) {
+    // How long the GPU takes for this pair, from the hand-off to Dawn's fence.
+    SharedImage& done = g.eyes[g.eyeSlot][1];
+    if (done.doneEvent != nil) {
+      if (g_eventListener == nil) g_eventListener = [[MTLSharedEventListener alloc] init];
+      const uint64_t t0 = now_ns();
+      [done.doneEvent notifyListener:g_eventListener
+                             atValue:done.doneValue
+                               block:^(id<MTLSharedEvent>, uint64_t) {
+                                 const uint64_t us = (now_ns() - t0) / 1000;
+                                 g_eyeGpuUs.fetch_add(us);
+                                 g_eyeGpuCount.fetch_add(1);
+                                 note_max(g_eyeGpuMaxUs, us);
+                               }];
+    }
     g.shownSlot = g.eyeSlot;
     g.shownPose = g.predicted;
     g.hasProjection = true;
@@ -2142,6 +2168,12 @@ void display_encode(int32_t count, void* devicePtr) {
   id<MTLSharedEvent> signalEvent = g.compositeEvent;
   [cmd addCompletedHandler:^(id<MTLCommandBuffer> done) {
     g.cmdCompleted.fetch_add(1);
+    if (done.GPUEndTime > done.GPUStartTime) {
+      const uint64_t us = static_cast<uint64_t>((done.GPUEndTime - done.GPUStartTime) * 1e6);
+      g_compGpuUs.fetch_add(us);
+      g_compGpuCount.fetch_add(1);
+      note_max(g_compGpuMaxUs, us);
+    }
     // A failed command buffer never signals: Dawn's next BeginAccess (and the CPU upload check)
     // would then wait for this value forever. Signalled from the CPU instead (never lowered).
     if (signalEvent != nil && signalValue != 0 && signalEvent.signaledValue < signalValue) {
@@ -2266,6 +2298,15 @@ void log_stats() {
   const double dn = df * 1e6;
   SVLOG("display per frame (ms): wait for input time %.2f, composite %.2f, fx %.2f", g.beginWaitNs / dn,
         g.compositeNs / dn, g.fxNs / dn);
+  {
+    const uint64_t en = g_eyeGpuCount.exchange(0), eu = g_eyeGpuUs.exchange(0), em = g_eyeGpuMaxUs.exchange(0);
+    const uint64_t cn = g_compGpuCount.exchange(0), cu = g_compGpuUs.exchange(0), cm = g_compGpuMaxUs.exchange(0);
+    // Eye pair: the frame's whole Dawn queue (the flat picture included) until the pair is done. Over
+    // 16.7 ms the GPU cannot hold 60 game frames.
+    SVLOG("gpu (ms): eye pair %.2f avg %.2f max (%llu), composite %.2f avg %.2f max, display period %.2f",
+          en ? eu / 1000.0 / en : 0.0, em / 1000.0, static_cast<unsigned long long>(en), cn ? cu / 1000.0 / cn : 0.0,
+          cm / 1000.0, g.displayPeriod * 1000.0);
+  }
   g.rumblePulses = 0;
   g.layersDroppedSinceStats = 0;
   std::memset(g.loopNs, 0, sizeof(g.loopNs));
