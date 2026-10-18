@@ -88,6 +88,11 @@
   "<tag>:screen-here|screen-reset|table-here|table-near|far|left|right|up|down", `place_command`), válidos con DualSense.
   Motivo: tras recentrar, los paneles quedaban detrás de la pantalla de la mesa (profundidad real) e intocables.
   **Pendiente de probar.**
+- Manos sin mando (4d47fdb+): `HandTrackingProvider` (nuevo en cada `runSession`, solo si `.handTracking` permitido;
+  la app lo pide en `SVAuthorization`) → `sv_xrhost_hands` (pellizco pulgar–índice, histéresis 18/35 mm, punto medio).
+  En `sync_input` una mano sin Sense conectado usa el pellizco como agarre solo si empezó sobre la mesa (`near_table`,
+  gana) o al alcance de la pantalla movible; nunca pulsa Z. Pantalla con cualquier mano (`screenGrabHand`), mesa con
+  una o dos manos (mismo código que los agarres Sense). **Pendiente de probar.**
 - Limitación: las Personas no se ven mientras se dibuja con Compositor Services (Apple, foros 791591/801420).
 - Pendiente (por orden):
   1. Cuadros verdes / texturas corruptas intermitentes, sobre todo con confeti (pools de Aurora suben 0→38 % entonces):
