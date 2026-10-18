@@ -77,7 +77,7 @@ final class SVXRHost: @unchecked Sendable {
     private let session = ARKitSession()
     private let world = WorldTrackingProvider()
     // Hands (pinch to carry the table / screen), run only when the player allowed hand tracking.
-    private let handsProvider = HandTrackingProvider()
+    private var handsProvider = HandTrackingProvider()  // a fresh one each run (guarded by lock)
     private var handsRunning = false
     private var pinching: [Bool] = [false, false]
     private var accessoryProvider: Any?          // AccessoryTrackingProvider (visionOS 26)
@@ -204,7 +204,9 @@ final class SVXRHost: @unchecked Sendable {
         if HandTrackingProvider.isSupported {
             let auth = await session.queryAuthorization(for: [.handTracking])
             if auth[.handTracking] == .allowed {
-                providers.append(handsProvider)
+                let hp = HandTrackingProvider()
+                replaceHandsProvider(hp)
+                providers.append(hp)
                 withHands = true
             } else {
                 xrLog("[xr] arkit: hand tracking not allowed (\(String(describing: auth[.handTracking]))); no pinch placing")
@@ -236,6 +238,12 @@ final class SVXRHost: @unchecked Sendable {
         }
     }
 
+    private func replaceHandsProvider(_ hp: HandTrackingProvider) {
+        lock.lock(); defer { lock.unlock() }
+        handsRunning = false
+        handsProvider = hp
+    }
+
     private func setHands(_ on: Bool) {
         lock.lock(); defer { lock.unlock() }
         handsRunning = on
@@ -246,11 +254,12 @@ final class SVXRHost: @unchecked Sendable {
     func hands(_ time: Double, _ valid: UnsafeMutablePointer<Int32>?, _ pinch: UnsafeMutablePointer<Int32>?,
                _ pos: UnsafeMutablePointer<Float>?) {
         lock.lock()
-        let on = handsRunning && handsProvider.state == .running
+        let provider = handsProvider
+        let on = handsRunning
         lock.unlock()
         for h in 0..<2 { valid?[h] = 0; pinch?[h] = 0 }
-        guard on else { return }
-        let anchors = handsProvider.handAnchors(at: time)
+        guard on, provider.state == .running else { return }
+        let anchors = provider.handAnchors(at: time)
         for (h, anchor) in [anchors.leftHand, anchors.rightHand].enumerated() {
             guard let a = anchor, a.isTracked, let skel = a.handSkeleton else { pinching[h] = false; continue }
             let thumb = skel.joint(.thumbTip), index = skel.joint(.indexFingerTip)

@@ -487,6 +487,7 @@ struct State {
   // where they put it in every view until "back to its place". lastScreen* is the last placement drawn.
   bool barePinchPrev[2] = {false, false};  // bare hands: pinching last frame
   bool barePinchOk[2] = {false, false};    // this pinch started on the table or the screen
+  bool barePinchTable[2] = {false, false}; // ... on the table
   bool screenUser = false;
   V3 screenUserPos;
   float screenUserYaw = 0.0f;
@@ -952,8 +953,10 @@ void sync_input(double time) {
   sv_xrhost_hands(time, bareValid, barePinch, barePos);
   bool bare[2] = {false, false};
   for (int h = 0; h < 2; ++h) {
-    if (g.handValid[h] || !bareValid[h]) {
-      g.barePinchOk[h] = false;
+    if (g.handValid[h] || handConnected[h] || !bareValid[h]) {
+      // A Sense in that hand (even with its tracking lost for a moment) keeps its own buttons.
+      g.barePinchOk[h] = g.barePinchTable[h] = false;
+      if (!bareValid[h]) g.barePinchPrev[h] = false;
       continue;
     }
     bare[h] = true;
@@ -967,10 +970,12 @@ void sync_input(double time) {
       const float reach = std::max(0.3f, 0.5f * g.lastScreenWidth);
       const bool onScreen = g.lastScreenShown && g.lastScreenMovable && dx * dx + dy * dy + dz * dz < reach * reach;
       const bool onTable = g.tabletop && !g.stereoFailed && near_table(p);
+      // The table wins where both are in reach, for either hand.
+      g.barePinchTable[h] = onTable;
       g.barePinchOk[h] = onScreen || onTable;
       if (g.barePinchOk[h]) SVLOG("input: %s hand pinch on the %s", h == 0 ? "left" : "right", onScreen ? "screen" : "table");
     }
-    if (!down) g.barePinchOk[h] = false;
+    if (!down) g.barePinchOk[h] = g.barePinchTable[h] = false;
     g.barePinchPrev[h] = down;
   }
   if (bare[0]) gripL = g.barePinchOk[0] ? 1.0f : 0.0f;
@@ -989,8 +994,8 @@ void sync_input(double time) {
   // The flat picture: the left grip on it (anywhere in the big-screen views, within reach of it at the
   // table) carries it; a bare-hand pinch on it does too, with either hand. It then stays where it was
   // let go, facing you.
-  const bool rightBareOnScreen = bare[1] && g.barePinchOk[1] && !g.table.rightGrab;
-  const bool leftHolds = gripL > 0.6f && haveL;
+  const bool rightBareOnScreen = bare[1] && g.barePinchOk[1] && !g.barePinchTable[1] && !g.table.rightGrab;
+  const bool leftHolds = gripL > 0.6f && haveL && !(bare[0] && g.barePinchTable[0]);
   if (g.screenGrab && !(g.screenGrabHand == 0 ? leftHolds : rightBareOnScreen)) {
     SVLOG("screen placed at (%.2f, %.2f, %.2f) yaw %.2f", g.screenUserPos.x, g.screenUserPos.y, g.screenUserPos.z,
           g.screenUserYaw);
@@ -1019,7 +1024,8 @@ void sync_input(double time) {
     const V3 head = mat_translation(g.viewsValid ? g.predicted.originFromDevice : g.lastHead);
     g.screenUserYaw = std::atan2(head.x - g.screenUserPos.x, head.z - g.screenUserPos.z);
   }
-  const bool holdL = g.tabletop && gripL > 0.6f && !(g.screenGrab && g.screenGrabHand == 0);
+  const bool holdL = g.tabletop && gripL > 0.6f && !(g.screenGrab && g.screenGrabHand == 0) &&
+                     (!bare[0] || g.barePinchTable[0]);
   const int hands = (holdL && haveL ? 1 : 0) | (g.table.rightGrab && haveR ? 2 : 0);
   if (hands != g.table.grabHands) {
     if (hands == 3) {
