@@ -483,6 +483,18 @@ struct State {
   bool celebBuzz = false;
   int buzzWave = 0;
   bool dropLogged = false;
+  // The flat picture placed by the player (left grip on it, or the match window's buttons): kept
+  // where they put it in every view until "back to its place". lastScreen* is the last placement drawn.
+  bool screenUser = false;
+  V3 screenUserPos;
+  float screenUserYaw = 0.0f;
+  bool screenGrab = false;
+  V3 screenGrabOffset;
+  bool lastScreenShown = false;
+  bool lastScreenMovable = false;
+  V3 lastScreenPos;
+  float lastScreenYaw = 0.0f, lastScreenWidth = 0.0f;
+  std::string screenCmdSeen;
   bool gameplayLive = false;
   uint64_t lastFxNs = 0;
   struct {
@@ -644,6 +656,52 @@ void apply_aurora_settings() {
   aurora_xr_set_vertex_decode(sv_env_int("STRIKERS_XR_DECODE", 2, 0, 2));
 }
 
+// Placement from the match window: works without tracked controllers. Commands: screen-here,
+// screen-reset, table-here, table-up/down (5 cm), table-near/far (10 cm), table-left/right (15 deg).
+void place_command(const char* value) {
+  const char* c = std::strchr(value, ':');
+  c = c != nullptr ? c + 1 : value;
+  Mat head;
+  if (sv_xrhost_head(CACurrentMediaTime(), head.m) < 0) head = g.lastHead;
+  float fx = -head.m[8], fz = -head.m[10];
+  const float len = std::max(1e-3f, std::sqrt(fx * fx + fz * fz));
+  fx /= len;
+  fz /= len;
+  const V3 h = mat_translation(head);
+  if (std::strcmp(c, "screen-reset") == 0) {
+    g.screenUser = false;
+    g.screenGrab = false;
+    SVLOG("screen: back to its place");
+  } else if (std::strcmp(c, "screen-here") == 0) {
+    const float d = (g.tabletop && !g.stereoFailed) ? 1.1f : kScreenPresets[g.set.screenPreset].distance;
+    g.screenUserPos = V3{h.x + fx * d, h.y - 0.05f, h.z + fz * d};
+    g.screenUserYaw = std::atan2(-fx, -fz);
+    g.screenUser = true;
+    g.screenGrab = false;
+    SVLOG("screen: put in front of you at (%.2f, %.2f, %.2f)", g.screenUserPos.x, g.screenUserPos.y, g.screenUserPos.z);
+  } else if (std::strcmp(c, "table-here") == 0) {
+    g.bringTable = true;
+  } else if (std::strncmp(c, "table-", 6) == 0) {
+    const char* m = c + 6;
+    // Near/far along the line from you to the table.
+    float dx = g.table.position.x - h.x, dz = g.table.position.z - h.z;
+    const float dl = std::max(1e-3f, std::sqrt(dx * dx + dz * dz));
+    dx /= dl;
+    dz /= dl;
+    if (std::strcmp(m, "up") == 0) g.table.position.y += 0.05f;
+    else if (std::strcmp(m, "down") == 0) g.table.position.y = std::max(g.floorY + 0.1f, g.table.position.y - 0.05f);
+    else if (std::strcmp(m, "far") == 0) g.table.position = V3{g.table.position.x + dx * 0.1f, g.table.position.y, g.table.position.z + dz * 0.1f};
+    else if (std::strcmp(m, "near") == 0 && dl > 0.35f) g.table.position = V3{g.table.position.x - dx * 0.1f, g.table.position.y, g.table.position.z - dz * 0.1f};
+    else if (std::strcmp(m, "left") == 0) g.table.yaw += 0.2618f;
+    else if (std::strcmp(m, "right") == 0) g.table.yaw -= 0.2618f;
+    else return;
+    g.tableSet = true;
+    g.tablePoseDirty = true;
+    SVLOG("table %s: at (%.2f, %.2f, %.2f) yaw %.2f", m, g.table.position.x, g.table.position.y, g.table.position.z,
+          g.table.yaw);
+  }
+}
+
 // Live settings from the app (sv_setting_changed), on the game thread between frames.
 void take_settings() {
   char key[96], value[256];
@@ -655,6 +713,11 @@ void take_settings() {
     any = true;
     if (std::strcmp(key, "STRIKERS_XR_ANISO") == 0 || std::strcmp(key, "STRIKERS_XR_DECODE") == 0) aurora = true;
     if (std::strcmp(key, "STRIKERS_XR_STADIUM_SCALE") == 0) stadiumScale = true;
+    if (std::strcmp(key, "STRIKERS_XR_PLACE") == 0 && g.screenCmdSeen != value) {
+      // The match window's placement buttons (any controller, the DualSense too): "<n>:<command>".
+      g.screenCmdSeen = value;
+      place_command(value);
+    }
     SVLOG("setting %s=%s", key, value[0] != '\0' ? value : "(default)");
   }
   if (!any) return;
@@ -890,7 +953,33 @@ void sync_input(double time) {
   if (!gripRNow) g.table.rightGrab = false;
   if (gripRNow && !g.table.rightGrab) status.button |= SV_PAD_Z;
   g.prevGripR = gripRNow;
-  const bool holdL = g.tabletop && gripL > 0.6f;
+  // The flat picture: the left grip on it (anywhere in the big-screen views, within reach of it at the
+  // table) carries it; it then stays where it was let go, facing you.
+  if (!(gripL > 0.6f) || !haveL) {
+    if (g.screenGrab) {
+      SVLOG("screen placed at (%.2f, %.2f, %.2f) yaw %.2f", g.screenUserPos.x, g.screenUserPos.y, g.screenUserPos.z,
+            g.screenUserYaw);
+    }
+    g.screenGrab = false;
+  } else if (!g.screenGrab && g.table.grabHands == 0 && g.lastScreenShown && g.lastScreenMovable) {
+    const float dx = handL.x - g.lastScreenPos.x, dy = handL.y - g.lastScreenPos.y, dz = handL.z - g.lastScreenPos.z;
+    const float reach = std::max(0.3f, 0.5f * g.lastScreenWidth);
+    if (!g.tabletop || dx * dx + dy * dy + dz * dz < reach * reach) {
+      if (!g.screenUser) {
+        g.screenUser = true;
+        g.screenUserPos = g.lastScreenPos;
+        g.screenUserYaw = g.lastScreenYaw;
+      }
+      g.screenGrab = true;
+      g.screenGrabOffset = V3{g.screenUserPos.x - handL.x, g.screenUserPos.y - handL.y, g.screenUserPos.z - handL.z};
+    }
+  }
+  if (g.screenGrab) {
+    g.screenUserPos = V3{handL.x + g.screenGrabOffset.x, handL.y + g.screenGrabOffset.y, handL.z + g.screenGrabOffset.z};
+    const V3 head = mat_translation(g.lastHead);
+    g.screenUserYaw = std::atan2(head.x - g.screenUserPos.x, head.z - g.screenUserPos.z);
+  }
+  const bool holdL = g.tabletop && gripL > 0.6f && !g.screenGrab;
   const int hands = (holdL && haveL ? 1 : 0) | (g.table.rightGrab && haveR ? 2 : 0);
   if (hands != g.table.grabHands) {
     if (hands == 3) {
@@ -1670,6 +1759,7 @@ struct ScreenPlacement {
   float width = 0.0f, height = 0.0f;
   float radius = 0.0f;
   float uv[4] = {0, 0, 1, 1};
+  bool movable = false;  // the player may carry it (not the replay drop or the Super Strike meter)
 };
 
 ScreenPlacement place_screen(uint32_t picW, uint32_t picH, const V3& head) {
@@ -1734,6 +1824,7 @@ ScreenPlacement place_screen(uint32_t picW, uint32_t picH, const V3& head) {
               p.height);
       }
     } else if (PortXrHudOnlyNormalView()) {
+      p.movable = true;
       // Live play draws the HUD alone: show just its score bar, a ribbon board over the field.
       p.uv[0] = 0.13f;
       p.uv[1] = 0.03f;
@@ -1743,9 +1834,14 @@ ScreenPlacement place_screen(uint32_t picW, uint32_t picH, const V3& head) {
       p.height = p.width * (0.11f * picH) / (0.74f * picW);
       p.pos = V3{g.table.position.x, g.table.position.y + 0.4f + 0.5f * p.height, g.table.position.z};
     } else {
+      p.movable = true;
       p.width = 0.75f;
       p.height = p.width * aspect;
       p.pos = V3{g.table.position.x, g.table.position.y + 0.42f + 0.5f * p.height, g.table.position.z};
+    }
+    if (p.movable && g.screenUser) {
+      p.pos = g.screenUserPos;
+      p.yaw = g.screenUserYaw;
     }
     return p;
   }
@@ -1755,6 +1851,11 @@ ScreenPlacement place_screen(uint32_t picW, uint32_t picH, const V3& head) {
   p.width = preset.width;
   p.height = preset.width * aspect;
   if (g.set.screenCurve > 0.01f) p.radius = preset.distance / g.set.screenCurve;
+  p.movable = true;
+  if (g.screenUser) {
+    p.pos = g.screenUserPos;
+    p.yaw = g.screenUserYaw;
+  }
   return p;
 }
 
@@ -1970,6 +2071,11 @@ void display_encode(int32_t count, void* devicePtr) {
 
   const V3 headPos = mat_translation(pose.originFromDevice);
   const ScreenPlacement screen = place_screen(picW, picH, headPos);
+  g.lastScreenShown = screen.shown;
+  g.lastScreenMovable = screen.movable;
+  g.lastScreenPos = screen.pos;
+  g.lastScreenYaw = screen.yaw;
+  g.lastScreenWidth = screen.width;
 
   // The celebrations: stepped once per display frame, with this frame's eyes.
   const uint64_t fxNow = now_ns();
