@@ -76,6 +76,10 @@ final class SVXRHost: @unchecked Sendable {
     // ARKit
     private let session = ARKitSession()
     private let world = WorldTrackingProvider()
+    // Hands (pinch to carry the table / screen), run only when the player allowed hand tracking.
+    private let handsProvider = HandTrackingProvider()
+    private var handsRunning = false
+    private var pinching: [Bool] = [false, false]
     private var accessoryProvider: Any?          // AccessoryTrackingProvider (visionOS 26)
     private var accessoryAnchors: [Int: Any] = [:] // AccessoryAnchor by hand (0 left, 1 right)
     private var trackedSpatial = Set<ObjectIdentifier>()
@@ -196,10 +200,21 @@ final class SVXRHost: @unchecked Sendable {
                 accessoryProvider = provider
             }
         }
+        var withHands = false
+        if HandTrackingProvider.isSupported {
+            let auth = await session.queryAuthorization(for: [.handTracking])
+            if auth[.handTracking] == .allowed {
+                providers.append(handsProvider)
+                withHands = true
+            } else {
+                xrLog("[xr] arkit: hand tracking not allowed (\(String(describing: auth[.handTracking]))); no pinch placing")
+            }
+        }
         do {
             try await session.run(providers)
             setRunning(accessoryProvider)
-            xrLog("[xr] arkit: session running (world + accessories: \(names))")
+            setHands(withHands)
+            xrLog("[xr] arkit: session running (world + accessories: \(names)\(withHands ? " + hands" : ""))")
             if #available(visionOS 26.0, *), let p = accessoryProvider as? AccessoryTrackingProvider {
                 Task { await self.consume(p) }
             }
@@ -209,6 +224,7 @@ final class SVXRHost: @unchecked Sendable {
                 do {
                     try await session.run([world])
                     setRunning(nil)
+                    setHands(false)
                     xrLog("[xr] arkit: session running with world tracking only (no controller poses)")
                     return
                 } catch {
@@ -217,6 +233,37 @@ final class SVXRHost: @unchecked Sendable {
             }
             // Not running: the next renderer tries again (retryIfNeeded).
             setStopped()
+        }
+    }
+
+    private func setHands(_ on: Bool) {
+        lock.lock(); defer { lock.unlock() }
+        handsRunning = on
+    }
+
+    /// Per hand (0 left, 1 right): tracked, pinching (thumb and index tips together, with hysteresis),
+    /// and the pinch point (between the two tips) in the origin space.
+    func hands(_ time: Double, _ valid: UnsafeMutablePointer<Int32>?, _ pinch: UnsafeMutablePointer<Int32>?,
+               _ pos: UnsafeMutablePointer<Float>?) {
+        lock.lock()
+        let on = handsRunning && handsProvider.state == .running
+        lock.unlock()
+        for h in 0..<2 { valid?[h] = 0; pinch?[h] = 0 }
+        guard on else { return }
+        let anchors = handsProvider.handAnchors(at: time)
+        for (h, anchor) in [anchors.leftHand, anchors.rightHand].enumerated() {
+            guard let a = anchor, a.isTracked, let skel = a.handSkeleton else { pinching[h] = false; continue }
+            let thumb = skel.joint(.thumbTip), index = skel.joint(.indexFingerTip)
+            guard thumb.isTracked, index.isTracked else { pinching[h] = false; continue }
+            let t = a.originFromAnchorTransform * thumb.anchorFromJointTransform.columns.3
+            let i = a.originFromAnchorTransform * index.anchorFromJointTransform.columns.3
+            let d = simd_distance(SIMD3(t.x, t.y, t.z), SIMD3(i.x, i.y, i.z))
+            pinching[h] = pinching[h] ? d < 0.035 : d < 0.018
+            valid?[h] = 1
+            pinch?[h] = pinching[h] ? 1 : 0
+            pos?[h * 3 + 0] = (t.x + i.x) * 0.5
+            pos?[h * 3 + 1] = (t.y + i.y) * 0.5
+            pos?[h * 3 + 2] = (t.z + i.z) * 0.5
         }
     }
 
@@ -769,6 +816,12 @@ public func sv_xrhost_input(_ time: Double, _ handConnected: UnsafeMutablePointe
                             _ padAnalog: UnsafeMutablePointer<Float>?) {
     SVXRHost.shared.input(time, handConnected, handButtons, handAnalog, poseValid, originFromGrip, padConnected,
                           padButtons, padAnalog)
+}
+
+@_cdecl("sv_xrhost_hands")
+public func sv_xrhost_hands(_ time: Double, _ valid: UnsafeMutablePointer<Int32>?, _ pinch: UnsafeMutablePointer<Int32>?,
+                            _ pos: UnsafeMutablePointer<Float>?) {
+    SVXRHost.shared.hands(time, valid, pinch, pos)
 }
 
 @_cdecl("sv_xrhost_rumble")

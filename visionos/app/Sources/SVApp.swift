@@ -91,9 +91,11 @@ enum SVAuthorization {
     /// World sensing (head pose) and the PlayStation VR2 Sense controllers' tracking. A refusal is logged and the game still runs (with what it has).
     static func request() async {
         UserDefaults.standard.set(true, forKey: askedKey)
-        // World sensing (head pose) and the Sense controllers. Hand tracking is not used by the game.
+        // World sensing (head pose), the Sense controllers and the hands (placing the table and screen).
         var types: [ARKitSession.AuthorizationType] = [.worldSensing]
         if AccessoryTrackingProvider.isSupported { types.append(.accessoryTracking) }
+        // Hands: pinching the table or the screen to place them (with a gamepad, or no controller).
+        if HandTrackingProvider.isSupported { types.append(.handTracking) }
         let session = ARKitSession()
         let result = await session.requestAuthorization(for: types)
         for (type, status) in result {

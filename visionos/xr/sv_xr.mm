@@ -485,10 +485,13 @@ struct State {
   bool dropLogged = false;
   // The flat picture placed by the player (left grip on it, or the match window's buttons): kept
   // where they put it in every view until "back to its place". lastScreen* is the last placement drawn.
+  bool barePinchPrev[2] = {false, false};  // bare hands: pinching last frame
+  bool barePinchOk[2] = {false, false};    // this pinch started on the table or the screen
   bool screenUser = false;
   V3 screenUserPos;
   float screenUserYaw = 0.0f;
   bool screenGrab = false;
+  int screenGrabHand = 0;
   V3 screenGrabOffset;
   bool lastScreenShown = false;
   bool lastScreenMovable = false;
@@ -902,7 +905,7 @@ void sync_input(double time) {
   float stickLX = handAnalog[0 * 4 + 2], stickLY = handAnalog[0 * 4 + 3];
   float stickRX = handAnalog[1 * 4 + 2], stickRY = handAnalog[1 * 4 + 3];
   bool gripRNow = handAnalog[1 * 4 + 1] > 0.5f;
-  const float gripL = handAnalog[0 * 4 + 1];
+  float gripL = handAnalog[0 * 4 + 1];
   bool clickL = (L & SV_XRB_STICK_CLICK) != 0;
   bool clickR = (R & SV_XRB_STICK_CLICK) != 0;
 
@@ -942,6 +945,36 @@ void sync_input(double time) {
     g.handValid[h] = poseValid[h] != 0;
     if (g.handValid[h]) g.hand[h] = V3{grip[h * 16 + 12], grip[h * 16 + 13], grip[h * 16 + 14]};
   }
+  // Bare hands (no Sense in that hand: a DualSense, or none): a pinch stands in for the grip, but only
+  // on the table or the screen, so pinching the windows never moves anything nor presses Z.
+  int32_t bareValid[2] = {0, 0}, barePinch[2] = {0, 0};
+  float barePos[6] = {};
+  sv_xrhost_hands(time, bareValid, barePinch, barePos);
+  bool bare[2] = {false, false};
+  for (int h = 0; h < 2; ++h) {
+    if (g.handValid[h] || !bareValid[h]) {
+      g.barePinchOk[h] = false;
+      continue;
+    }
+    bare[h] = true;
+    g.handValid[h] = true;
+    g.hand[h] = V3{barePos[h * 3 + 0], barePos[h * 3 + 1], barePos[h * 3 + 2]};
+    const bool down = barePinch[h] != 0;
+    if (down && !g.barePinchPrev[h]) {
+      // Decided when the pinch starts: on (or right by) the table or within reach of the screen.
+      const V3& p = g.hand[h];
+      const float dx = p.x - g.lastScreenPos.x, dy = p.y - g.lastScreenPos.y, dz = p.z - g.lastScreenPos.z;
+      const float reach = std::max(0.3f, 0.5f * g.lastScreenWidth);
+      const bool onScreen = g.lastScreenShown && g.lastScreenMovable && dx * dx + dy * dy + dz * dz < reach * reach;
+      const bool onTable = g.tabletop && !g.stereoFailed && near_table(p);
+      g.barePinchOk[h] = onScreen || onTable;
+      if (g.barePinchOk[h]) SVLOG("input: %s hand pinch on the %s", h == 0 ? "left" : "right", onScreen ? "screen" : "table");
+    }
+    if (!down) g.barePinchOk[h] = false;
+    g.barePinchPrev[h] = down;
+  }
+  if (bare[0]) gripL = g.barePinchOk[0] ? 1.0f : 0.0f;
+  if (bare[1]) gripRNow = g.barePinchOk[1];
 
   // Tabletop: grabbing the field. The left grip grabs it from anywhere; the right grip grabs it when
   // the hand is on or right next to it, and anywhere else stays the GameCube Z (the item swap). One
@@ -951,36 +984,42 @@ void sync_input(double time) {
   const bool haveL = g.handValid[0], haveR = g.handValid[1];
   if (gripRNow && !g.prevGripR) g.table.rightGrab = g.tabletop && !g.stereoFailed && haveR && near_table(handR);
   if (!gripRNow) g.table.rightGrab = false;
-  if (gripRNow && !g.table.rightGrab) status.button |= SV_PAD_Z;
+  if (gripRNow && !g.table.rightGrab && !bare[1]) status.button |= SV_PAD_Z;
   g.prevGripR = gripRNow;
   // The flat picture: the left grip on it (anywhere in the big-screen views, within reach of it at the
-  // table) carries it; it then stays where it was let go, facing you.
-  if (!(gripL > 0.6f) || !haveL) {
-    if (g.screenGrab) {
-      SVLOG("screen placed at (%.2f, %.2f, %.2f) yaw %.2f", g.screenUserPos.x, g.screenUserPos.y, g.screenUserPos.z,
-            g.screenUserYaw);
-    }
+  // table) carries it; a bare-hand pinch on it does too, with either hand. It then stays where it was
+  // let go, facing you.
+  const bool rightBareOnScreen = bare[1] && g.barePinchOk[1] && !g.table.rightGrab;
+  const bool leftHolds = gripL > 0.6f && haveL;
+  if (g.screenGrab && !(g.screenGrabHand == 0 ? leftHolds : rightBareOnScreen)) {
+    SVLOG("screen placed at (%.2f, %.2f, %.2f) yaw %.2f", g.screenUserPos.x, g.screenUserPos.y, g.screenUserPos.z,
+          g.screenUserYaw);
     g.screenGrab = false;
-  } else if (!g.screenGrab && g.table.grabHands == 0 && g.lastScreenShown && g.lastScreenMovable) {
-    const float dx = handL.x - g.lastScreenPos.x, dy = handL.y - g.lastScreenPos.y, dz = handL.z - g.lastScreenPos.z;
+  } else if (!g.screenGrab && g.table.grabHands == 0 && g.lastScreenShown && g.lastScreenMovable &&
+             (leftHolds || rightBareOnScreen)) {
+    const int h = leftHolds ? 0 : 1;
+    const V3& hp = g.hand[h];
+    const float dx = hp.x - g.lastScreenPos.x, dy = hp.y - g.lastScreenPos.y, dz = hp.z - g.lastScreenPos.z;
     const float reach = std::max(0.3f, 0.5f * g.lastScreenWidth);
-    if (!g.tabletop || dx * dx + dy * dy + dz * dz < reach * reach) {
+    if ((!g.tabletop && !bare[h]) || dx * dx + dy * dy + dz * dz < reach * reach) {
       if (!g.screenUser) {
         g.screenUser = true;
         g.screenUserPos = g.lastScreenPos;
         g.screenUserYaw = g.lastScreenYaw;
       }
       g.screenGrab = true;
-      g.screenGrabOffset = V3{g.screenUserPos.x - handL.x, g.screenUserPos.y - handL.y, g.screenUserPos.z - handL.z};
+      g.screenGrabHand = h;
+      g.screenGrabOffset = V3{g.screenUserPos.x - hp.x, g.screenUserPos.y - hp.y, g.screenUserPos.z - hp.z};
     }
   }
   if (g.screenGrab) {
-    g.screenUserPos = V3{handL.x + g.screenGrabOffset.x, handL.y + g.screenGrabOffset.y, handL.z + g.screenGrabOffset.z};
+    const V3& hp = g.hand[g.screenGrabHand];
+    g.screenUserPos = V3{hp.x + g.screenGrabOffset.x, hp.y + g.screenGrabOffset.y, hp.z + g.screenGrabOffset.z};
     // lastHead is only refreshed while no eye images are shown: the predicted head is current.
     const V3 head = mat_translation(g.viewsValid ? g.predicted.originFromDevice : g.lastHead);
     g.screenUserYaw = std::atan2(head.x - g.screenUserPos.x, head.z - g.screenUserPos.z);
   }
-  const bool holdL = g.tabletop && gripL > 0.6f && !g.screenGrab;
+  const bool holdL = g.tabletop && gripL > 0.6f && !(g.screenGrab && g.screenGrabHand == 0);
   const int hands = (holdL && haveL ? 1 : 0) | (g.table.rightGrab && haveR ? 2 : 0);
   if (hands != g.table.grabHands) {
     if (hands == 3) {
