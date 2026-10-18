@@ -68,6 +68,13 @@
   `PortXrEyeViewAllowed`, `PortXrCharacterScale`, `PortXrHudOnlyNormalView`…) sin candado (solo leen campos del hilo del
   juego). El hilo de pantalla retiene el renderer durante la espera; si cambia, presenta el frame limpio. `PortXrShutdown`
   une el hilo antes de bloquear. **Pendiente de probar**: esperar display ~90 fps y juego 60 estable.
+- Prueba 2026-10-18 (`ee032fd`): hilo de pantalla OK (display 94-104 fps, juego 60 estable; espera de input ya no en el
+  hilo del juego). `depth exported` activo (RGBA8 empaquetado aceptado por Dawn). Fallo visible: cuadros de colores en
+  rejilla de tiles (amarillo/verde según el tema del gol) 1-2 s en celebraciones, y en Tabletop · Stadium "solo cachos"
+  de escena. Causa: `resolve_pass_into` (copia EFB del juego a mitad de un pase de ojo) sellaba el pase con el MSAA de
+  color y la profundidad en `StoreOp::Discard` (puesto en `start_offscreen` para los pases externos) y la continuación
+  los cargaba → memoria de tile de otros pases. Arreglo (recording.cpp): el pase sellado guarda color y profundidad
+  (Store); la continuación hereda los store ops originales y `externalTarget`. **Pendiente de probar.**
 - Limitación: las Personas no se ven mientras se dibuja con Compositor Services (Apple, foros 791591/801420).
 - Pendiente (por orden):
   1. Cuadros verdes / texturas corruptas intermitentes, sobre todo con confeti (pools de Aurora suben 0→38 % entonces):

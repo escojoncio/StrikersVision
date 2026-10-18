@@ -881,6 +881,18 @@ void resolve_pass_into(TextureHandle texture, ClipRect rect, bool clearColor, bo
       static_cast<float>(rect.height) / srcH,
   };
   prevPass.resolveUniformRange = push_uniform(uvTransform);
+  // strikers-vision: a pass that is continued must keep its attachments. The headset's eye passes
+  // discard their multisampled colour and their depth at the end (begin_offscreen), which is right
+  // for the last pass but not for one broken by an EFB copy: the continuation loaded tile memory
+  // left over from other passes (random coloured squares, missing pieces of the scene). The
+  // continuation inherits the discard instead.
+  const auto continuedDepthStoreOp = prevPass.depthStoreOp;
+  std::array<wgpu::StoreOp, MaxColorAttachments> continuedColorStoreOps{};
+  for (uint32_t i = 0; i < prevPass.colorAttachmentCount; ++i) {
+    continuedColorStoreOps[i] = prevPass.colorAttachments[i].storeOp;
+    prevPass.colorAttachments[i].storeOp = wgpu::StoreOp::Store;
+  }
+  prevPass.depthStoreOp = wgpu::StoreOp::Store;
   enqueue_pass(current_frame_packet(), g_recorder.currentRenderPass);
 
   // Populate new render pass from previous
@@ -900,11 +912,14 @@ void resolve_pass_into(TextureHandle texture, ClipRect rect, bool clearColor, bo
       .hasDepth = prevPass.hasDepth,
       .hasStencil = prevPass.hasStencil,
   };
+  newPass.externalTarget = prevPass.externalTarget;
+  newPass.depthStoreOp = continuedDepthStoreOp;
   const bool fullColorClear = clearColor && clearAlpha;
   for (uint32_t i = 0; i < newPass.colorAttachmentCount; ++i) {
     auto& color = newPass.colorAttachments[i];
     color.loadOp = wgpu::LoadOp::Undefined;
     color.clear = false;
+    color.storeOp = continuedColorStoreOps[i];
   }
   if (fullColorClear) {
     auto& sceneColor = newPass.colorAttachments[SceneColorAttachmentIndex];
