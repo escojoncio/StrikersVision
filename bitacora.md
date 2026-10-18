@@ -82,6 +82,12 @@
   con profundidad real. Añadida medida de GPU al log (`gpu (ms): eye pair … composite … display period`): par de ojos
   desde el traspaso hasta la valla de Dawn (`MTLSharedEventListener`), composite por `GPUStart/EndTime`. Si el par de ojos
   pasa de ~16 ms en Tabletop · Stadium, el cuello es GPU → bajar `STRIKERS_XR_EYE_SCALE`/MSAA de estadio.
+- Colocación (e6ea921+): pantalla plana colocable en todas las vistas salvo repetición y medidor de Super Strike
+  (`g.screenUser*`, `place_screen` → `movable`; agarre izquierdo de los Sense: en Jumbotron desde cualquier sitio, en
+  mesa a <max(0,3, ancho/2) m de la pantalla) y botones "Colocar" en la ventana del partido (`STRIKERS_XR_PLACE`
+  "<tag>:screen-here|screen-reset|table-here|table-near|far|left|right|up|down", `place_command`), válidos con DualSense.
+  Motivo: tras recentrar, los paneles quedaban detrás de la pantalla de la mesa (profundidad real) e intocables.
+  **Pendiente de probar.**
 - Limitación: las Personas no se ven mientras se dibuja con Compositor Services (Apple, foros 791591/801420).
 - Pendiente (por orden):
   1. Cuadros verdes / texturas corruptas intermitentes, sobre todo con confeti (pools de Aurora suben 0→38 % entonces):

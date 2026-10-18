@@ -680,7 +680,7 @@ void place_command(const char* value) {
     g.screenGrab = false;
     SVLOG("screen: put in front of you at (%.2f, %.2f, %.2f)", g.screenUserPos.x, g.screenUserPos.y, g.screenUserPos.z);
   } else if (std::strcmp(c, "table-here") == 0) {
-    g.bringTable = true;
+    if (g.tabletop) g.bringTable = true;
   } else if (std::strncmp(c, "table-", 6) == 0) {
     const char* m = c + 6;
     // Near/far along the line from you to the table.
@@ -976,7 +976,8 @@ void sync_input(double time) {
   }
   if (g.screenGrab) {
     g.screenUserPos = V3{handL.x + g.screenGrabOffset.x, handL.y + g.screenGrabOffset.y, handL.z + g.screenGrabOffset.z};
-    const V3 head = mat_translation(g.lastHead);
+    // lastHead is only refreshed while no eye images are shown: the predicted head is current.
+    const V3 head = mat_translation(g.viewsValid ? g.predicted.originFromDevice : g.lastHead);
     g.screenUserYaw = std::atan2(head.x - g.screenUserPos.x, head.z - g.screenUserPos.z);
   }
   const bool holdL = g.tabletop && gripL > 0.6f && !g.screenGrab;
