@@ -91,6 +91,24 @@ final class SVGame: ObservableObject {
         sv_game_request_quit()
     }
 
+    /// Full quit: asks the game to stop, waits (at most ~3 s, without blocking the UI) for the game
+    /// thread to end so saves are flushed, closes the immersive space and kills the process.
+    /// Not running (idle or already ended): exits at once.
+    func quitApp(dismissSpace: @escaping @MainActor () async -> Void) async {
+        if phase == .running {
+            requestQuit()
+            let deadline = Date().addingTimeInterval(3)
+            while phase == .running && Date() < deadline {
+                try? await Task.sleep(nanoseconds: 50_000_000)
+            }
+            if phase == .running { SVLog.log("quit: the game did not end within 3 s") }
+        }
+        if immersiveOpen { await dismissSpace() }
+        SVLog.log("quit: exiting the process")
+        SVLog.flush()
+        exit(0)
+    }
+
     // MARK: callbacks from C (any thread)
 
     fileprivate nonisolated static func limbsVisible(_ visible: Bool) {
