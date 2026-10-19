@@ -23,7 +23,7 @@ struct EyeUniforms {
     float4 eyePos;         // xyz LOCAL
     float4 tableA;         // table centre xyz (LOCAL, field top), yaw
     float4 tableB;         // table scale (m per game unit), floor y, max distance (m), table plane on
-    float4 mode;           // x: over passthrough (alpha = coverage), y: write depth, z: eye depth bound
+    float4 mode;           // x: over passthrough (alpha = coverage), y: depth mode for the system (0 off, 1 near, 2 full), z: eye depth bound, w: near cutoff (m)
     float4 proj;           // x, y: this view's projection P22, P23; z, w: the eye pass's near, far (m)
 };
 
@@ -46,49 +46,39 @@ struct EyeFOut {
     float depth [[depth(any)]];
 };
 
-fragment EyeFOut eye_fragment(EyeVOut in [[stage_in]], texture2d<float> eye [[texture(0)]],
-                              texture2d<float> eyeDepth [[texture(1)]], sampler smp [[sampler(0)]],
-                              constant EyeUniforms& u [[buffer(0)]]) {
-    // The eye image holds display-encoded values (the game's picture), read through an sRGB view so
-    // they arrive linear; the sRGB drawable encodes them back unchanged.
-    float4 c = eye.sample(smp, in.uv);
-    EyeFOut o;
-    if (u.mode.x > 0.5) {
-        if (c.a <= 0.002) discard_fragment();
-        o.color = float4(c.rgb * c.a, c.a);  // premultiplied over the room
-    } else {
-        o.color = float4(c.rgb, 1.0);
-    }
-    if (u.mode.y < 0.5) {
-        o.depth = 0.0;  // "far": no depth for the system's reprojection
-        return o;
-    }
-    if (u.mode.z > 0.5) {
-        // The eye pass's own depth (Aurora's reverse-Z snapshot: 1 near, 0 far / nothing drawn), its
-        // float's four bytes in an RGBA8 texel, read at the nearest texel: filtering depth across an
-        // edge would invent a point in between.
-        uint2 px = uint2(clamp(in.uv, 0.0, 0.9999) * float2(eyeDepth.get_width(), eyeDepth.get_height()));
-        uint4 b = uint4(round(eyeDepth.read(px) * 255.0));
-        float d = as_type<float>(b.x | (b.y << 8) | (b.z << 16) | (b.w << 24));
-        if (!(d > 0.0) || !(d <= 1.0)) d = 0.0;  // bytes that are no depth (never written): far
-        if (d > 0.0) {
-            float n = u.proj.z, f = u.proj.w;
-            float zv = -n * f / (d * (f - n) + n);  // view-space z of the eye pass (metres, negative)
-            o.depth = clamp((u.proj.x * zv + u.proj.y) / (-zv), 0.0, 1.0);
-            return o;
-        }
-        // Nothing drawn here: the estimate below (the stadium modes' sky, the room's floor).
-    }
-    // The depth of what this pixel most likely shows: the Tabletop field's top, or the floor, or far
-    // away. The eye passes' own depth stays inside Dawn; this estimate is what the system's
-    // positional reprojection needs (rotation does not depend on it).
-    float2 ndc = float2(in.uv.x * 2.0 - 1.0, 1.0 - in.uv.y * 2.0);
+// The drawable depth (reverse-Z) of the eye pixel at uv, and its distance from the eye in metres
+// (1e9 when nothing is there). The eye pass's own exported depth when bound (mode.z), else an
+// estimate (the Tabletop field's top, or the floor, or far away).
+float eye_pixel_depth(float2 uv, texture2d<float> eyeDepth, constant EyeUniforms& u, thread float& dist) {
+    float2 ndc = float2(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0);
     float4 a = u.invViewProj * float4(ndc, 1.0, 1.0);
     float4 b = u.invViewProj * float4(ndc, 0.5, 1.0);
     float3 pa = a.xyz / a.w;
     float3 pb = b.xyz / b.w;
     float3 dir = normalize(pb - pa);
     float3 org = u.eyePos.xyz;
+    dist = 1e9;
+    if (u.mode.z > 0.5) {
+        // The eye pass's own depth (Aurora's reverse-Z snapshot: 1 near, 0 far / nothing drawn), its
+        // float's four bytes in an RGBA8 texel, read at the nearest texel: filtering depth across an
+        // edge would invent a point in between.
+        uint2 px = uint2(clamp(uv, 0.0, 0.9999) * float2(eyeDepth.get_width(), eyeDepth.get_height()));
+        uint4 bb = uint4(round(eyeDepth.read(px) * 255.0));
+        float d = as_type<float>(bb.x | (bb.y << 8) | (bb.z << 16) | (bb.w << 24));
+        if (!(d > 0.0) || !(d <= 1.0)) d = 0.0;  // bytes that are no depth (never written): far
+        if (d > 0.0) {
+            float n = u.proj.z, f = u.proj.w;
+            float zv = -n * f / (d * (f - n) + n);  // view-space z of the eye pass (metres, negative)
+            float od = clamp((u.proj.x * zv + u.proj.y) / (-zv), 0.0, 1.0);
+            // Distance from the eye: unproject the point this depth stands for.
+            float4 w = u.invViewProj * float4(ndc, od, 1.0);
+            if (od > 0.0 && abs(w.w) > 1e-9) dist = length(w.xyz / w.w - org);
+            return od;
+        }
+        // Nothing drawn here: the estimate below (the stadium modes' sky, the room's floor).
+    }
+    // The eye passes' own depth stays inside Dawn when not exported; this estimate is what the
+    // system's positional reprojection needs (rotation does not depend on it).
     float maxT = u.tableB.z;
     float t = maxT;
     if (abs(dir.y) > 1e-4) {
@@ -105,8 +95,47 @@ fragment EyeFOut eye_fragment(EyeVOut in [[stage_in]], texture2d<float> eye [[te
         float tf = (u.tableB.y - org.y) / dir.y;
         if (tf > 0.0) t = min(t, tf);
     }
+    dist = t;
     float4 clip = u.viewProj * float4(org + dir * t, 1.0);
-    o.depth = clamp(clip.z / clip.w, 0.0, 1.0);
+    return clamp(clip.z / clip.w, 0.0, 1.0);
+}
+
+// The picture and its real depth. The depth is always written here (the effects and the screen test
+// against it inside the pass); what the system finally gets is decided by eye_depth_fixup after the
+// pass (STRIKERS_XR_DEPTH).
+fragment EyeFOut eye_fragment(EyeVOut in [[stage_in]], texture2d<float> eye [[texture(0)]],
+                              texture2d<float> eyeDepth [[texture(1)]], sampler smp [[sampler(0)]],
+                              constant EyeUniforms& u [[buffer(0)]]) {
+    // The eye image holds display-encoded values (the game's picture), read through an sRGB view so
+    // they arrive linear; the sRGB drawable encodes them back unchanged.
+    float4 c = eye.sample(smp, in.uv);
+    EyeFOut o;
+    if (u.mode.x > 0.5) {
+        if (c.a <= 0.002) discard_fragment();
+        o.color = float4(c.rgb * c.a, c.a);  // premultiplied over the room
+    } else {
+        o.color = float4(c.rgb, 1.0);
+    }
+    float dist;
+    o.depth = eye_pixel_depth(in.uv, eyeDepth, u, dist);
+    return o;
+}
+
+struct DepthOnlyOut {
+    float depth [[depth(any)]];
+};
+
+// Near-only depth for the system (STRIKERS_XR_DEPTH=1): after the pass, over a depth cleared to 0
+// (far), writes the eye pixel's real depth only where it is nearer than mode.w metres from the eye.
+fragment DepthOnlyOut eye_depth_fixup(EyeVOut in [[stage_in]], texture2d<float> eye [[texture(0)]],
+                                      texture2d<float> eyeDepth [[texture(1)]], sampler smp [[sampler(0)]],
+                                      constant EyeUniforms& u [[buffer(0)]]) {
+    if (u.mode.x > 0.5 && eye.sample(smp, in.uv).a <= 0.002) discard_fragment();
+    float dist;
+    float d = eye_pixel_depth(in.uv, eyeDepth, u, dist);
+    if (!(d > 0.0) || !(dist < u.mode.w)) discard_fragment();
+    DepthOnlyOut o;
+    o.depth = d;
     return o;
 }
 

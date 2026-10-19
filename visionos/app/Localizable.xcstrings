@@ -391,6 +391,16 @@
         }
       }
     },
+    "Full real depth": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profundidad real completa"
+          }
+        }
+      }
+    },
     "Game language": {
       "localizations": {
         "es": {
@@ -427,16 +437,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Volumen del juego"
-          }
-        }
-      }
-    },
-    "Gives visionOS the scene's depth so the picture stays steady when you move your head. Off only to diagnose.": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Da a visionOS la profundidad de la escena para que la imagen se mantenga estable al mover la cabeza. Desactívalo solo para diagnosticar."
           }
         }
       }
@@ -727,6 +727,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Multimuestreo en las vistas 3D. Desactivado va más rápido."
+          }
+        }
+      }
+    },
+    "Near only": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo cerca"
           }
         }
       }
@@ -1760,6 +1770,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vistas"
+          }
+        }
+      }
+    },
+    "What visionOS gets as the picture's depth. Off: none; the whole stadium shows and nothing cuts it, but real objects never hide the game. Near only: depth just for what is within about 1.2 m of you (the table), so close things hold steady without cutting the far stadium. Full real depth: every pixel, so furniture hides the game; for diagnosis.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo que recibe visionOS como profundidad de la imagen. Apagado: ninguna; se ve todo el estadio sin recortes, pero los objetos reales nunca tapan el juego. Solo cerca: profundidad solo para lo que está a menos de 1,2 m de ti (la mesa), así lo cercano se mantiene estable sin recortar el estadio lejano. Profundidad real completa: todos los píxeles, así los muebles tapan el juego; para diagnosticar."
           }
         }
       }

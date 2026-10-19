@@ -199,9 +199,9 @@ final class SVSettings: ObservableObject {
                          kind: .slider(min: 1, max: 60, step: 1, format: { "\(Int($0)) s" }),
                          defaultValue: "5", live: true),
             SVSettingDef(key: "STRIKERS_XR_DEPTH", title: "Depth for the system",
-                         help: "Gives visionOS the scene's depth so the picture stays steady when you move your head. Off only to diagnose.",
-                         kind: .toggle(on: "1", off: "0"),
-                         defaultValue: "1", live: true),
+                         help: "What visionOS gets as the picture's depth. Off: none; the whole stadium shows and nothing cuts it, but real objects never hide the game. Near only: depth just for what is within about 1.2 m of you (the table), so close things hold steady without cutting the far stadium. Full real depth: every pixel, so furniture hides the game; for diagnosis.",
+                         kind: .choice([SVOption("0", "Off"), SVOption("1", "Near only"), SVOption("2", "Full real depth")]),
+                         defaultValue: "0", live: true),
         ]),
     ]
 
