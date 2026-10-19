@@ -103,7 +103,15 @@ final class SVGame: ObservableObject {
             }
             if phase == .running { SVLog.log("quit: the game did not end within 3 s") }
         }
-        if immersiveOpen { await dismissSpace() }
+        if immersiveOpen {
+            // A dismissal that never returns must not keep the app alive.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                SVLog.log("quit: the space did not close within 2 s; exiting anyway")
+                SVLog.flush()
+                exit(0)
+            }
+            await dismissSpace()
+        }
         SVLog.log("quit: exiting the process")
         SVLog.flush()
         exit(0)
