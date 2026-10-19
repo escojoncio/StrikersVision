@@ -310,10 +310,15 @@ struct RenderPose {
   Mat projection[2] = {mat_identity(), mat_identity()};
 };
 
-constexpr int kEyeSlots = 3;
+// Eye pairs: one on show (completed), up to two handed back and waiting for the GPU, one being written
+// by the game thread (display_encode only ever shows a completed pair; pick_eye_slot never writes the
+// one on show).
+constexpr int kEyeSlots = 4;
 // The eye passes' near and far planes (gx_projection), in room metres; the composite inverts them.
 constexpr float kEyeNear = 0.05f, kEyeFar = 1500.0f;
-constexpr int kScreenSlots = 3;
+constexpr int kScreenSlots = 4;  // same roles as the eye slots
+// STRIKERS_XR_DEPTH=1: the system gets the real depth only nearer than this many metres from the eye.
+constexpr float kNearDepthCutoff = 1.2f;
 
 constexpr float kTableScaleBase = 0.032f;  // room metres per game unit: the 41 m pitch is ~1.3 m
 constexpr float kTableScaleMin = 0.008f, kTableScaleMax = 0.25f;
@@ -350,7 +355,7 @@ struct Settings {
   int haptics = 100;
   float deadzone = 0.12f;
   bool psButtonStart = false;
-  bool depth = true;
+  int depth = 0;  // STRIKERS_XR_DEPTH: 0 off, 1 near only, 2 full real depth (for the system)
   int statsSeconds = 5;
 };
 
@@ -361,15 +366,16 @@ struct Metal {
   MTLPixelFormat depthFormat = MTLPixelFormatInvalid;
   id<MTLRenderPipelineState> eyePipeline = nil;
   id<MTLRenderPipelineState> screenPipeline = nil;
+  id<MTLRenderPipelineState> depthFixupPipeline = nil;  // depth-only: near-only depth for the system
   id<MTLDepthStencilState> depthAlways = nil;  // eye images (their estimated depth)
   id<MTLDepthStencilState> depthTest = nil;    // the screen
   id<MTLSamplerState> sampler = nil;
   id<MTLTexture> scratchDepth = nil;  // when a drawable hands out no depth texture
   bool failed = false;
   // CPU fallback of the flat picture.
-  id<MTLTexture> cpuScreen[kScreenSlots] = {nil, nil, nil};
-  id<MTLTexture> cpuScreenSrgb[kScreenSlots] = {nil, nil, nil};
-  uint64_t cpuScreenRead[kScreenSlots] = {0, 0, 0};
+  id<MTLTexture> cpuScreen[kScreenSlots] = {};
+  id<MTLTexture> cpuScreenSrgb[kScreenSlots] = {};
+  uint64_t cpuScreenRead[kScreenSlots] = {};
   uint32_t cpuWidth = 0, cpuHeight = 0;
   int cpuShown = -1;
   int cpuNext = 0;
@@ -442,9 +448,15 @@ struct State {
   // back to the table-plane estimate.
   SharedImage eyeDepths[kEyeSlots][2];
   bool depthExport = false;
-  int eyeSlot = 0;  // the slot this game frame renders into
-  int shownSlot = -1;
+  int eyeSlot = 0;  // the slot this game frame renders into (pick_eye_slot)
+  int shownSlot = -1;  // the newest completed pair the composite has switched to
   RenderPose shownPose;
+  // Per slot: handed back by the game thread (a finished or still-running pair), in which order, and
+  // the pose it was drawn for. A slot is written again only after pick_eye_slot cleared its flag.
+  bool eyeHanded[kEyeSlots] = {};
+  uint64_t eyeSeq[kEyeSlots] = {};
+  RenderPose eyePose[kEyeSlots];
+  uint64_t eyeSeqCounter = 0, shownSeq = 0;
   bool stereoThisFrame = false;
   bool eyePassOpen[2] = {false, false};
   int stereoLayers = 0;
@@ -464,8 +476,11 @@ struct State {
   // The flat picture.
   bool gpuScreen = false;  // GPU copy into an IOSurface; false = CPU readback (aurora frame callback)
   SharedImage screens[kScreenSlots];
-  int screenNext = 0;
-  int screenShown = -1;
+  int screenNext = 0;   // the slot the next copy goes into (pick_screen_slot)
+  int screenShown = -1; // the newest completed picture the composite has switched to
+  bool screenHanded[kScreenSlots] = {};
+  uint64_t screenSeq[kScreenSlots] = {};
+  uint64_t screenSeqCounter = 0, screenShownSeq = 0;
   std::atomic<bool> gpuScreenError{false};
 
   // GPU hand-off.
@@ -520,6 +535,11 @@ struct State {
   uint64_t beginWaitNs = 0, endSyncNs = 0, compositeNs = 0, eyeSendNs = 0, fxNs = 0;
   unsigned long lastUnderruns = 0;
   uint64_t drawablesSinceStats = 0;
+  // Presentation diagnostics (stats line "present:").
+  uint64_t eyeChecksSinceStats = 0, eyeNotReadySinceStats = 0;
+  uint64_t framesPerImage[3] = {};  // display frames one game image stayed up: 1, 2, 3+
+  uint64_t framesOnShown = 0;
+  uint64_t lockWaitNs = 0, lockWaitMaxNs = 0;  // display thread: time to take g_lock after frame_begin
 };
 State g;
 
@@ -528,7 +548,6 @@ State g;
 // newest eye images). Everything that reads or writes `g` runs under this lock; the long waits
 // (the compositor's input time, Aurora's synchronize) never do.
 std::recursive_mutex g_lock;
-using Lock = std::lock_guard<std::recursive_mutex>;
 std::thread g_displayThread;
 std::atomic<bool> g_displayQuit{false};
 
@@ -543,6 +562,44 @@ void note_max(std::atomic<uint64_t>& m, uint64_t v) {
   while (v > cur && !m.compare_exchange_weak(cur, v)) {
   }
 }
+
+// Late presentations (composite command buffer finished after the drawable's presentation time) and
+// the longest g_lock hold of the game thread, for the stats line.
+std::atomic<uint64_t> g_presentCount{0}, g_lateCount{0}, g_lateMaxUs{0};
+std::atomic<uint64_t> g_gameLockHoldMaxUs{0};
+thread_local bool t_isDisplayThread = false;
+thread_local int t_lockDepth = 0;
+
+// g_lock with the game thread's outermost hold time measured (the display thread is not).
+class TimedLock {
+ public:
+  explicit TimedLock(std::recursive_mutex& m) : m_(m) { lock(); }
+  ~TimedLock() {
+    if (owns_) unlock();
+  }
+  TimedLock(const TimedLock&) = delete;
+  TimedLock& operator=(const TimedLock&) = delete;
+  void lock() {
+    m_.lock();
+    owns_ = true;
+    outer_ = !t_isDisplayThread && t_lockDepth++ == 0;
+    if (outer_) t0_ = now_ns();
+  }
+  void unlock() {
+    owns_ = false;
+    if (!t_isDisplayThread) {
+      --t_lockDepth;
+      if (outer_) note_max(g_gameLockHoldMaxUs, (now_ns() - t0_) / 1000);
+    }
+    m_.unlock();
+  }
+
+ private:
+  std::recursive_mutex& m_;
+  bool owns_ = false, outer_ = false;
+  uint64_t t0_ = 0;
+};
+using Lock = TimedLock;
 
 // The newest flat frame read back by Aurora on its render worker (CPU fallback only).
 std::mutex g_frameMutex;
@@ -645,7 +702,7 @@ void read_settings() {
   s.haptics = sv_env_int("STRIKERS_XR_HAPTICS", 100, 0, 100);
   s.deadzone = sv_env_float("STRIKERS_XR_DEADZONE", 0.12f, 0.0f, 0.4f);
   s.psButtonStart = sv_env_int("STRIKERS_XR_PS_BUTTON", 0, 0, 1) != 0;
-  s.depth = sv_env_int("STRIKERS_XR_DEPTH", 1, 0, 1) != 0;
+  s.depth = sv_env_int("STRIKERS_XR_DEPTH", 0, 0, 2);
   s.statsSeconds = sv_env_int("STRIKERS_XR_STATS_SECONDS", 5, 1, 60);
 }
 
@@ -1429,6 +1486,7 @@ void use_cpu_screen(const char* why) {
   g.gpuScreen = false;
   for (SharedImage& s : g.screens) release_shared(s);
   g.screenShown = -1;
+  for (bool& h : g.screenHanded) h = false;
   aurora_xr_set_frame_callback(&on_aurora_frame, nullptr);
   SVWARN("screen: GPU copy unavailable (%s); reading frames back to the CPU instead", why);
 }
@@ -1445,6 +1503,7 @@ void copy_screen_gpu() {
     use_cpu_screen("Aurora's frame is not RGBA8Unorm");
     return;
   }
+  pick_screen_slot();
   SharedImage& img = g.screens[g.screenNext];
   if (img.width != src.size.width || img.height != src.size.height || !img.memory) {
     if (!create_shared(img, src.size.width, src.size.height, "screen image")) {
@@ -1479,8 +1538,8 @@ void copy_screen_gpu() {
                          }
                        });
   if (end_access(img)) {
-    g.screenShown = g.screenNext;
-    g.screenNext = (g.screenNext + 1) % kScreenSlots;
+    g.screenHanded[g.screenNext] = true;  // shown once the GPU has finished it (select_shown_screen)
+    g.screenSeq[g.screenNext] = ++g.screenSeqCounter;
   } else if (img.refused) {
     use_cpu_screen("EndAccess");
   }
@@ -1509,6 +1568,7 @@ bool create_stereo_resources() {
   g.stereoReady = false;
   g.hasProjection = false;
   g.shownSlot = -1;
+  for (bool& h : g.eyeHanded) h = false;
   for (int s = 0; s < kEyeSlots; ++s)
     for (int e = 0; e < 2; ++e) {
       if (!create_shared(g.eyes[s][e], w, h, "eye image")) return fail("eye image import");
@@ -1582,6 +1642,111 @@ void end_depth_access(int slot) {
   }
 }
 
+// The slot the game thread writes next (g_lock held): never the pair on show, and the unhanded
+// ones / the oldest handed-back ones first, so the newest pending pairs survive. A handed-back pair
+// that was never shown is dropped here (the GPU was slower than the game).
+void pick_eye_slot() {
+  int best = -1;
+  for (int s = 0; s < kEyeSlots; ++s) {
+    if (s == g.shownSlot) continue;
+    if (best < 0) {
+      best = s;
+      continue;
+    }
+    const uint64_t a = g.eyeHanded[s] ? g.eyeSeq[s] : 0, b = g.eyeHanded[best] ? g.eyeSeq[best] : 0;
+    if (a < b) best = s;
+  }
+  if (best < 0) best = 0;  // unreachable with more than one slot
+  g.eyeSlot = best;
+  g.eyeHanded[best] = false;
+}
+
+void pick_screen_slot() {
+  int best = -1;
+  for (int s = 0; s < kScreenSlots; ++s) {
+    if (s == g.screenShown) continue;
+    if (best < 0) {
+      best = s;
+      continue;
+    }
+    const uint64_t a = g.screenHanded[s] ? g.screenSeq[s] : 0, b = g.screenHanded[best] ? g.screenSeq[best] : 0;
+    if (a < b) best = s;
+  }
+  if (best < 0) best = 0;
+  g.screenNext = best;
+  g.screenHanded[best] = false;
+}
+
+// Has the GPU finished Dawn's writes of this image (so a wait on it cannot stall)?
+bool image_done(const SharedImage& img) {
+  return img.valid && img.doneEvent != nil && img.doneEvent.signaledValue >= img.doneValue;
+}
+
+// Display thread, g_lock held: switch to the newest handed-back pair the GPU has finished (both eyes
+// and, when exported, their depth); otherwise keep showing the previous completed one with its pose.
+void select_shown_eyes() {
+  int newest = -1;
+  uint64_t newestSeq = 0;
+  for (int s = 0; s < kEyeSlots; ++s) {
+    if (g.eyeHanded[s] && g.eyeSeq[s] > newestSeq) {
+      newest = s;
+      newestSeq = g.eyeSeq[s];
+    }
+  }
+  if (newest < 0) return;
+  const bool anyNewer = g.shownSlot < 0 || newestSeq > g.shownSeq;
+  if (anyNewer) {
+    ++g.eyeChecksSinceStats;
+    int pick = -1;
+    uint64_t pickSeq = 0;
+    for (int s = 0; s < kEyeSlots; ++s) {
+      if (!g.eyeHanded[s] || (g.shownSlot >= 0 && g.eyeSeq[s] <= g.shownSeq) || g.eyeSeq[s] <= pickSeq) continue;
+      bool done = image_done(g.eyes[s][0]) && image_done(g.eyes[s][1]);
+      if (done && g.depthExport) {
+        for (int e = 0; e < 2; ++e) {
+          const SharedImage& d = g.eyeDepths[s][e];
+          if (d.valid && d.doneEvent != nil && d.doneEvent.signaledValue < d.doneValue) done = false;
+        }
+      }
+      if (done) {
+        pick = s;
+        pickSeq = g.eyeSeq[s];
+      }
+    }
+    if (pick >= 0) {
+      if (g.shownSlot >= 0) {
+        ++g.framesPerImage[std::min<uint64_t>(std::max<uint64_t>(g.framesOnShown, 1), 3) - 1];
+      }
+      g.framesOnShown = 0;
+      g.shownSlot = pick;
+      g.shownSeq = pickSeq;
+      g.shownPose = g.eyePose[pick];
+      if (pickSeq != newestSeq) ++g.eyeNotReadySinceStats;  // a newer pair exists but is still running
+    } else {
+      ++g.eyeNotReadySinceStats;
+    }
+  }
+  ++g.framesOnShown;
+}
+
+// The same for the flat picture.
+void select_shown_screen() {
+  if (!g.gpuScreen) return;
+  int pick = -1;
+  uint64_t pickSeq = 0;
+  for (int s = 0; s < kScreenSlots; ++s) {
+    if (!g.screenHanded[s] || (g.screenShown >= 0 && g.screenSeq[s] <= g.screenShownSeq) || g.screenSeq[s] <= pickSeq)
+      continue;
+    if (!image_done(g.screens[s])) continue;
+    pick = s;
+    pickSeq = g.screenSeq[s];
+  }
+  if (pick >= 0) {
+    g.screenShown = pick;
+    g.screenShownSeq = pickSeq;
+  }
+}
+
 void finish_stereo_frame() {
   bool ok = true;
   for (int e = 0; e < 2; ++e) ok = end_access(g.eyes[g.eyeSlot][e]) && ok;
@@ -1608,11 +1773,12 @@ void finish_stereo_frame() {
                                  note_max(g_eyeGpuMaxUs, us);
                                }];
     }
-    g.shownSlot = g.eyeSlot;
-    g.shownPose = g.predicted;
+    // Handed back, not yet shown: the display thread switches to it once the GPU has finished it.
+    g.eyeHanded[g.eyeSlot] = true;
+    g.eyeSeq[g.eyeSlot] = ++g.eyeSeqCounter;
+    g.eyePose[g.eyeSlot] = g.predicted;
     g.hasProjection = true;
   }
-  g.eyeSlot = (g.eyeSlot + 1) % kEyeSlots;
 }
 
 // The head predicted for the next display frame, and both eyes from it (PortXrBeginFrame).
@@ -1690,6 +1856,7 @@ bool build_pipelines(id<MTLDevice> device, MTLPixelFormat color, MTLPixelFormat 
   m.failed = true;
   m.eyePipeline = nil;
   m.screenPipeline = nil;
+  m.depthFixupPipeline = nil;
   m.queue = [device newCommandQueue];
   if (m.queue == nil) {
     SVERR("metal: newCommandQueue failed");
@@ -1715,6 +1882,23 @@ bool build_pipelines(id<MTLDevice> device, MTLPixelFormat color, MTLPixelFormat 
   m.eyePipeline = make(@"eye_vertex", @"eye_fragment", "eye");
   m.screenPipeline = make(@"screen_vertex", @"screen_fragment", "screen");
   if (m.eyePipeline == nil || m.screenPipeline == nil) return false;
+  {
+    // Depth only (no colour attachment): the near-only depth of the system, after the composite pass.
+    MTLRenderPipelineDescriptor* d = [MTLRenderPipelineDescriptor new];
+    d.vertexFunction = [lib newFunctionWithName:@"eye_vertex"];
+    d.fragmentFunction = [lib newFunctionWithName:@"eye_depth_fixup"];
+    d.colorAttachments[0].pixelFormat = MTLPixelFormatInvalid;
+    d.depthAttachmentPixelFormat = depth;
+    NSError* perr = nil;
+    if (d.vertexFunction != nil && d.fragmentFunction != nil) {
+      m.depthFixupPipeline = [device newRenderPipelineStateWithDescriptor:d error:&perr];
+    }
+    // Not fatal: without it mode 1 behaves like mode 0 (depth 0 for the system).
+    if (m.depthFixupPipeline == nil) {
+      SVWARN("metal: depth fix-up pipeline failed (%s); near-only depth falls back to off",
+             perr != nil ? perr.localizedDescription.UTF8String : "function missing");
+    }
+  }
   MTLDepthStencilDescriptor* ds = [MTLDepthStencilDescriptor new];
   ds.depthCompareFunction = MTLCompareFunctionAlways;
   ds.depthWriteEnabled = YES;
@@ -2031,6 +2215,11 @@ void display_encode(int32_t count, void* devicePtr) {
   if (g.compositeEvent == nil) g.compositeEvent = [device newSharedEvent];  // CPU path: orders the uploads
   if (!g.gpuScreen) upload_cpu_screen(device);
 
+  // The newest pair / picture the GPU has finished (never one it is still writing): the composite then
+  // never waits on Dawn's fence.
+  if (stereo_mode() && !g.stereoFailed && g.hasProjection) select_shown_eyes();
+  select_shown_screen();
+
   // Which pose this frame is drawn with.
   const bool showEyes = stereo_mode() && !g.stereoFailed && g.hasProjection && g.shownSlot >= 0 &&
                         g.shownPose.valid && g.eyes[g.shownSlot][0].valid && g.eyes[g.shownSlot][1].valid;
@@ -2175,6 +2364,21 @@ void display_encode(int32_t count, void* devicePtr) {
   // Which (texture, slice) pairs were already cleared this frame: views that share one (a "shared"
   // layout) load what the first drew.
   std::vector<std::pair<void*, int32_t>> cleared;
+  // STRIKERS_XR_DEPTH: what the system gets as the drawable's depth. The passes above test against
+  // the real depth internally; in mode 0/1 one small pass per view/slice rewrites it afterwards (after
+  // all views, since "shared" views reuse a texture slice that later views still test against).
+  const int depthMode = g.set.depth;
+  const bool nearFixup = depthMode == 1 && drawEyes && g.mtl.depthFixupPipeline != nil;
+  struct DepthJob {
+    id<MTLTexture> depth;
+    int32_t slice;
+    bool draw;
+    float viewport[4];
+    EyeUniforms u;
+    int eye;
+  };
+  std::vector<DepthJob> depthJobs;
+  std::vector<std::pair<void*, int32_t>> depthCleared;
   for (int32_t d = 0; d < count; ++d) {
     int32_t views = 0;
     double ptime = 0.0;
@@ -2204,6 +2408,7 @@ void display_encode(int32_t count, void* devicePtr) {
         }
         depth = g.mtl.scratchDepth;
       }
+      const bool ownDepth = dptr == nullptr;  // our scratch depth: the system has none to fix
       const int eye = v < 2 ? v : 1;
       const Mat ofv = mat_mul(pose.originFromDevice, pose.fromEyes && v < 2 ? g.shownPose.deviceFromView[v] : vdfv);
       const Mat vpj = pose.fromEyes && v < 2 ? g.shownPose.projection[v] : vproj;
@@ -2237,8 +2442,9 @@ void display_encode(int32_t count, void* devicePtr) {
       [enc setViewport:MTLViewport{vp[0], vp[1], vp[2], vp[3], 0.0, 1.0}];
       [enc setCullMode:MTLCullModeNone];
 
+      EyeUniforms eyeU{};
       if (drawEyes && v < 2) {
-        EyeUniforms u{};
+        EyeUniforms& u = eyeU;
         std::memcpy(u.viewProj, viewProj.m, sizeof(u.viewProj));
         const Mat inv = mat_inverse(viewProj);
         std::memcpy(u.invViewProj, inv.m, sizeof(u.invViewProj));
@@ -2255,7 +2461,8 @@ void display_encode(int32_t count, void* devicePtr) {
         u.tableB[2] = g.mrMode ? 6.0f : 60.0f;
         u.tableB[3] = g.tabletop ? 1.0f : 0.0f;
         u.mode[0] = g.mrMode ? 1.0f : 0.0f;
-        u.mode[1] = g.set.depth ? 1.0f : 0.0f;
+        u.mode[1] = static_cast<float>(depthMode);
+        u.mode[3] = kNearDepthCutoff;
         u.mode[2] = eyeDepthTex[eye] != nil ? 1.0f : 0.0f;
         // The eye pass's projection (gx_projection: these near/far) and this view's clip z row, to
         // turn the exported depth into the drawable's.
@@ -2295,7 +2502,51 @@ void display_encode(int32_t count, void* devicePtr) {
       }
       if (fxDraw && v < 2) svfx::encode((__bridge void*)enc, scene, eye);
       [enc endEncoding];
+      if (depthMode != 2 && !ownDepth) {
+        DepthJob job{};
+        job.depth = depth;
+        job.slice = static_cast<int32_t>(depth.textureType == MTLTextureType2DArray ? vslice : 0);
+        job.eye = eye;
+        std::memcpy(job.viewport, vp, sizeof(job.viewport));
+        job.draw = nearFixup && drawEyes && v < 2;
+        if (job.draw) job.u = eyeU;
+        depthJobs.push_back(job);
+      }
     }
+  }
+
+  // The system's depth (mode 0: far everywhere; mode 1: the real depth only where nearer than the
+  // cutoff): a depth-only pass over each view's drawable depth, cleared to 0 (reverse-Z far) the first
+  // time a (texture, slice) is met. Mode 2 leaves the real depth as the passes wrote it.
+  for (const DepthJob& job : depthJobs) {
+    bool first = true;
+    for (const auto& c : depthCleared) {
+      if (c.first == (__bridge void*)job.depth && c.second == job.slice) first = false;
+    }
+    if (first) depthCleared.emplace_back((__bridge void*)job.depth, job.slice);
+    if (!first && !job.draw) continue;  // already far, nothing to add
+    MTLRenderPassDescriptor* pass = [MTLRenderPassDescriptor renderPassDescriptor];
+    pass.depthAttachment.texture = job.depth;
+    pass.depthAttachment.slice = static_cast<NSUInteger>(job.slice);
+    pass.depthAttachment.loadAction = first ? MTLLoadActionClear : MTLLoadActionLoad;
+    pass.depthAttachment.storeAction = MTLStoreActionStore;
+    pass.depthAttachment.clearDepth = 0.0;
+    id<MTLRenderCommandEncoder> enc = [cmd renderCommandEncoderWithDescriptor:pass];
+    if (enc == nil) continue;
+    enc.label = @"SV depth";
+    if (job.draw) {
+      EyeUniforms u = job.u;
+      [enc setViewport:MTLViewport{job.viewport[0], job.viewport[1], job.viewport[2], job.viewport[3], 0.0, 1.0}];
+      [enc setCullMode:MTLCullModeNone];
+      [enc setRenderPipelineState:g.mtl.depthFixupPipeline];
+      [enc setDepthStencilState:g.mtl.depthAlways];
+      [enc setFragmentTexture:eyeTex[job.eye] atIndex:0];
+      [enc setFragmentTexture:eyeDepthTex[job.eye] != nil ? eyeDepthTex[job.eye] : eyeTex[job.eye] atIndex:1];
+      [enc setFragmentSamplerState:g.mtl.sampler atIndex:0];
+      [enc setFragmentBytes:&u length:sizeof(u) atIndex:0];
+      [enc drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
+    }
+    [enc endEncoding];
   }
 
   // Dawn may write these images again once this command buffer is done with them.
@@ -2318,8 +2569,19 @@ void display_encode(int32_t count, void* devicePtr) {
   if (fxDraw) svfx::frame_committed((__bridge void*)cmd);
   g.cmdCommitted.fetch_add(1);
   id<MTLSharedEvent> signalEvent = g.compositeEvent;
+  const double presentationTime = presentation;
   [cmd addCompletedHandler:^(id<MTLCommandBuffer> done) {
     g.cmdCompleted.fetch_add(1);
+    // Late: the composite's GPU work ended after the time the drawable was due on screen (both in
+    // CACurrentMediaTime seconds).
+    if (presentationTime > 0.0) {
+      const double endTime = done.GPUEndTime > 0.0 ? done.GPUEndTime : CACurrentMediaTime();
+      g_presentCount.fetch_add(1);
+      if (endTime > presentationTime) {
+        g_lateCount.fetch_add(1);
+        note_max(g_lateMaxUs, static_cast<uint64_t>((endTime - presentationTime) * 1e6));
+      }
+    }
     if (done.GPUEndTime > done.GPUStartTime) {
       const uint64_t us = static_cast<uint64_t>((done.GPUEndTime - done.GPUStartTime) * 1e6);
       g_compGpuUs.fetch_add(us);
@@ -2348,6 +2610,7 @@ void display_encode(int32_t count, void* devicePtr) {
 // sv_xrhost_frame_begin) runs without the lock; the composite is encoded under it.
 void display_thread_main() {
   pthread_setname_np("sv-display");
+  t_isDisplayThread = true;
   pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
   while (!g_displayQuit.load()) {
     void* renderer = nullptr;
@@ -2368,6 +2631,9 @@ void display_thread_main() {
     const uint64_t t1 = now_ns();
     {
       Lock lock(g_lock);
+      const uint64_t waited = now_ns() - t1;
+      g.lockWaitNs += waited;
+      g.lockWaitMaxNs = std::max(g.lockWaitMaxNs, waited);
       g.beginWaitNs += t1 - t0;
       if (count <= 0) {
         ++g.noFrameSinceStats;
@@ -2418,14 +2684,14 @@ void log_stats() {
   const double df = g.displayFramesSinceStats > 0 ? static_cast<double>(g.displayFramesSinceStats) : 1.0;
   SVLOG("stats: display %.1f fps, game %.1f fps, no-frame %llu, drawables %.2f/frame, audio underruns +%lu, %s, 3D "
         "%s, screen %d (%s), rumble %llu, pools v%.0f%% u%.0f%% i%.0f%% s%.0f%%, layers dropped %llu, culled "
-        "%.0f/frame, in flight %llu",
+        "%.0f/frame, in flight %llu, depth %d",
         g.displayFramesSinceStats / secs, g.gameFramesSinceStats / secs,
         static_cast<unsigned long long>(g.noFrameSinceStats), g.drawablesSinceStats / df, underruns - g.lastUnderruns,
         mode_name(), g.stereoFailed ? "failed" : (g.hasProjection ? "on" : "off"), g.set.screenPreset,
         g.gpuScreen ? "gpu" : "cpu", static_cast<unsigned long long>(g.rumblePulses), pct(0), pct(1), pct(2), pct(3),
         static_cast<unsigned long long>(g.layersDroppedSinceStats),
         static_cast<double>(PortXrLayersTakeCulled()) / gf,
-        static_cast<unsigned long long>(g.cmdCommitted.load() - g.cmdCompleted.load()));
+        static_cast<unsigned long long>(g.cmdCommitted.load() - g.cmdCompleted.load()), g.set.depth);
   uint32_t fxParts = 0, fxIndices = 0;
   if (g.fxReady && svfx::take_stats(&fxParts, &fxIndices)) {
     SVLOG("fx: up to %u pieces, %u mesh indices per eye", fxParts, fxIndices);
@@ -2459,6 +2725,20 @@ void log_stats() {
           en ? eu / 1000.0 / en : 0.0, em / 1000.0, static_cast<unsigned long long>(en), cn ? cu / 1000.0 / cn : 0.0,
           cm / 1000.0, g.displayPeriod * 1000.0);
   }
+  {
+    const uint64_t pc = g_presentCount.exchange(0), lc = g_lateCount.exchange(0), lm = g_lateMaxUs.exchange(0);
+    const uint64_t hold = g_gameLockHoldMaxUs.exchange(0);
+    SVLOG("present: late %llu/%llu (worst %.1f ms), newest pair not ready %llu/%llu, frames per game image 1:%llu "
+          "2:%llu 3+:%llu, lock wait display %.2f avg %.2f max ms, game hold max %.2f ms, depth mode %d (%s)",
+          static_cast<unsigned long long>(lc), static_cast<unsigned long long>(pc), lm / 1000.0,
+          static_cast<unsigned long long>(g.eyeNotReadySinceStats), static_cast<unsigned long long>(g.eyeChecksSinceStats),
+          static_cast<unsigned long long>(g.framesPerImage[0]), static_cast<unsigned long long>(g.framesPerImage[1]),
+          static_cast<unsigned long long>(g.framesPerImage[2]), g.lockWaitNs / dn, g.lockWaitMaxNs / 1e6, hold / 1000.0,
+          g.set.depth, g.set.depth == 0 ? "off" : (g.set.depth == 1 ? "near" : "full"));
+  }
+  g.eyeChecksSinceStats = g.eyeNotReadySinceStats = 0;
+  g.framesPerImage[0] = g.framesPerImage[1] = g.framesPerImage[2] = 0;
+  g.lockWaitNs = g.lockWaitMaxNs = 0;
   g.rumblePulses = 0;
   g.layersDroppedSinceStats = 0;
   std::memset(g.loopNs, 0, sizeof(g.loopNs));
@@ -2560,8 +2840,8 @@ extern "C" int PortXrStereoFrameBegin(void) {
   }
   g.frameLayerKind[0] = kinds[0];
   g.frameLayerKind[1] = kinds[1];
-  // Never into the pair on show (possible only after failed hand-backs): composites read it.
-  if (g.eyeSlot == g.shownSlot) g.eyeSlot = (g.eyeSlot + 1) % kEyeSlots;
+  // Never into the pair on show; handed-back pairs the display never got to are overwritten oldest first.
+  pick_eye_slot();
   for (int e = 0; e < 2; ++e) {
     SharedImage& img = g.eyes[g.eyeSlot][e];
     begin_access(img);
@@ -2788,7 +3068,7 @@ extern "C" void PortXrRumbleStop(int pad) {
 }
 
 extern "C" int PortXrBeginFrame(void) {
-  std::unique_lock<std::recursive_mutex> lock(g_lock);
+  Lock lock(g_lock);
   if (!g.active) return 0;
   g.frameBegun = false;
   // The game's boot (disc, memory card, first scene setup) is behind it: the app may open the space.
