@@ -58,6 +58,13 @@ final class SVLog: ObservableObject {
         enqueue(line)
     }
 
+    /// Pushes the app log to disk (FileHandle writes are unbuffered; this adds the fsync) before the
+    /// process exits.
+    nonisolated static func flush() {
+        fileLock.lock(); defer { fileLock.unlock() }
+        try? handle?.synchronize()
+    }
+
     /// One game line (the log_line callback; already in strikers-log.txt). Any thread.
     nonisolated static func gameLine(_ line: String) {
         enqueue(line)

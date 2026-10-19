@@ -256,8 +256,7 @@ struct SVLauncherView: View {
                 }
                 Spacer()
                 Button("Quit game", role: .destructive) {
-                    game.requestQuit()
-                    Task { await dismissImmersiveSpace() }
+                    Task { await game.quitApp { await dismissImmersiveSpace() } }
                 }
                 .buttonStyle(.bordered)
             }
