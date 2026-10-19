@@ -93,6 +93,15 @@
   En `sync_input` una mano sin Sense conectado usa el pellizco como agarre solo si empezó sobre la mesa (`near_table`,
   gana) o al alcance de la pantalla movible; nunca pulsa Z. Pantalla con cualquier mano (`screenGrabHand`), mesa con
   una o dos manos (mismo código que los agarres Sense). **Pendiente de probar.**
+- Prueba 2026-10-20: los "cachos"/recortes en todos los modos = visionOS ocluyendo el contenido con la sala usando la
+  profundidad del drawable (objetos reales más cerca que el estadio → passthrough en mixto, negro en completo). Con
+  "Profundidad para el sistema" apagada se ve bien (validado). Ahora `STRIKERS_XR_DEPTH` 0 (por defecto) / 1 solo <1,2 m
+  / 2 real: `eye_fragment` escribe siempre la real (pruebas internas fx/pantalla) y un pase solo-profundidad por
+  (textura, capa) al final deja 0 o la cercana (`eye_depth_fixup`). Tirones: el compuesto solo cambia a pares
+  terminados (`select_shown_eyes`/`select_shown_screen`, `image_done`), 4 ranuras, `pick_eye_slot` nunca la mostrada.
+  Diagnóstico `present:` (tarde/peor, par no listo, histograma 1/2/3+, espera de candado). Salir del juego →
+  `SVGame.quitApp` → `exit(0)` (espera ≤3 s al hilo del juego, ≤2 s al cierre del espacio). Candado sin acortar.
+  **Pendiente de probar.**
 - Limitación: las Personas no se ven mientras se dibuja con Compositor Services (Apple, foros 791591/801420).
 - Pendiente (por orden):
   1. Cuadros verdes / texturas corruptas intermitentes, sobre todo con confeti (pools de Aurora suben 0→38 % entonces):

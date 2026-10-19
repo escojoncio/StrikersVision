@@ -1206,6 +1206,7 @@ void drop_renderer(const char* why) {
   // The next renderer starts from a clean picture; the eye images stay (same size, same device).
   g.hasProjection = false;
   g.shownSlot = -1;
+  for (bool& h : g.eyeHanded) h = false;  // their poses belong to the old renderer
 }
 
 bool build_pipelines(id<MTLDevice> device, MTLPixelFormat color, MTLPixelFormat depth);
@@ -1381,6 +1382,7 @@ bool create_shared(SharedImage& img, uint32_t width, uint32_t height, const char
 }
 
 bool end_access(SharedImage& img);
+void pick_screen_slot();
 
 // Opens Dawn's access. Dawn's GPU work waits for the last composite that read the image.
 bool begin_access(SharedImage& img) {
