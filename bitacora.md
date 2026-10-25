@@ -2,7 +2,14 @@
 
 ## Last done
 - 2026-10-25: `.claude/agents/coder.md`: maxTurns → 70
-- 2026-10-25 (CI verde run 40220439864, sin probar en visor): tirones → hilo del juego ya no gira entre ticks
+- 2026-10-25 (pendiente de build y visor): cuadros de tile con colores de sv_fx en celebraciones (solo Apple).
+  Hipótesis unverified: presión del parameter buffer del tiler por varyings de `MeshOut`. Cambios: `MeshOut`
+  sin c1/c2/params (fragment lee `FxInstance` por `inst [[flat]]`, `setFragmentBuffer` índice 1 mismo offset);
+  tope de índices por ojo `STRIKERS_XR_FX_MAXIDX` (300000, far primero, log `fx: index budget`);
+  `STRIKERS_XR_FX_NOMESH`; posiciones no finitas fuera del clip; `MTLMathModeSafe` en `sv_shader_library`
+  (toda nuestra librería). Archivos: `sv_shaders.h`, `sv_fx.mm`, `sv_xr.mm`, `xr/SETTINGS.md`.
+  Si persiste: probar NOMESH=1 y MAXIDX=50000; si sigue, no es carga → NaN/depth(any).
+- 2026-10-25 (visor: framerate OK): tirones → hilo del juego ya no gira entre ticks
   (`sv_xr.mm` PortXrBeginFrame duerme; `sync_input`/`predict_eyes` solo en tick; anillo de anclas 64→256 con
   candado en `SVXRHost.swift`; contador `no device anchor N` en la línea `present:`).
 - 2026-10-25: `STRIKERS_XR_DEPTH` por defecto 2 (`SVSettings.swift`, `sv_xr.mm`, `xr/SETTINGS.md`): 0/1 rompen
@@ -19,7 +26,7 @@
   profundidad 2; audio saliendo de los paneles; paneles visibles en partida.
 - Pendiente de probar en la build siguiente: los cuatro arreglos de arriba (nombres de botón Sense
   `Button Options`/`Button Share` y firma exacta de `headTracked(soundStageSize:anchoringStrategy:)` unverified).
-- Celebración de gol: causa NO encontrada. Probar en visor: botón "Test the goal celebration" (FX_TEST) vs
+- Celebración de gol: cuadros con colores de sv_fx, solo Apple (Quest bien); ver Last done.
   gol real, y `STRIKERS_XR_DECODE=0`. Pedir captura.
 - Pendiente: hápticos Sense (XPC 4097), SharePlay con Personas, vídeos THP, autotests de Quest.
 

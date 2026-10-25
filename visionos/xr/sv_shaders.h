@@ -244,6 +244,8 @@ vertex FxOut fx_vertex(uint vid [[vertex_id]], uint iid [[instance_id]],
         o.shade = abs(dot(n, normalize(float3(0.3, 1.0, 0.4))));
     }
     o.pos = pc.viewProj * float4(world, 1.0);
+    // NaN / Inf (a bad instance): outside the clip volume (z < 0, reverse-Z), so it is discarded.
+    if (!all(isfinite(o.pos))) o.pos = float4(0.0, 0.0, -2.0, 1.0);
     return o;
 }
 
@@ -413,10 +415,8 @@ struct MeshOut {
     float3 local;
     float3 normal;
     float3 view;
-    float4 c1;
-    float4 c2;
-    float4 params;
     float2 matAux;
+    uint inst [[flat]];  // the instance (relative to the draw's buffer offset): the fragment reads FxInstance
 };
 
 vertex MeshOut mesh_vertex(uint vid [[vertex_id]], uint iid [[instance_id]],
@@ -434,10 +434,10 @@ vertex MeshOut mesh_vertex(uint vid [[vertex_id]], uint iid [[instance_id]],
     o.local = local;
     o.normal = qrot(q, float3(v.nrm));
     o.view = pc.camPos.xyz - world;
-    o.c1 = unpack_unorm4x8_to_float(I.color1);
-    o.c2 = unpack_unorm4x8_to_float(I.color2);
-    o.params = params;
     o.matAux = float2(v.mat, v.aux);
+    o.inst = iid;
+    // NaN / Inf (a bad instance): outside the clip volume (z < 0, reverse-Z), so it is discarded.
+    if (!all(isfinite(o.pos))) o.pos = float4(0.0, 0.0, -2.0, 1.0);
     return o;
 }
 
@@ -447,15 +447,19 @@ static bool inEllipse(float2 p, float2 c, float2 r) {
 }
 static bool spotAt(float3 d, float3 s, float size) { return dot(d, normalize(s)) > size; }
 
-fragment float4 mesh_fragment(MeshOut in [[stage_in]]) {
+fragment float4 mesh_fragment(MeshOut in [[stage_in]], const device FxInstance* insts [[buffer(1)]]) {
+    const FxInstance I = insts[in.inst];
+    const float4 iparams = float4(I.params);
+    const float4 ic1 = unpack_unorm4x8_to_float(I.color1);
+    const float4 ic2 = unpack_unorm4x8_to_float(I.color2);
     const float3 kKey = float3(0.2756, 0.9187, 0.3675);
     const float3 kFill = float3(-0.7194, 0.2998, -0.5995);
     const float kPi = 3.14159265;
-    int shape = int(in.params.x + 0.5);
+    int shape = int(iparams.x + 0.5);
     int mat = int(in.matAux.x + 0.5);
     float aux = in.matAux.y;
-    float3 c1 = lin(in.c1.rgb);
-    float3 c2 = lin(in.c2.rgb);
+    float3 c1 = lin(ic1.rgb);
+    float3 c2 = lin(ic2.rgb);
     float3 N = normalize(in.normal);
     float3 V = normalize(in.view);
     float3 p = in.local;
@@ -573,7 +577,7 @@ fragment float4 mesh_fragment(MeshOut in [[stage_in]]) {
         col = base * (0.3 + 0.85 * key + 0.25 * fill) + float3(hl) + rim * 0.22 * mix(base, float3(1.0), 0.5);
     }
     col += base * glow;
-    float a = in.params.z;
+    float a = iparams.z;
     return float4(col * a, a);
 }
 

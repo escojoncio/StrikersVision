@@ -230,6 +230,7 @@ struct State {
   // [0] full detail (pieces near you), [1] reduced (far away or lying on the floor).
   mesh::Range meshRanges[2][mesh::kCount];
   uint32_t statPeakParts = 0, statPeakIndices = 0;  // for the stats line (largest frame since)
+  bool idxCapLogged = false;  // the index budget kicked in and was logged for this celebration
 };
 State s;
 
@@ -892,6 +893,7 @@ void goal(int team, int character, bool superStrike, bool hyper, bool ownGoal) {
   s.stage = Stage::Raining;
   s.stageTime = 0.0f;
   s.sinceGoal = 0.0f;
+  s.idxCapLogged = false;
   // Super Bowl, every goal: four cannons in three waves, a fireworks barrage, pyro, a flash.
   s.cannonWavesLeft = ownGoal ? 1 : 3;
   s.cannonTimer = 0.0f;
@@ -1146,8 +1148,10 @@ bool prepare(const Scene& sc) {
   constexpr uint32_t kQuadBucket = 2 * mesh::kCount;
   const V3 head = head_of(sc);
   const float farSq = sc.mr ? 1.1f * 1.1f : 4.0f * 4.0f;
+  const uint32_t maxIdx = static_cast<uint32_t>(sv_env_int("STRIKERS_XR_FX_MAXIDX", 300000, 10000, 4000000));
+  const bool noMesh = sv_env_int("STRIKERS_XR_FX_NOMESH", 0, 0, 1) != 0;  // diagnostic: pieces as quads
   auto bucket_of = [&](const Particle& q) -> uint32_t {
-    if ((q.kind != kKindPaper && q.kind != kKindPiece) || q.mesh >= mesh::kCount) return kQuadBucket;
+    if (noMesh || (q.kind != kKindPaper && q.kind != kKindPiece) || q.mesh >= mesh::kCount) return kQuadBucket;
     if (q.kind == kKindPaper) return q.mesh;  // a few triangles either way
     const float dx = q.p[0] - head.x, dy = q.p[1] - head.y, dz = q.p[2] - head.z;
     const bool far = q.landed || dx * dx + dy * dy + dz * dz > farSq;
@@ -1157,21 +1161,51 @@ bool prepare(const Scene& sc) {
   uint32_t* filled = g.filled;
   std::memset(g.first, 0, sizeof(g.first));
   std::memset(g.filled, 0, sizeof(g.filled));
-  uint32_t count = 0;
+  uint32_t considered = 0;
   for (const Particle& q : s.parts) {
-    if (count >= kMaxParticles - 2) break;
+    if (considered >= kMaxParticles - 2) break;
     ++filled[bucket_of(q)];
-    ++count;
+    ++considered;
   }
+  // Index budget per eye: over it, the far / landed buckets lose instances first, then the near ones.
+  uint32_t wantIdx = 0;
+  for (uint32_t b = 0; b < kQuadBucket; ++b) {
+    wantIdx += filled[b] * s.meshRanges[b / mesh::kCount][b % mesh::kCount].indexCount;
+  }
+  uint32_t dropped = 0;
+  if (wantIdx > maxIdx) {
+    uint32_t excess = wantIdx - maxIdx;
+    for (uint32_t pass = 0; pass < 2 && excess > 0; ++pass) {
+      for (uint32_t m = 0; m < mesh::kCount && excess > 0; ++m) {
+        const uint32_t b = (pass == 0 ? mesh::kCount : 0u) + m;
+        const uint32_t per = s.meshRanges[b / mesh::kCount][b % mesh::kCount].indexCount;
+        if (per == 0 || filled[b] == 0) continue;
+        const uint32_t cut = std::min(filled[b], (excess + per - 1) / per);
+        filled[b] -= cut;
+        dropped += cut;
+        excess -= std::min(excess, cut * per);
+      }
+    }
+    if (!s.idxCapLogged) {
+      s.idxCapLogged = true;
+      SVLOG("fx: index budget %u per eye: %u wanted, %u pieces dropped (far first)", maxIdx, wantIdx, dropped);
+    }
+  }
+  uint32_t limit[2 * mesh::kCount + 1];
+  uint32_t count = 0;
   for (uint32_t b = 0, at = 0; b <= kQuadBucket; ++b) {
     first[b] = at;
     at += filled[b];
+    limit[b] = filled[b];
+    count += filled[b];
     filled[b] = 0;
   }
   auto* inst = static_cast<Instance*>(fb.instances.contents);
   uint32_t written = 0;
   for (const Particle& q : s.parts) {
-    if (written++ >= count) break;
+    if (written++ >= considered) break;
+    const uint32_t b = bucket_of(q);
+    if (filled[b] >= limit[b]) continue;  // over the budget
     float alpha = 1.0f;
     if (q.kind == kKindSpark) {
       const float t = q.age / q.life;
@@ -1179,7 +1213,6 @@ bool prepare(const Scene& sc) {
     } else if (q.landed && q.age > q.life - 1.0f) {
       alpha = std::max(0.0f, q.life - q.age);
     }
-    const uint32_t b = bucket_of(q);
     Instance& o = inst[first[b] + filled[b]++];
     o.posSize[0] = q.p[0];
     o.posSize[1] = q.p[1];
@@ -1267,6 +1300,8 @@ void encode(void* renderEncoder, const Scene& sc, int view) {
       if (g.filled[b] == 0 || range.indexCount == 0) continue;
       // The instance buffer's offset picks the bucket's first instance ([[instance_id]] starts at 0).
       [enc setVertexBuffer:fb.instances offset:sizeof(Instance) * g.first[b] atIndex:1];
+      // mesh_fragment reads the instance too: same buffer, same offset (its [[instance_id]] is relative).
+      [enc setFragmentBuffer:fb.instances offset:sizeof(Instance) * g.first[b] atIndex:1];
       [enc drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                       indexCount:range.indexCount
                        indexType:MTLIndexTypeUInt16
