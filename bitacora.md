@@ -1,7 +1,7 @@
 # Bitácora — StrikersVision
 
 ## Last done
-- 2026-10-25 (sin compilar, pendiente de build): tirones → hilo del juego ya no gira entre ticks
+- 2026-10-25 (CI verde run 40220439864, sin probar en visor): tirones → hilo del juego ya no gira entre ticks
   (`sv_xr.mm` PortXrBeginFrame duerme; `sync_input`/`predict_eyes` solo en tick; anillo de anclas 64→256 con
   candado en `SVXRHost.swift`; contador `no device anchor N` en la línea `present:`).
 - 2026-10-25: `STRIKERS_XR_DEPTH` por defecto 2 (`SVSettings.swift`, `sv_xr.mm`, `xr/SETTINGS.md`): 0/1 rompen
