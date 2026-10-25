@@ -64,7 +64,7 @@ struct StrikersVisionApp: App {
         }
         // The panels are hidden during the game, so no view may be left to close the space when the match ends.
         .onChange(of: game.phase) { _, phase in
-            if phase == .ended && game.immersiveOpen { Task { await dismissImmersiveSpace() } }
+            if case .ended = phase, game.immersiveOpen { Task { await dismissImmersiveSpace() } }
         }
         // The panels hide while the game is on (SVLauncher.openSpace) and come back with Select held 3 s.
         .onChange(of: game.panelsVisible) { _, visible in
