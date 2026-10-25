@@ -2,7 +2,7 @@
 
 ## Last done
 - 2026-10-25: `.claude/agents/coder.md`: maxTurns → 70
-- 2026-10-25 (pendiente de build y visor): cuadros de tile con colores de sv_fx en celebraciones (solo Apple).
+- 2026-10-25 (CI verde run 40233267657, pendiente de visor): cuadros de tile con colores de sv_fx en celebraciones (solo Apple).
   Hipótesis unverified: presión del parameter buffer del tiler por varyings de `MeshOut`. Cambios: `MeshOut`
   sin c1/c2/params (fragment lee `FxInstance` por `inst [[flat]]`, `setFragmentBuffer` índice 1 mismo offset);
   tope de índices por ojo `STRIKERS_XR_FX_MAXIDX` (300000, far primero, log `fx: index budget`);
