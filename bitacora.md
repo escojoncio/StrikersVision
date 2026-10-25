@@ -27,7 +27,6 @@
 - Pendiente de probar en la build siguiente: los cuatro arreglos de arriba (nombres de botón Sense
   `Button Options`/`Button Share` y firma exacta de `headTracked(soundStageSize:anchoringStrategy:)` unverified).
 - Celebración de gol: cuadros con colores de sv_fx, solo Apple (Quest bien); ver Last done.
-  gol real, y `STRIKERS_XR_DECODE=0`. Pedir captura.
 - Pendiente: hápticos Sense (XPC 4097), SharePlay con Personas, vídeos THP, autotests de Quest.
 
 ## Decisions
