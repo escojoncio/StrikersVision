@@ -2,6 +2,7 @@
 
 ## Last done
 - 2026-10-25: `.claude/agents/coder.md`: maxTurns → 70
+- 2026-10-25: `CLAUDE.md` línea 1: regla de cumplir siempre el rol asignado.
 - 2026-10-25 (CI verde run 40233267657, pendiente de visor): cuadros de tile con colores de sv_fx en celebraciones (solo Apple).
   Hipótesis unverified: presión del parameter buffer del tiler por varyings de `MeshOut`. Cambios: `MeshOut`
   sin c1/c2/params (fragment lee `FxInstance` por `inst [[flat]]`, `setFragmentBuffer` índice 1 mismo offset);
