@@ -78,6 +78,9 @@ typedef struct SVAppCallbacks {
      * the app opens the space only then, so it never shows an empty view during the boot. Any
      * thread, once. */
     void (*game_ready)(void);
+    /* The player held Select/Create/Options for 3 s: the app shows or hides its panels. May be NULL.
+     * Called on the game thread; the app hops to the main thread. */
+    void (*panels_toggle)(void);
 } SVAppCallbacks;
 
 void sv_register_app_callbacks(const SVAppCallbacks* callbacks);

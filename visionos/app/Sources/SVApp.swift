@@ -15,6 +15,9 @@ struct StrikersVisionApp: App {
     @Environment(\.scenePhase) private var scenePhase
     @ObservedObject private var game = SVGame.shared
     @ObservedObject private var settings = SVSettings.shared
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismissWindow) private var dismissWindow
+    @Environment(\.dismissImmersiveSpace) private var dismissImmersiveSpace
     @State private var immersionStyle: any ImmersionStyle = MixedImmersionStyle.mixed
 
     init() {
@@ -40,8 +43,12 @@ struct StrikersVisionApp: App {
                 .onAppear {
                     sv_boot_trace("6 launcher window on screen")
                     SVLauncherWindows.open += 1
+                    SVLauncherWindows.launcherOpening = false
                 }
-                .onDisappear { SVLauncherWindows.open -= 1 }
+                .onDisappear {
+                    SVLauncherWindows.open -= 1
+                    SVLauncherWindows.launcherOpening = false
+                }
         }
         .defaultSize(width: 900, height: 700)
         // On the app's phase, not one window's: closing the launcher while the space is open is not
@@ -49,6 +56,38 @@ struct StrikersVisionApp: App {
         .onChange(of: scenePhase) { _, phase in
             SVLog.log("app phase: \(String(describing: phase))")
             if game.phase == .running { sv_set_paused(phase == .background ? 1 : 0) }
+            if phase == .active && game.immersiveOpen { SVGame.anchorAudioToPlayer() }
+            if phase == .active {
+                SVLauncherWindows.launcherOpening = false
+                SVLauncherWindows.controlsOpening = false
+            }
+        }
+        // The panels are hidden during the game, so no view may be left to close the space when the match ends.
+        .onChange(of: game.phase) { _, phase in
+            if phase == .ended && game.immersiveOpen { Task { await dismissImmersiveSpace() } }
+        }
+        // The panels hide while the game is on (SVLauncher.openSpace) and come back with Select held 3 s.
+        .onChange(of: game.panelsVisible) { _, visible in
+            guard game.immersiveOpen else { return }
+            if visible {
+                SVLauncherWindows.openLauncher(openWindow)
+                if !SVLauncherWindows.controlsOpen && !SVLauncherWindows.controlsOpening {
+                    SVLauncherWindows.controlsOpening = true
+                    openWindow(id: SVScene.controls)
+                    SVLauncherWindows.clearOpeningLater()
+                }
+            } else {
+                SVLauncherWindows.launcherOpening = false
+                SVLauncherWindows.controlsOpening = false
+                dismissWindow(id: SVScene.launcher)
+                dismissWindow(id: SVScene.controls)
+            }
+        }
+        // Leaving the space: the launcher comes back (the controls window does it itself when it is open).
+        .onChange(of: game.immersiveOpen) { _, open in
+            guard !open else { return }
+            game.panelsVisible = true
+            if !SVLauncherWindows.controlsOpen { SVLauncherWindows.openLauncher(openWindow) }
         }
         .onChange(of: settings.allowFullImmersion) { _, allow in
             if allow { immersionStyle = FullImmersionStyle.full } else { immersionStyle = MixedImmersionStyle.mixed }

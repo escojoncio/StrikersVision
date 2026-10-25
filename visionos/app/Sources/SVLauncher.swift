@@ -80,6 +80,8 @@ struct SVLauncherView: View {
             }
         }
         .onAppear {
+            // Reopened from Home with the game on (no controller to hold Select): the panels come back.
+            if game.immersiveOpen { game.panelsVisible = true }
             sharePlay.start()
             refresh()
             if !UserDefaults.standard.bool(forKey: "sv.helpShown") {
@@ -398,8 +400,14 @@ struct SVLauncherView: View {
         case .opened:
             game.immersiveOpen = true
             SVLog.log("immersive space opened")
-            // Once per opening of the space; the window closes itself when the space goes.
-            openWindow(id: SVScene.controls)
+            // After SDL has opened its audio session; again after a pause in case it opens later.
+            SVGame.anchorAudioToPlayer()
+            Task {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                if game.immersiveOpen { SVGame.anchorAudioToPlayer() }
+            }
+            // The panels (this launcher and the match controls) stay hidden in the game; SVApp closes them.
+            game.panelsVisible = false
         case .userCancelled:
             SVLog.log("immersive space: cancelled")
         case .error:

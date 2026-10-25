@@ -47,6 +47,8 @@ int sv_game_take_remote_table_pose(float m[16], float* scale);
 /* The app's callbacks (any may be NULL). */
 void sv_game_set_upper_limbs_visible(int visible);
 void sv_game_view_mode_changed(int viewMode);
+/* Select held 3 s (SVAppCallbacks.panels_toggle). Game thread. */
+void sv_game_panels_toggle(void);
 
 /* ---- sv_xr.mm: the MSL of sv_shaders.h compiled once for `mtlDevice` (id<MTLDevice>), shared by
  * the composite and the effects; returns an unretained id<MTLLibrary>, NULL when it did not compile
@@ -132,6 +134,8 @@ void sv_xrhost_frame_present(int32_t d, void* commandBuffer, int32_t anchorId);
 /* frame.endSubmission(), after the commit; a frame with nothing presented is abandoned instead
  * (endSubmission without a present aborts the process). */
 void sv_xrhost_frame_finish(void);
+/* Presents without a device anchor since the last call (stats line). Any thread. */
+uint64_t sv_xrhost_take_nil_anchors(void);
 /* Controllers, predicted to `time`. Per hand (0 left, 1 right): connected, buttons (SV_XRB_*),
  * analog[4] = trigger, grip, stick x, stick y; poseValid and originFromGrip (column-major). The
  * gamepad (any other controller with an extended gamepad profile): buttons (SV_GPB_*) and

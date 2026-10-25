@@ -22,6 +22,9 @@ import simd
 /// log file) and the app's log viewer.
 nonisolated(unsafe) private var svLogSink: (@convention(c) (UnsafePointer<CChar>?) -> Void)?
 
+/// sv_game_panels_toggle (sv_game.mm): not in the bridging header, so bound by name.
+@_silgen_name("sv_game_panels_toggle") private func svGamePanelsToggle()
+
 private func xrLog(_ s: String) {
     if let sink = svLogSink { s.withCString { sink($0) } } else { NSLog("%@", s) }
 }
@@ -104,8 +107,12 @@ final class SVXRHost: @unchecked Sendable {
 
     // Device anchors handed out to C by id, so a drawable can later be told the exact anchor its
     // pixels were drawn for (eye images are re-shown on display frames without a new game frame).
-    private var anchorRing = [DeviceAnchor?](repeating: nil, count: 64)
+    // 256 entries (~1.7 s at the ~150 poses a second the two threads ask for): a pair stays on show for
+    // far less, so its anchor is still here when the display thread presents it. Guarded by `lock`:
+    // head() runs on the game thread and on the display thread, anchor() on the display thread.
+    private var anchorRing = [DeviceAnchor?](repeating: nil, count: 256)
     private var anchorNext: Int32 = 0
+    private var nilAnchorPresents: UInt64 = 0  // presents whose deviceAnchor was nil (guarded by lock)
 
     // Controllers (game thread only, apart from the anchor dictionary above).
     private struct HandSample {
@@ -113,7 +120,13 @@ final class SVXRHost: @unchecked Sendable {
         var trigger: Float = 0
         var grip: Float = 0
         var stick = SIMD2<Float>(0, 0)
+        var select = false  // Options / Create: Start only as a short tap (see input()), else the panels-toggle hold
     }
+    private var selectHeldSince: Double = 0  // 0 = not held
+    private var selectFired = false
+    private var selectFromSense = false  // the held press began on a Sense (its tap is Start)
+    private var lastSelectSample: Double = 0
+    private var startPulse = 0  // input samples left of the Start a Sense tap sends
     private var handCache: [ObjectIdentifier: HandSample] = [:]
     private var captured = Set<ObjectIdentifier>()
     private var pressSeen = Set<String>()
@@ -356,23 +369,29 @@ final class SVXRHost: @unchecked Sendable {
                     xrLog(String(format: "[xr] arkit: first head pose, %.1f ms ahead", (time - CACurrentMediaTime()) * 1000))
                 }
                 store(a.originFromAnchorTransform, out)
+                lock.lock()
                 let id = anchorNext
                 anchorRing[Int(id) % anchorRing.count] = a
                 anchorNext = (anchorNext + 1) % 0x4000_0000
+                lock.unlock()
                 return id
             }
             t -= 0.005
         }
+        lock.lock()
         headMisses += 1
-        if headMisses == 1 || headMisses % 900 == 0 {
-            lock.lock(); let isRunning = running; lock.unlock()
-            xrLog("[xr] arkit warn: no head pose (\(headMisses) misses; session running \(isRunning))")
+        let misses = headMisses
+        let isRunning = running
+        lock.unlock()
+        if misses == 1 || misses % 900 == 0 {
+            xrLog("[xr] arkit warn: no head pose (\(misses) misses; session running \(isRunning))")
         }
         return -1
     }
 
     private func anchor(_ id: Int32) -> DeviceAnchor? {
         guard id >= 0 else { return nil }
+        lock.lock(); defer { lock.unlock() }
         // Only while it is still in the ring: an id older than the ring is a stale picture anyway.
         if anchorNext - id > Int32(anchorRing.count) || id >= anchorNext { return nil }
         return anchorRing[Int(id) % anchorRing.count]
@@ -498,8 +517,19 @@ final class SVXRHost: @unchecked Sendable {
         }
         let d = drawables[Int(i)]
         d.deviceAnchor = anchor(anchorId)
+        if d.deviceAnchor == nil {
+            lock.lock(); nilAnchorPresents += 1; lock.unlock()
+        }
         d.encodePresent(commandBuffer: buffer)
         presented += 1
+    }
+
+    /// Presents without a device anchor since the last call (the stats line).
+    func takeNilAnchorPresents() -> UInt64 {
+        lock.lock(); defer { lock.unlock() }
+        let n = nilAnchorPresents
+        nilAnchorPresents = 0
+        return n
     }
 
     func finish() {
@@ -564,9 +594,8 @@ final class SVXRHost: @unchecked Sendable {
         var h = HandSample()
         if pressed("Button A") { h.buttons |= XRB.lower }
         if pressed("Button B") { h.buttons |= XRB.upper }
-        if pressed("Button Menu") || pressed("Button Options") || pressed("Button Share") {
-            h.buttons |= XRB.menu
-        }
+        if pressed("Button Menu") { h.buttons |= XRB.menu }
+        h.select = pressed("Button Options") || pressed("Button Share")
         if pressed("Thumbstick Button") { h.buttons |= XRB.stickClick }
         if pressed("Button Home") || pressed("Button PS") || pressed("Button PS Button") {
             h.buttons |= XRB.ps
@@ -625,6 +654,8 @@ final class SVXRHost: @unchecked Sendable {
         let now = CACurrentMediaTime()
         let controllers = GCController.controllers()
         var spatialNow: [GCController] = []
+        var selectDown = false
+        var senseSelect = false
         for c in controllers {
             capture(c)
             var spatial = false
@@ -634,6 +665,8 @@ final class SVXRHost: @unchecked Sendable {
                 guard #available(visionOS 26.0, *) else { continue }
                 let hand = handFor(c)
                 let s = senseSample(c)
+                selectDown = selectDown || s.select
+                senseSelect = senseSelect || s.select
                 handConnected?[hand] = 1
                 handButtons?[hand] = s.buttons
                 handAnalog?[hand * 4 + 0] = s.trigger
@@ -658,6 +691,7 @@ final class SVXRHost: @unchecked Sendable {
                 bit(g.dpad.left.isPressed, GPB.left)
                 bit(g.dpad.right.isPressed, GPB.right)
                 bit(g.buttonHome?.isPressed ?? false, GPB.home)
+                selectDown = selectDown || (g.buttonOptions?.isPressed ?? false)
                 padButtons?.pointee = b
                 padAnalog?[0] = g.leftThumbstick.xAxis.value
                 padAnalog?[1] = g.leftThumbstick.yAxis.value
@@ -666,6 +700,32 @@ final class SVXRHost: @unchecked Sendable {
                 padAnalog?[4] = g.leftTrigger.value
                 padAnalog?[5] = g.rightTrigger.value
             }
+        }
+        // A stale hold (no sample for a while: paused, app away) does not count.
+        if now - lastSelectSample > 0.25 {
+            selectHeldSince = 0
+            selectFired = false
+        }
+        lastSelectSample = now
+        // Sense Options / Create: Start only as a tap under 0.4 s, sent on release for two samples.
+        if startPulse > 0 {
+            startPulse -= 1
+            handButtons?[1] |= XRB.menu
+        }
+        // Select held for 3 s toggles the app's panels, once per press.
+        if !selectDown {
+            if selectHeldSince != 0 && !selectFired && selectFromSense && now - selectHeldSince < 0.4 {
+                startPulse = 2
+            }
+            selectHeldSince = 0
+            selectFired = false
+        } else if selectHeldSince == 0 {
+            selectHeldSince = now
+            selectFromSense = senseSelect
+        } else if !selectFired && now - selectHeldSince >= 3.0 {
+            selectFired = true
+            xrLog("[xr] input: Select held 3 s -> toggling the panels")
+            svGamePanelsToggle()
         }
         if #available(visionOS 26.0, *) {
             for h in 0..<2 {
@@ -812,6 +872,11 @@ public func sv_xrhost_head(_ time: Double, _ out: UnsafeMutablePointer<Float>?) 
 @_cdecl("sv_xrhost_frame_present")
 public func sv_xrhost_frame_present(_ d: Int32, _ cmd: UnsafeMutableRawPointer?, _ anchorId: Int32) {
     SVXRHost.shared.present(d, cmd, anchorId)
+}
+
+@_cdecl("sv_xrhost_take_nil_anchors")
+public func sv_xrhost_take_nil_anchors() -> UInt64 {
+    SVXRHost.shared.takeNilAnchorPresents()
 }
 
 @_cdecl("sv_xrhost_frame_finish")

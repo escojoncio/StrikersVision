@@ -18,6 +18,28 @@ extension SVScene {
 @MainActor
 enum SVLauncherWindows {
     static var open = 0
+    static var controlsOpen = false
+    /// openWindow called, the window not on screen yet: set synchronously, so two handlers in the same
+    /// update never open the same window twice (the counters above change only when the window appears).
+    static var launcherOpening = false
+    static var controlsOpening = false
+
+    static func openLauncher(_ action: OpenWindowAction) {
+        guard open == 0 && !launcherOpening else { return }
+        launcherOpening = true
+        action(id: SVScene.launcher)
+        clearOpeningLater()
+    }
+
+    /// If openWindow never creates the window, the flags would stay true for good: clear them after 2 s
+    /// (SVApp also clears them when the app becomes active).
+    static func clearOpeningLater() {
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            launcherOpening = false
+            controlsOpening = false
+        }
+    }
 }
 
 struct SVImmersiveControlsView: View {
@@ -122,8 +144,19 @@ struct SVImmersiveControlsView: View {
             }
         }
         .onAppear {
+            SVLauncherWindows.controlsOpen = true
+            SVLauncherWindows.controlsOpening = false
             // A window the system restored at launch, with no game view open: nothing to control.
             if !game.immersiveOpen { close() }
+        }
+        .onDisappear {
+            SVLauncherWindows.controlsOpen = false
+            SVLauncherWindows.controlsOpening = false
+            // Hidden while paused: the game must not stay paused with no button to resume it.
+            if paused {
+                paused = false
+                sv_set_paused(0)
+            }
         }
         .onChange(of: game.immersiveOpen) { _, open in
             if !open { close() }
@@ -141,7 +174,7 @@ struct SVImmersiveControlsView: View {
             paused = false
             sv_set_paused(0)
         }
-        if SVLauncherWindows.open == 0 { openWindow(id: SVScene.launcher) }
+        if game.panelsVisible { SVLauncherWindows.openLauncher(openWindow) }
         dismissWindow(id: SVScene.controls)
     }
 

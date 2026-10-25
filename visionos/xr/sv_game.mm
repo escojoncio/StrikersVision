@@ -548,6 +548,15 @@ extern "C" void sv_game_ready(void) {
   if (fn != nullptr) fn();
 }
 
+extern "C" void sv_game_panels_toggle(void) {
+  void (*fn)(void) = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(g_lock);
+    fn = g_callbacks.panels_toggle;
+  }
+  if (fn != nullptr) fn();
+}
+
 extern "C" void sv_game_view_mode_changed(int viewMode) {
   void (*fn)(int) = nullptr;
   {

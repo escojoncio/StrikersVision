@@ -42,6 +42,7 @@
 #include <aurora/gfx.hpp>
 #include "../../smstrikers-port/extern/aurora/lib/webgpu/gpu.hpp"
 
+#include <mach/mach_time.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -254,6 +255,16 @@ uint64_t now_ns() {
   return static_cast<uint64_t>(ts.tv_sec) * 1000000000ull + static_cast<uint64_t>(ts.tv_nsec);
 }
 
+// Sleeps `ns` (the game thread between 60 Hz ticks; never called with g_lock held).
+void sleep_ns(uint64_t ns) {
+  static const mach_timebase_info_data_t tb = [] {
+    mach_timebase_info_data_t t;
+    mach_timebase_info(&t);
+    return t;
+  }();
+  mach_wait_until(mach_absolute_time() + ns * tb.denom / tb.numer);
+}
+
 // ---------------------------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------------------------
@@ -355,7 +366,7 @@ struct Settings {
   int haptics = 100;
   float deadzone = 0.12f;
   bool psButtonStart = false;
-  int depth = 0;  // STRIKERS_XR_DEPTH: 0 off, 1 near only, 2 full real depth (for the system)
+  int depth = 2;  // STRIKERS_XR_DEPTH: 0 off, 1 near only, 2 full real depth (for the system)
   int statsSeconds = 5;
 };
 
@@ -702,7 +713,7 @@ void read_settings() {
   s.haptics = sv_env_int("STRIKERS_XR_HAPTICS", 100, 0, 100);
   s.deadzone = sv_env_float("STRIKERS_XR_DEADZONE", 0.12f, 0.0f, 0.4f);
   s.psButtonStart = sv_env_int("STRIKERS_XR_PS_BUTTON", 0, 0, 1) != 0;
-  s.depth = sv_env_int("STRIKERS_XR_DEPTH", 0, 0, 2);
+  s.depth = sv_env_int("STRIKERS_XR_DEPTH", 2, 0, 2);
   s.statsSeconds = sv_env_int("STRIKERS_XR_STATS_SECONDS", 5, 1, 60);
 }
 
@@ -2731,12 +2742,14 @@ void log_stats() {
     const uint64_t pc = g_presentCount.exchange(0), lc = g_lateCount.exchange(0), lm = g_lateMaxUs.exchange(0);
     const uint64_t hold = g_gameLockHoldMaxUs.exchange(0);
     SVLOG("present: late %llu/%llu (worst %.1f ms), newest pair not ready %llu/%llu, frames per game image 1:%llu "
-          "2:%llu 3+:%llu, lock wait display %.2f avg %.2f max ms, game hold max %.2f ms, depth mode %d (%s)",
+          "2:%llu 3+:%llu, lock wait display %.2f avg %.2f max ms, game hold max %.2f ms, no device anchor %llu, depth "
+          "mode %d (%s)",
           static_cast<unsigned long long>(lc), static_cast<unsigned long long>(pc), lm / 1000.0,
           static_cast<unsigned long long>(g.eyeNotReadySinceStats), static_cast<unsigned long long>(g.eyeChecksSinceStats),
           static_cast<unsigned long long>(g.framesPerImage[0]), static_cast<unsigned long long>(g.framesPerImage[1]),
           static_cast<unsigned long long>(g.framesPerImage[2]), g.lockWaitNs / dn, g.lockWaitMaxNs / 1e6, hold / 1000.0,
-          g.set.depth, g.set.depth == 0 ? "off" : (g.set.depth == 1 ? "near" : "full"));
+          static_cast<unsigned long long>(sv_xrhost_take_nil_anchors()), g.set.depth,
+          g.set.depth == 0 ? "off" : (g.set.depth == 1 ? "near" : "full"));
   }
   g.eyeChecksSinceStats = g.eyeNotReadySinceStats = 0;
   g.framesPerImage[0] = g.framesPerImage[1] = g.framesPerImage[2] = 0;
@@ -3092,6 +3105,35 @@ extern "C" int PortXrBeginFrame(void) {
   g.frameBegun = true;
 
   xrnet::poll();
+
+  // Real time since the last iteration decides whether a 60 Hz game frame is due.
+  const uint64_t tickNow = now_ns();
+  if (g.lastTickNs != 0) {
+    g.tickAccumNs += static_cast<int64_t>(tickNow - g.lastTickNs);
+    g.loopIntervalEma = 0.9 * g.loopIntervalEma + 0.1 * static_cast<double>(tickNow - g.lastTickNs);
+    if (!PortNetOnline()) {
+      g.onlineHalfRate = false;
+    } else if (!g.onlineHalfRate && stereo_mode() && g.loopIntervalEma > 15.5e6) {
+      g.onlineHalfRate = true;
+      SVLOG("net: this headset is too slow for 60 online; its 3D view now updates every other frame");
+    }
+  } else {
+    g.tickAccumNs += kGameTickNs;
+  }
+  g.lastTickNs = tickNow;
+  if (g.tickAccumNs > 4 * kGameTickNs) g.tickAccumNs = kGameTickNs;  // after a stall: one frame, no burst
+  const bool due = g.tickAccumNs >= kGameTickNs;
+
+  // No tick due: sleep to the next one (less 1 ms) without the lock, and do none of this frame's work
+  // (input, head prediction) for a game frame that does not run.
+  if (!due) {
+    const int64_t remaining = kGameTickNs - g.tickAccumNs;
+    const int64_t sleepNs = remaining > 1000000 ? remaining - 1000000 : remaining;
+    lock.unlock();
+    sleep_ns(static_cast<uint64_t>(sleepNs));
+    return 0;
+  }
+
   // Controller poses for when this frame is shown (or now, before the first display frame).
   sync_input(g.lastPresentation > 0.0 ? g.lastPresentation + g.displayPeriod : CACurrentMediaTime());
   take_remote_table_pose();
@@ -3125,27 +3167,8 @@ extern "C" int PortXrBeginFrame(void) {
     send_table_pose(true);
   }
 
-  // Real time since the last iteration decides whether a 60 Hz game frame is due.
-  const uint64_t tickNow = now_ns();
-  if (g.lastTickNs != 0) {
-    g.tickAccumNs += static_cast<int64_t>(tickNow - g.lastTickNs);
-    g.loopIntervalEma = 0.9 * g.loopIntervalEma + 0.1 * static_cast<double>(tickNow - g.lastTickNs);
-    if (!PortNetOnline()) {
-      g.onlineHalfRate = false;
-    } else if (!g.onlineHalfRate && stereo_mode() && g.loopIntervalEma > 15.5e6) {
-      g.onlineHalfRate = true;
-      SVLOG("net: this headset is too slow for 60 online; its 3D view now updates every other frame");
-    }
-  } else {
-    g.tickAccumNs += kGameTickNs;
-  }
-  g.lastTickNs = tickNow;
-  if (g.tickAccumNs > 4 * kGameTickNs) g.tickAccumNs = kGameTickNs;  // after a stall: one frame, no burst
-  const bool due = g.tickAccumNs >= kGameTickNs;
-
   // Online: a game frame runs only once both players' input for it is here (xr_net.cpp).
   if (xrnet::lockstep()) {
-    if (!due) return 0;
     xrnet::NetPad local;
     local.buttons = g.localPad.button;
     local.stickX = g.localPad.stickX;
@@ -3157,6 +3180,8 @@ extern "C" int PortXrBeginFrame(void) {
     xrnet::NetPad pad0, pad1;
     if (!xrnet::step(local, &pad0, &pad1)) {
       g.tickAccumNs = std::min<int64_t>(g.tickAccumNs, kGameTickNs);
+      lock.unlock();
+      sleep_ns(500000);  // waiting for the friend's input: no spinning
       return 0;
     }
     g.tickAccumNs -= kGameTickNs;
@@ -3183,11 +3208,8 @@ extern "C" int PortXrBeginFrame(void) {
     sv_pad_clear_virtual(1);
     g.port1Active = false;
   }
-  if (due) {
-    g.tickAccumNs -= kGameTickNs;
-    return 1;
-  }
-  return 0;
+  g.tickAccumNs -= kGameTickNs;
+  return 1;
 }
 
 extern "C" void PortXrEndFrame(int ranGameFrame) {

@@ -4,6 +4,7 @@
 // One game per process (sv_bridge.h): sv_game_start runs once; closing the immersive space only
 // pauses it, and reopening the space hands the same game a new LayerRenderer.
 
+import AVFoundation
 import CompositorServices
 import Foundation
 import SwiftUI
@@ -23,6 +24,9 @@ final class SVGame: ObservableObject {
     /// The XR layer's wish (set_upper_limbs_visible); the scene combines it with the player's setting.
     @Published private(set) var limbsWanted = true
     @Published var immersiveOpen = false
+    /// The launcher and the match controls are on screen while the immersive space is open. Off by
+    /// default in the game (visionOS anchors the audio to app windows); Select held 3 s toggles it.
+    @Published var panelsVisible = true
     /// The game booted far enough to draw (game_ready): the immersive space opens only then, so it
     /// never shows an empty view while the disc and the first scene load.
     @Published private(set) var ready = false
@@ -135,11 +139,36 @@ final class SVGame: ObservableObject {
 
     fileprivate nonisolated static func gameReady() {
         SVLog.log("the game is ready to draw")
-        DispatchQueue.main.async { MainActor.assumeIsolated { SVGame.shared.ready = true } }
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated {
+                SVGame.shared.ready = true
+                SVGame.anchorAudioToPlayer()
+            }
+        }
     }
 
     fileprivate nonisolated static func viewModeChanged(_ mode: Int32) {
         DispatchQueue.main.async { MainActor.assumeIsolated { SVGame.shared.viewMode = mode } }
+    }
+
+    /// Audio anchored in front of the player instead of at the app's windows. Called when the game
+    /// is ready and after the space opens, both after SDL has set up the session.
+    static func anchorAudioToPlayer() {
+        do {
+            try AVAudioSession.sharedInstance().setIntendedSpatialExperience(
+                .headTracked(soundStageSize: .large, anchoringStrategy: .front))
+            SVLog.log("audio: head-tracked, large sound stage, anchored in front")
+        } catch {
+            SVLog.log("audio: could not set the spatial experience: \(error)")
+        }
+    }
+
+    fileprivate nonisolated static func panelsToggle() {
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated {
+                if SVGame.shared.immersiveOpen { SVGame.shared.panelsVisible.toggle() }
+            }
+        }
     }
 
     private func registerCallbacks() {
@@ -150,7 +179,8 @@ final class SVGame: ObservableObject {
             game_ended: svCallbackEnded,
             log_line: svCallbackLogLine,
             view_mode_changed: svCallbackViewMode,
-            game_ready: svCallbackReady))
+            game_ready: svCallbackReady,
+            panels_toggle: svCallbackPanelsToggle))
         sv_register_app_callbacks(callbacks)
     }
 }
@@ -166,6 +196,7 @@ private func svCallbackLogLine(_ line: UnsafePointer<CChar>?) {
 }
 private func svCallbackViewMode(_ mode: Int32) { SVGame.viewModeChanged(mode) }
 private func svCallbackReady() { SVGame.gameReady() }
+private func svCallbackPanelsToggle() { SVGame.panelsToggle() }
 
 /// The CompositorLayer's renderer: handed to the game, kept alive here, and watched until it is
 /// invalidated (the space closed), which the game hears through sv_layer_renderer_invalidated.
