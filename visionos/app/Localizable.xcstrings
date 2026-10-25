@@ -1833,6 +1833,86 @@
           }
         }
       }
+    },
+    "Celebrations: flat pieces only": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Celebraciones: solo piezas planas"
+          }
+        }
+      }
+    },
+    "Draws the celebration pieces as flat quads instead of 3D meshes. For diagnosing slowdowns during celebrations.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dibuja las piezas de la celebración como planos en vez de mallas 3D. Para diagnosticar tirones durante las celebraciones."
+          }
+        }
+      }
+    },
+    "Celebrations: 3D piece budget": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Celebraciones: límite de piezas 3D"
+          }
+        }
+      }
+    },
+    "How much 3D-piece geometry a celebration may draw per eye. Over the limit, the far and landed pieces go first. Lower it if celebrations slow the game down.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuánta geometría de piezas 3D puede dibujar una celebración por ojo. Al pasarse del límite, se quitan primero las piezas lejanas y caídas. Bájalo si las celebraciones ralentizan el juego."
+          }
+        }
+      }
+    },
+    "Very low": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muy bajo"
+          }
+        }
+      }
+    },
+    "Low": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bajo"
+          }
+        }
+      }
+    },
+    "High": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alto"
+          }
+        }
+      }
+    },
+    "No limit": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin límite"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

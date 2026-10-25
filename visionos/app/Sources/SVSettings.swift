@@ -202,6 +202,15 @@ final class SVSettings: ObservableObject {
                          help: "What visionOS gets as the picture's depth. Off: none; the whole stadium shows and nothing cuts it, but real objects never hide the game. Near only: depth just for what is within about 1.2 m of you (the table), so close things hold steady without cutting the far stadium. Full real depth: every pixel; the best reprojection, and furniture hides the game.",
                          kind: .choice([SVOption("0", "Off"), SVOption("1", "Near only"), SVOption("2", "Full real depth")]),
                          defaultValue: "2", live: true),
+            SVSettingDef(key: "STRIKERS_XR_FX_NOMESH", title: "Celebrations: flat pieces only",
+                         help: "Draws the celebration pieces as flat quads instead of 3D meshes. For diagnosing slowdowns during celebrations.",
+                         kind: .toggle(on: "1", off: "0"),
+                         defaultValue: "0", live: true),
+            SVSettingDef(key: "STRIKERS_XR_FX_MAXIDX", title: "Celebrations: 3D piece budget",
+                         help: "How much 3D-piece geometry a celebration may draw per eye. Over the limit, the far and landed pieces go first. Lower it if celebrations slow the game down.",
+                         kind: .choice([SVOption("50000", "Very low"), SVOption("150000", "Low"), SVOption("300000", "Normal"),
+                                        SVOption("600000", "High"), SVOption("4000000", "No limit")]),
+                         defaultValue: "300000", live: true),
         ]),
     ]
 

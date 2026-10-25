@@ -9,7 +9,7 @@
   tope de índices por ojo `STRIKERS_XR_FX_MAXIDX` (300000, far primero, log `fx: index budget`);
   `STRIKERS_XR_FX_NOMESH`; posiciones no finitas fuera del clip; `MTLMathModeSafe` en `sv_shader_library`
   (toda nuestra librería). Archivos: `sv_shaders.h`, `sv_fx.mm`, `sv_xr.mm`, `xr/SETTINGS.md`.
-  Si persiste: probar NOMESH=1 y MAXIDX=50000; si sigue, no es carga → NaN/depth(any).
+  UI: Ajustes > Diagnóstico ("NOMESH" toggle, tope de índices choice; `SVSettings.swift`). Si persiste: NOMESH=1 y MAXIDX=50000; si sigue, no es carga → NaN/depth(any).
 - 2026-10-25 (visor: framerate OK): tirones → hilo del juego ya no gira entre ticks
   (`sv_xr.mm` PortXrBeginFrame duerme; `sync_input`/`predict_eyes` solo en tick; anillo de anclas 64→256 con
   candado en `SVXRHost.swift`; contador `no device anchor N` en la línea `present:`).
