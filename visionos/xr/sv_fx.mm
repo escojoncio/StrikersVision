@@ -1148,7 +1148,7 @@ bool prepare(const Scene& sc) {
   constexpr uint32_t kQuadBucket = 2 * mesh::kCount;
   const V3 head = head_of(sc);
   const float farSq = sc.mr ? 1.1f * 1.1f : 4.0f * 4.0f;
-  const uint32_t maxIdx = static_cast<uint32_t>(sv_env_int("STRIKERS_XR_FX_MAXIDX", 300000, 10000, 4000000));
+  const uint32_t maxIdx = static_cast<uint32_t>(sv_env_int("STRIKERS_XR_FX_MAXIDX", 4000000, 10000, 4000000));
   const bool noMesh = sv_env_int("STRIKERS_XR_FX_NOMESH", 0, 0, 1) != 0;  // diagnostic: pieces as quads
   auto bucket_of = [&](const Particle& q) -> uint32_t {
     if (noMesh || (q.kind != kKindPaper && q.kind != kKindPiece) || q.mesh >= mesh::kCount) return kQuadBucket;

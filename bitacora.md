@@ -4,13 +4,16 @@
 - 2026-10-25: `.claude/agents/coder.md`: maxTurns → 70
 - 2026-10-25: `CLAUDE.md` línea 1: regla de cumplir siempre el rol asignado.
 - 2026-10-25: `CLAUDE.md` (Sub-agent setup): coder maxTurns 40 → 70.
-- 2026-10-25 (CI verde run 40233267657, pendiente de visor): cuadros de tile con colores de sv_fx en celebraciones (solo Apple).
-  Hipótesis unverified: presión del parameter buffer del tiler por varyings de `MeshOut`. Cambios: `MeshOut`
-  sin c1/c2/params (fragment lee `FxInstance` por `inst [[flat]]`, `setFragmentBuffer` índice 1 mismo offset);
-  tope de índices por ojo `STRIKERS_XR_FX_MAXIDX` (300000, far primero, log `fx: index budget`);
-  `STRIKERS_XR_FX_NOMESH`; posiciones no finitas fuera del clip; `MTLMathModeSafe` en `sv_shader_library`
-  (toda nuestra librería). Archivos: `sv_shaders.h`, `sv_fx.mm`, `sv_xr.mm`, `xr/SETTINGS.md`.
-  UI: Ajustes > Diagnóstico ("NOMESH" toggle, tope de índices choice; `SVSettings.swift`). Si persiste: NOMESH=1 y MAXIDX=50000; si sigue, no es carga → NaN/depth(any).
+- 2026-10-26 (pendiente de build y visor): cuadros de celebración = wipe del juego (foto: splash del gol en
+  rejilla con teselas NEGRAS). Causa (unverified en visor): en Tabletop la vista normal es HUD-only
+  (`glPlat.cpp` `xrHudOnly`) y el ScreenGrab del wipe (`ScriptedTransition.cpp` ~565, `ModelTransition.cpp`
+  ~281 → `glPlatGrabFrameBufferToTexture`) capturaba HUD sobre negro. Fix: `xrHudOnly` exige
+  `ScreenTransitionManager::s_pInstance->m_pActiveTransition == NULL` (`glPlat.cpp`, include línea 34).
+  Cosmético pendiente: durante el wipe el panel plano sigue recortado a la cinta del marcador
+  (`PortXrHudOnlyNormalView` sigue a 1).
+- 2026-10-26: sv_fx descartado como causa (NOMESH=1 y tope 50000 no cambiaron nada). Se quedan `MeshOut`
+  reducido, guarda NaN y ajustes Diagnóstico NOMESH/tope; tope por defecto 4000000 (sin límite);
+  `MTLMathModeSafe` revertido.
 - 2026-10-25 (visor: framerate OK): tirones → hilo del juego ya no gira entre ticks
   (`sv_xr.mm` PortXrBeginFrame duerme; `sync_input`/`predict_eyes` solo en tick; anillo de anclas 64→256 con
   candado en `SVXRHost.swift`; contador `no device anchor N` en la línea `present:`).
@@ -28,7 +31,7 @@
   profundidad 2; audio saliendo de los paneles; paneles visibles en partida.
 - Pendiente de probar en la build siguiente: los cuatro arreglos de arriba (nombres de botón Sense
   `Button Options`/`Button Share` y firma exacta de `headTracked(soundStageSize:anchoringStrategy:)` unverified).
-- Celebración de gol: cuadros con colores de sv_fx, solo Apple (Quest bien); ver Last done.
+- Celebración de gol: ver Last done (wipe + HUD-only).
 - Pendiente: hápticos Sense (XPC 4097), SharePlay con Personas, vídeos THP, autotests de Quest.
 
 ## Decisions
@@ -40,7 +43,7 @@
 - visionos/xr/sv_xr.mm, visionos/xr/SVXRHost.swift, visionos/xr/sv_game.mm, visionos/xr/sv_xr.h
 - visionos/include/sv_bridge.h, visionos/xr/SETTINGS.md
 - visionos/app/Sources/{SVApp,SVGame,SVLauncher,SVImmersiveControls,SVSettings}.swift
-- smstrikers-port/extern/aurora/lib/gx/command_processor.cpp (decode-once, sospecha celebración)
+- smstrikers-port/src/NL/gl/glPlat.cpp (xrHudOnly), visionos/xr/sv_fx.mm
 
 ## Module index
 - notas/xr.md: capa XR, hilos, profundidad, app/paneles/audio, Aurora decode-once, gotchas.

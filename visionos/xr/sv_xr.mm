@@ -1846,11 +1846,8 @@ extern "C" void* sv_shader_library(void* mtlDevice) {
   s_library = nil;
   NSError* err = nil;
   const uint64_t t0 = now_ns();
-  // Safe math: fast-math NaN/Inf assumptions let a bad instance position through unchecked (sv_shaders.h).
-  MTLCompileOptions* opts = [MTLCompileOptions new];
-  opts.mathMode = MTLMathModeSafe;
   s_library = [device newLibraryWithSource:[NSString stringWithUTF8String:kSvShadersMsl]
-                                   options:opts
+                                   options:[MTLCompileOptions new]
                                      error:&err];
   if (s_library == nil) {
     SVERR("metal: shader library failed to compile: %s", err.localizedDescription.UTF8String);

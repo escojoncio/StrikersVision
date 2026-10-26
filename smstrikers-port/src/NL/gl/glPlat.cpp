@@ -30,6 +30,7 @@
 #include "NL/gl/glMatrix.h" // strikers-quest: glAllocMatrix/glSetMatrix for the eye re-send
 #include "NL/gl/glView.h"
 #include "port/xr_layers.h"
+#include "Game/Transitions/ScreenTransitionManager.h" // strikers-quest: wipe active -> keep the world in the normal view
 #include <string.h>
 
 // PAL 480i deflicker render mode (first symbol in .data)
@@ -482,7 +483,11 @@ static void glx_SendViews()
 
     dofRange = glConstantGet("dof/range");
 
-    const bool xrHudOnly = !s_xrEyeSend && PortXrHudOnlyNormalView() != 0; // strikers-quest
+    // strikers-quest: while a screen wipe is active the normal view keeps the 3D world, because the
+    // wipe grabs GLTG_Main (ScreenGrab) and shows it; HUD-only would grab the HUD on black.
+    const bool xrWipeActive = ScreenTransitionManager::s_pInstance != NULL
+                              && ScreenTransitionManager::s_pInstance->m_pActiveTransition != NULL;
+    const bool xrHudOnly = !s_xrEyeSend && !xrWipeActive && PortXrHudOnlyNormalView() != 0; // strikers-quest
 
     for (view = 0; view < 0x22; view++)
     {

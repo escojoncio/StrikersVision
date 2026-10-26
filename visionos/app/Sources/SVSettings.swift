@@ -210,7 +210,7 @@ final class SVSettings: ObservableObject {
                          help: "How much 3D-piece geometry a celebration may draw per eye. Over the limit, the far and landed pieces go first. Lower it if celebrations slow the game down.",
                          kind: .choice([SVOption("50000", "Very low"), SVOption("150000", "Low"), SVOption("300000", "Normal"),
                                         SVOption("600000", "High"), SVOption("4000000", "No limit")]),
-                         defaultValue: "300000", live: true),
+                         defaultValue: "4000000", live: true),
         ]),
     ]
 
