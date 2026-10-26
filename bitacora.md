@@ -4,7 +4,7 @@
 - 2026-10-25: `.claude/agents/coder.md`: maxTurns → 70
 - 2026-10-25: `CLAUDE.md` línea 1: regla de cumplir siempre el rol asignado.
 - 2026-10-25: `CLAUDE.md` (Sub-agent setup): coder maxTurns 40 → 70.
-- 2026-10-26 (pendiente de build y visor): cuadros de celebración = wipe del juego (foto: splash del gol en
+- 2026-10-26 (CI verde run 40387474459, pendiente de visor): cuadros de celebración = wipe del juego (foto: splash del gol en
   rejilla con teselas NEGRAS). Causa (unverified en visor): en Tabletop la vista normal es HUD-only
   (`glPlat.cpp` `xrHudOnly`) y el ScreenGrab del wipe (`ScriptedTransition.cpp` ~565, `ModelTransition.cpp`
   ~281 → `glPlatGrabFrameBufferToTexture`) capturaba HUD sobre negro. Fix: `xrHudOnly` exige
