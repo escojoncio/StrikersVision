@@ -20,7 +20,7 @@ OUT=$(mktemp -d)
   done
 } > "$OUT/$NAME.txt"
 
-git config user.name "StrikersVision CI"
+git config user.name "Claude"
 git config user.email "noreply@anthropic.com"
 WORK=$(mktemp -d)
 for ATTEMPT in 1 2 3 4 5; do
