@@ -537,7 +537,8 @@ void fire_jets(const Scene& sc, const Scale& k, float dt) {
 
 // The goal flash: a wash of the scorer's colour over the whole view, fading fast.
 void add_flash(const Scene& sc) {
-  if (room_full()) return;
+  const int flashOn = sv_env_int("STRIKERS_XR_FX_FLASH", 1, 0, 1);
+  if (flashOn == 0 || room_full()) return;
   const V3 head = head_of(sc);
   const float fwd[3] = {-sc.views[0].back.x, -sc.views[0].back.y, -sc.views[0].back.z};
   Particle q{};
@@ -554,6 +555,11 @@ void add_flash(const Scene& sc) {
   q.glow = 0.5f;
   q.life = 0.5f;
   s.parts.push_back(q);
+  static uint32_t flashLogged = 0;  // the first few only: a flash per goal is rare, but never spam
+  if (flashLogged++ < 20) {
+    SVLOG("fx: goal flash added at (%.2f %.2f %.2f) size %.1f colour %06X, STRIKERS_XR_FX_FLASH=%d",
+          q.p[0], q.p[1], q.p[2], q.size, c & 0xFFFFFF, flashOn);
+  }
 }
 
 void step_particles(const Scene& sc, const Scale& k, float dt) {
@@ -665,7 +671,7 @@ struct Gpu {
   id<MTLRenderPipelineState> occluderPipeline;
   id<MTLDepthStencilState> testNoWrite;     // quads
   id<MTLDepthStencilState> testWrite;       // meshes, occluders
-  id<MTLDepthStencilState> always;          // marker, screen flash
+  id<MTLDepthStencilState> always;          // goal flash, marker, screen flash
   id<MTLBuffer> meshVerts;
   id<MTLBuffer> meshIndices;
   FrameBuffers frames[kFrames];
@@ -1142,8 +1148,8 @@ bool prepare(const Scene& sc) {
   }
   FrameBuffers& fb = g.frames[g.frame];
 
-  // Instances, grouped: the 3D pieces mesh by mesh, then the quads (sparks, rockets, the goal
-  // flash), then the marker and the screen flash, for which two slots stay free.
+  // Instances, grouped: the 3D pieces mesh by mesh, then the quads (sparks, rockets), then the
+  // goal flash, the marker and the screen flash, for which three slots stay free.
   // Buckets: full-detail meshes, reduced meshes (pieces far away or lying still), then quads.
   constexpr uint32_t kQuadBucket = 2 * mesh::kCount;
   const V3 head = head_of(sc);
@@ -1162,8 +1168,14 @@ bool prepare(const Scene& sc) {
   std::memset(g.first, 0, sizeof(g.first));
   std::memset(g.filled, 0, sizeof(g.filled));
   uint32_t considered = 0;
+  // The goal flash is drawn apart from the quads (depth ignored), after the particles: one slot.
+  const Particle* flashPart = nullptr;
   for (const Particle& q : s.parts) {
-    if (considered >= kMaxParticles - 2) break;
+    if (considered >= kMaxParticles - 3) break;
+    if (q.kind == kKindFlash) {
+      if (flashPart == nullptr) flashPart = &q;
+      continue;
+    }
     ++filled[bucket_of(q)];
     ++considered;
   }
@@ -1203,6 +1215,7 @@ bool prepare(const Scene& sc) {
   auto* inst = static_cast<Instance*>(fb.instances.contents);
   uint32_t written = 0;
   for (const Particle& q : s.parts) {
+    if (q.kind == kKindFlash) continue;
     if (written++ >= considered) break;
     const uint32_t b = bucket_of(q);
     if (filled[b] >= limit[b]) continue;  // over the budget
@@ -1229,6 +1242,20 @@ bool prepare(const Scene& sc) {
   // The player marker, after the particles: an arrow bobbing over his head, scaled with the table
   // (but never too small to read).
   uint32_t markerCount = 0;
+  if (flashPart != nullptr) {
+    Instance& o = inst[count + markerCount++];
+    o.posSize[0] = flashPart->p[0];
+    o.posSize[1] = flashPart->p[1];
+    o.posSize[2] = flashPart->p[2];
+    o.posSize[3] = flashPart->size;
+    std::memcpy(o.quat, flashPart->q, sizeof(o.quat));
+    o.color1 = flashPart->c1;
+    o.color2 = flashPart->c2;
+    o.params[0] = static_cast<float>(flashPart->shape);
+    o.params[1] = flashPart->aspect;
+    o.params[2] = 1.0f;
+    o.params[3] = flashPart->glow;
+  }
   if (marker) {
     const float scale = sc.tableScale;
     const float bob = 0.25f * std::sin(s.markerTime * 5.0f);

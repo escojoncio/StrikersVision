@@ -1854,6 +1854,26 @@
         }
       }
     },
+    "Goal flash": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Destello del gol"
+          }
+        }
+      }
+    },
+    "Shows the goal flash (a wash of the scorer's colour over the whole view). Off keeps the rest of the celebration. For diagnosing coloured blocks.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muestra el destello del gol (un velo del color del equipo que marca sobre toda la vista). Desactivado deja el resto de la celebración. Para diagnosticar bloques de color."
+          }
+        }
+      }
+    },
     "Celebrations: 3D piece budget": {
       "localizations": {
         "es": {

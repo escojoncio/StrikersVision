@@ -4,10 +4,17 @@
 - 2026-10-25: `.claude/agents/coder.md`: maxTurns → 70
 - 2026-10-25: `CLAUDE.md` línea 1: regla de cumplir siempre el rol asignado.
 - 2026-10-25: `CLAUDE.md` (Sub-agent setup): coder maxTurns 40 → 70.
-- 2026-11-10 (pendiente de build y visor): cuadros de celebración = wipe de teselas del juego (foto: splash del
-  gol con ~mitad de teselas NEGRAS), NO arreglado por el fix `xrHudOnly` (abajo; casi redundante: Game.cpp:593
-  ya pone gameplayLive=false en cutscene/replay). Causa real unverified (H1 grab negro/alfa 0 ~35%, H2 EFB viva
-  sin mundo ~30%, H3 tile memory TBDR ~20%). Build de diagnóstico: log `glx_XrGrabLog` en `glPlat.cpp` (frame
+- 2026-11-10 (pendiente de build y visor): el botón "Probar celebración" (FX_TEST → `PortXrGoal` +
+  `PortXrCelebrationPhase`, sin Wiper/ScreenGrab) REPRODUCE los cuadrados → la teoría del wipe es probablemente
+  errónea. Nueva hipótesis (unverified): el destello del gol (`add_flash` `sv_fx.mm`, quad 3 m a 0,3 m, shape 16,
+  color del equipo: Toad rojo, otros amarillo) falla el test de profundidad contra la profundidad reconstruida
+  gruesa (RGBA8, texel más cercano) → bloques con aristas escalonadas; negro = donde no se dibuja. Fix: el flash
+  sale de los buckets y se dibuja con `g.always` (sin test ni escritura de profundidad), slot propio
+  `inst[count+0]` (tope kMaxParticles-3); ajuste Diagnóstico `STRIKERS_XR_FX_FLASH` (0 = sin destello; si los
+  cuadrados persisten con 0, el flash no es la causa); log `fx: flash ...` (máx 20). Otros candidatos con la misma
+  debilidad: sparks/cohetes `testNoWrite`, piezas `testWrite`, occluders de mesa `write_occluders`.
+  Shape 16 no se tocó (Quest emite `c1*a, a*(1-glow)` a propósito).
+- 2026-11-10: build de diagnóstico del wipe (solo afecta a goles REALES, no al botón de prueba): log `glx_XrGrabLog` en `glPlat.cpp` (frame
   del grab + 3 siguientes: hudOnly, wipeActive, layers, eyeSend, vistas de mundo dibujadas, tamaños), log de
   `present_source` en `sv_xr.mm copy_screen_gpu` (`PortXrNoteGrab`), puente `PortXrDiagFlag(0|1)`
   (`xr_quest.h/.cpp`, `sv_xr.mm`, `sv_bootstrap_stubs.c`). Ajustes Diagnóstico: `STRIKERS_XR_NOWIPE`
