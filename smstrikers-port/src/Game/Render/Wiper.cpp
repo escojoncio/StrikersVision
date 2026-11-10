@@ -4,6 +4,7 @@
 
 #include "NL/nlConfig.h"
 #include "Game/Audio/WorldAudio.h"
+#include "port/xr_quest.h" // strikers-quest: STRIKERS_XR_NOWIPE
 
 extern bool g_ForceDoubleBallTransition;
 
@@ -75,6 +76,12 @@ void Wiper::DoWipe(const char* wipe)
         if (g_ForceDoubleBallTransition != 0)
         {
             wipe = "double_ball";
+        }
+
+        // strikers-quest diagnostic (STRIKERS_XR_NOWIPE): every wipe is a cut.
+        if (PortXrDiagFlag(0) != 0)
+        {
+            return;
         }
 
         wiperCallback.mTransitionActive = true;

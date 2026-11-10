@@ -13,6 +13,7 @@
 #include "NL/gl/glState.h"
 #include "NL/nlString.h"
 #include "Game/Sys/debug.h"
+#include "port/xr_quest.h" // strikers-quest: STRIKERS_XR_GRABNOCLEAR
 
 static const u32 GrabTextureName = glGetTexture("target/grab_texture");
 static const u32 DOFTextureName = glGetTexture("target/dof");
@@ -320,7 +321,7 @@ void glPlatGrabFrameBufferToTexture(unsigned long texture, unsigned int destWidt
     }
 
     GXSetTexCopyDst(destWidth, destHeight, gx_format[pTex->m_Format], halfSize);
-    GXCopyTex(pTex->m_SwizzledData, true);
+    GXCopyTex(pTex->m_SwizzledData, PortXrDiagFlag(1) == 0); // strikers-quest: STRIKERS_XR_GRABNOCLEAR
     GXPixModeSync();
 
     gxSetColourUpdate(colorUpdate);

@@ -2653,6 +2653,13 @@ extern "C" void PortXrNoteItemUse(int current, int next, int blocked) {
 
 extern "C" void PortXrLog(const char* msg) { XLOG("%s", msg); }
 
+extern "C" int PortXrDiagFlag(int which) {
+  const char* e = std::getenv(which == 0 ? "STRIKERS_XR_NOWIPE" : "STRIKERS_XR_GRABNOCLEAR");
+  return (e != nullptr && e[0] == '1') ? 1 : 0;
+}
+
+extern "C" void PortXrNoteGrab(void) {}
+
 // The players on the Tabletop field, drawn bigger (Lance, 2026-10-10: tiny next to the pitch).
 extern "C" float PortXrCharacterScale(void) {
   return (g.active && g.tabletop && !g.stereoFailed) ? g.charScale : 1.0f;
@@ -3206,6 +3213,8 @@ extern "C" void PortXrSetStsMeter(int, float, float, float, float, float) {}
 extern "C" int PortXrTakeTestSts(void) { return 0; }
 extern "C" void PortXrNoteItemUse(int, int, int) {}
 extern "C" void PortXrLog(const char*) {}
+extern "C" int PortXrDiagFlag(int) { return 0; }
+extern "C" void PortXrNoteGrab(void) {}
 extern "C" float PortXrCharacterScale(void) { return 1.0f; }
 extern "C" int PortXrHudOnlyNormalView(void) { return 0; }
 extern "C" int PortXrEyeViewAllowed(int, int) { return 1; }

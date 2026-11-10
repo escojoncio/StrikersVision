@@ -1913,6 +1913,46 @@
           }
         }
       }
+    },
+    "No wipe transitions": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin transiciones de gol"
+          }
+        }
+      }
+    },
+    "Turns every screen wipe (goal transitions) into a straight cut. For diagnosing black tiles in the wipe.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Convierte todas las transiciones de pantalla (las del gol) en un corte directo. Para diagnosticar los cuadros negros del barrido."
+          }
+        }
+      }
+    },
+    "Grab without clear": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Captura sin borrar"
+          }
+        }
+      }
+    },
+    "The screen-transition grab copies the frame without clearing it afterwards. For diagnosing black tiles in the wipe.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La captura de la transición copia el fotograma sin borrarlo después. Para diagnosticar los cuadros negros del barrido."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

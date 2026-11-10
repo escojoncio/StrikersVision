@@ -33,6 +33,8 @@ reads the variable later sees the new value). Unknown keys are ignored; an empty
 | `STRIKERS_XR_FOVEATION` | `0`, `1` | `0` | no | Read by `SVLayerConfiguration` (CompositorLayer setup). Kept off: the compositor does not draw through a rasterization rate map. |
 | `STRIKERS_XR_FX_MAXIDX` | `10000`..`4000000` | `4000000` | yes | Celebrations: cap on 3D-piece mesh indices drawn per eye (sv_fx.mm). Over the cap the far / landed pieces are dropped first, then the near ones; logged once per celebration. |
 | `STRIKERS_XR_FX_NOMESH` | `0`, `1` | `0` | yes | Celebrations, diagnostic: 1 = no 3D-piece meshes (pieces are drawn as flat quads). |
+| `STRIKERS_XR_NOWIPE` | `0`, `1` | `0` | yes | Diagnostic: 1 = every screen wipe (goal transitions) is a straight cut (`Wiper::DoWipe`). Read through `PortXrDiagFlag(0)` each wipe. |
+| `STRIKERS_XR_GRABNOCLEAR` | `0`, `1` | `0` | yes | Diagnostic: 1 = the screen-transition grab (`glPlatGrabFrameBufferToTexture`) copies without clearing the frame buffer. Read through `PortXrDiagFlag(1)` each grab. |
 | `STRIKERS_XR_FX_TEST` | `<n>:<commands>` | unset | yes | Celebration self-test (sv_fx.mm). A new `<n>` runs the `;`-separated commands once: `goal <class> [super] [hyper] [own]` (eCharacterClass 0 Birdo .. 11 Yoshi, -1 neutral), `replay`, `end`, `skip`, `live`, `state` (logs what is alive). Goes through `PortXrGoal` / `PortXrCelebrationPhase`, so the buzz and the replay jumbotron follow. The match controls window's "Test the goal celebration" sends it. |
 
 ## Game-side variables the app also sets

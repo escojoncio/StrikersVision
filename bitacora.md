@@ -4,13 +4,19 @@
 - 2026-10-25: `.claude/agents/coder.md`: maxTurns → 70
 - 2026-10-25: `CLAUDE.md` línea 1: regla de cumplir siempre el rol asignado.
 - 2026-10-25: `CLAUDE.md` (Sub-agent setup): coder maxTurns 40 → 70.
-- 2026-10-26 (CI verde run 40387474459, pendiente de visor): cuadros de celebración = wipe del juego (foto: splash del gol en
-  rejilla con teselas NEGRAS). Causa (unverified en visor): en Tabletop la vista normal es HUD-only
-  (`glPlat.cpp` `xrHudOnly`) y el ScreenGrab del wipe (`ScriptedTransition.cpp` ~565, `ModelTransition.cpp`
-  ~281 → `glPlatGrabFrameBufferToTexture`) capturaba HUD sobre negro. Fix: `xrHudOnly` exige
-  `ScreenTransitionManager::s_pInstance->m_pActiveTransition == NULL` (`glPlat.cpp`, include línea 34).
-  Cosmético pendiente: durante el wipe el panel plano sigue recortado a la cinta del marcador
-  (`PortXrHudOnlyNormalView` sigue a 1).
+- 2026-11-10 (pendiente de build y visor): cuadros de celebración = wipe de teselas del juego (foto: splash del
+  gol con ~mitad de teselas NEGRAS), NO arreglado por el fix `xrHudOnly` (abajo; casi redundante: Game.cpp:593
+  ya pone gameplayLive=false en cutscene/replay). Causa real unverified (H1 grab negro/alfa 0 ~35%, H2 EFB viva
+  sin mundo ~30%, H3 tile memory TBDR ~20%). Build de diagnóstico: log `glx_XrGrabLog` en `glPlat.cpp` (frame
+  del grab + 3 siguientes: hudOnly, wipeActive, layers, eyeSend, vistas de mundo dibujadas, tamaños), log de
+  `present_source` en `sv_xr.mm copy_screen_gpu` (`PortXrNoteGrab`), puente `PortXrDiagFlag(0|1)`
+  (`xr_quest.h/.cpp`, `sv_xr.mm`, `sv_bootstrap_stubs.c`). Ajustes Diagnóstico: `STRIKERS_XR_NOWIPE`
+  (`Wiper.cpp DoWipe` retorna como un cut: bypass del artefacto) y `STRIKERS_XR_GRABNOCLEAR`
+  (`glxTarget.cpp` GXCopyTex clear=false). Leer: líneas de grab en strikers-log.txt + probar ambos toggles.
+  Pendiente menor: `g_ForceDoubleBallTransition` no se resetea con NOWIPE. Sin leer aún: TransitionSequence.cpp.
+- 2026-10-26 (CI verde run 40387474459): fix `xrHudOnly` exige `ScreenTransitionManager::s_pInstance->
+  m_pActiveTransition == NULL` (`glPlat.cpp`, include línea 34). No resolvió los cuadros. Cosmético: durante el
+  wipe el panel plano sigue recortado a la cinta del marcador (`PortXrHudOnlyNormalView` sigue a 1).
 - 2026-10-26: sv_fx descartado como causa (NOMESH=1 y tope 50000 no cambiaron nada). Se quedan `MeshOut`
   reducido, guarda NaN y ajustes Diagnóstico NOMESH/tope; tope por defecto 4000000 (sin límite);
   `MTLMathModeSafe` revertido.

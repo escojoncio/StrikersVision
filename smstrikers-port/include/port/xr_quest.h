@@ -74,6 +74,11 @@ void PortXrNoteItemUse(int current, int next, int blocked);
 float PortXrCharacterScale(void);
 /* One line to the headset log (logcat tag strikers_xr). */
 void PortXrLog(const char* msg);
+/* Diagnostics, read live each call: which 0 = STRIKERS_XR_NOWIPE (Wiper::DoWipe behaves as a cut),
+ * 1 = STRIKERS_XR_GRABNOCLEAR (the ScreenGrab copy does not clear the frame buffer). 0/1. */
+int PortXrDiagFlag(int which);
+/* glPlat.cpp: the screen-transition grab just ran; the headset layer logs the next 3 screen copies. */
+void PortXrNoteGrab(void);
 void PortCelebrationPoll(void);
 
 /* The game's pad rumble, mirrored to the Touch controllers (pad 0 only). The preset is

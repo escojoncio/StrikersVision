@@ -1504,6 +1504,9 @@ void use_cpu_screen(const char* why) {
   SVWARN("screen: GPU copy unavailable (%s); reading frames back to the CPU instead", why);
 }
 
+// Diagnostic: PortXrNoteGrab (the game just grabbed the frame for a wipe) arms 3 screen-copy log lines.
+std::atomic<int> g_grabLogLeft{0};
+
 // After synchronize(): the newest game frame into the next screen IOSurface, copied by Dawn.
 void copy_screen_gpu() {
   if (g.gpuScreenError.load()) {
@@ -1512,6 +1515,10 @@ void copy_screen_gpu() {
   }
   const auto& src = aurora::webgpu::present_source();
   if (!src.texture || src.size.width == 0 || src.size.height == 0) return;
+  if (g_grabLogLeft.load() > 0) {
+    SVLOG("grab: +%d screen copy, present_source %ux%u", 4 - g_grabLogLeft.fetch_sub(1), src.size.width,
+          src.size.height);
+  }
   if (src.format != wgpu::TextureFormat::RGBA8Unorm) {
     use_cpu_screen("Aurora's frame is not RGBA8Unorm");
     return;
@@ -3048,6 +3055,12 @@ extern "C" void PortXrNoteItemUse(int current, int next, int blocked) {
 }
 
 extern "C" void PortXrLog(const char* msg) { SVLOG("%s", msg != nullptr ? msg : ""); }
+
+extern "C" int PortXrDiagFlag(int which) {
+  return sv_env_int(which == 0 ? "STRIKERS_XR_NOWIPE" : "STRIKERS_XR_GRABNOCLEAR", 0, 0, 1);
+}
+
+extern "C" void PortXrNoteGrab(void) { g_grabLogLeft.store(3); }
 
 extern "C" float PortXrCharacterScale(void) { return character_scale(); }
 

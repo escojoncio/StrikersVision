@@ -57,6 +57,8 @@ void PortXrSetStsMeter(int shown, float x, float y, float z, float halfU, float 
 int PortXrTakeTestSts(void) { return 0; }
 void PortXrNoteItemUse(int current, int next, int blocked) { (void)current; (void)next; (void)blocked; }
 void PortXrLog(const char* msg) { fprintf(stderr, "[xr] %s\n", msg != NULL ? msg : ""); }
+int PortXrDiagFlag(int which) { (void)which; return 0; }
+void PortXrNoteGrab(void) {}
 float PortXrCharacterScale(void) { return 1.0f; }
 int PortXrHudOnlyNormalView(void) { return 0; }
 int PortXrEyeViewAllowed(int view, int tableLayer) { (void)view; (void)tableLayer; return 1; }

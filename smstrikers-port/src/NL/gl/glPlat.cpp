@@ -32,6 +32,7 @@
 #include "port/xr_layers.h"
 #include "Game/Transitions/ScreenTransitionManager.h" // strikers-quest: wipe active -> keep the world in the normal view
 #include <string.h>
+#include <stdio.h> // strikers-quest: wipe-grab diagnostic line
 
 // PAL 480i deflicker render mode (first symbol in .data)
 static GXRenderModeObj glPal480IntDf = { VI_TVMODE_PAL_INT,
@@ -105,6 +106,8 @@ extern "C" int  PortXrStereoEyeLayer(int eye, int layer, float view[16], float p
 extern "C" void PortXrStereoEyeEnd(int eye);
 extern "C" void PortXrStereoFrameEnd(void);
 extern "C" int  PortXrHudOnlyNormalView(void);
+extern "C" void PortXrLog(const char* msg);
+extern "C" void PortXrNoteGrab(void);
 extern "C" int  PortXrEyeViewAllowed(int view, int tableLayer);
 // Aurora (dolphin/gx/GXAurora.h): marks draws Aurora may decode once per frame and reuse per send.
 extern "C" void GXAuroraSetDecodeScope(unsigned char on);
@@ -452,6 +455,18 @@ static inline GXColor glx_GetFogColour()
     return c;
 }
 
+// strikers-quest: diagnostic for the black wipe tiles. One line on the frame a view grabs the frame
+// buffer (ScreenGrab), then one per normal send for the 3 frames after it.
+static void glx_XrGrabLog(const char* tag, bool hudOnly, bool wipe, int worldViews, int dstW, int dstH, int srcW)
+{
+    char msg[200];
+    snprintf(msg, sizeof(msg),
+             "grab %s: hudOnly %d wipeActive %d layers %d eyeSend %d worldViewsDrawn %d dst %dx%d src %dx448",
+             tag, hudOnly ? 1 : 0, wipe ? 1 : 0, PortXrLayersActive() ? 1 : 0, s_xrEyeSend ? 1 : 0, worldViews,
+             dstW, dstH, srcW);
+    PortXrLog(msg);
+}
+
 /**
  * Offset/Address/Size: 0x45C | 0x801B4A50 | size: 0x470
  */
@@ -488,6 +503,11 @@ static void glx_SendViews()
     const bool xrWipeActive = ScreenTransitionManager::s_pInstance != NULL
                               && ScreenTransitionManager::s_pInstance->m_pActiveTransition != NULL;
     const bool xrHudOnly = !s_xrEyeSend && !xrWipeActive && PortXrHudOnlyNormalView() != 0; // strikers-quest
+
+    static int s_grabLogsLeft = 60;  // diagnostic: cap on the lines a long session can write
+    static int s_postGrabFrames = 0; // diagnostic: normal sends still to log after a grab
+    int xrWorldViewsDrawn = 0;       // diagnostic: views < 25 that had a non-empty display list
+    bool xrGrabbedThisFrame = false;
 
     for (view = 0; view < 0x22; view++)
     {
@@ -537,6 +557,11 @@ static void glx_SendViews()
                 glx_ShadowTextureGrab();
             }
             continue;
+        }
+
+        if (!isEmpty && view < 25)
+        {
+            xrWorldViewsDrawn++;
         }
 
         fenceMetricPending = 0;
@@ -668,9 +693,32 @@ static void glx_SendViews()
 
             textureHandle = glGetTexture("target/grab_texture");
             tex = glx_GetTex(textureHandle, false, true);
+            if (!s_xrEyeSend && !xrGrabbedThisFrame && s_grabLogsLeft > 0)
+            {
+                s_grabLogsLeft--;
+                xrGrabbedThisFrame = true;
+                glx_XrGrabLog("now", xrHudOnly, xrWipeActive, xrWorldViewsDrawn, (int)(PortLogicalFrameWidth() / 2),
+                              (int)tex->m_Height, (int)PortLogicalFrameWidth());
+                PortXrNoteGrab();
+            }
             // PORT: the frame is PortLogicalFrameWidth() wide, not 640.
             glGrabFrameBufferToTexture(textureHandle, PortLogicalFrameWidth() / 2, tex->m_Height,
                                        0, 0, PortLogicalFrameWidth(), 0x1C0);
+        }
+    }
+
+    if (!s_xrEyeSend)
+    {
+        if (xrGrabbedThisFrame)
+        {
+            s_postGrabFrames = 3;
+        }
+        else if (s_postGrabFrames > 0)
+        {
+            char tag[8];
+            snprintf(tag, sizeof(tag), "+%d", 4 - s_postGrabFrames);
+            s_postGrabFrames--;
+            glx_XrGrabLog(tag, xrHudOnly, xrWipeActive, xrWorldViewsDrawn, 0, 0, (int)PortLogicalFrameWidth());
         }
     }
 
